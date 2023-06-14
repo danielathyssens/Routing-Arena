@@ -1,0 +1,27 @@
+# @package _global_
+# policy config
+
+policy: "GLS"
+
+policy_cfg:
+  first_solutions_strategy: 'PATH_CHEAPEST_ARC'   #  'SAVINGS', 'PATH_CHEAPEST_ARC'
+  local_search_strategy: 'GUIDED_LOCAL_SEARCH'
+  solution_limit: #None
+  verbose: False
+  log_search: False
+  int_prec: 1000
+
+# cvrp50_unf, time_limit: 2
+# {'cost_mean': 12.281560368342781, 'cost_std': 1.5091321831272788,
+#  'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+#  'run_time_mean': 2.001014783857414, 'run_time_total': 1024.519569334996, 'num_infeasible': 0}
+
+# cvrp50_unf, time_limit: 4
+# {'cost_mean': 12.20986657684628, 'cost_std': 1.497440073089218,
+#  'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+#  'run_time_mean': 4.000846963166012, 'run_time_total': 2048.433645140998, 'num_infeasible': 0}
+
+# cvrp50_unf, time_limit: 8
+# {'cost_mean': 12.09486215259497, 'cost_std': 1.48786659241656,
+# 'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 8.000353649843717, 'run_time_total': 4096.181068719983, 'num_infeasible': 0}

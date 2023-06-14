@@ -1,0 +1,23 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'golden'
+out_name: ${problem}_${coords_dist}
+data_file_path: data/test_data/cvrp/Golden
+normalize_data: True
+checkpoint_load_path: models/POMO/POMO/${problem}/POMO/result/saved_CVRP100_model/uchoa/checkpoint-8100.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}

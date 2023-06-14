@@ -1,0 +1,23 @@
+# @package _global_
+# policy config
+
+policy: "TBS"
+
+policy_cfg:
+  first_solutions_strategy: 'SAVINGS'
+  local_search_strategy: 'TABU_SEARCH'
+  solution_limit: #None
+  verbose: False
+  log_search: False
+  int_prec: 1000
+
+
+# cvrp50_unf, time_limit: 2
+#{'cost_mean': 12.255993989765585, 'cost_std': 1.5285906986331457,
+# 'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 2.0020456086348375, 'run_time_total': 1025.0473516210368, 'num_infeasible': 0}
+
+# cvrp50_unf, time_limit: 4
+# {'cost_mean': 12.22693548556893, 'cost_std': 1.5252949675259087,
+# 'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 4.002361403464754, 'run_time_total': 2049.209038573954, 'num_infeasible': 0}

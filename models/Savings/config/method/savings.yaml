@@ -1,0 +1,2 @@
+
+savings_criterion: 'clarke_wright' # Options are 'clarke_wright', 'gaskell_lambda', 'gaskell_pi'
