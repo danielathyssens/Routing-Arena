@@ -1,0 +1,54 @@
+# @package _global_
+
+# tensorboard --host localhost --port 8080 --logdir=./outputs
+
+run_type: "resume"
+debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
+global_seed: 1234
+cuda: True
+CPU_passMark: 2744
+GPU_passMark: None
+
+train_cfg:
+  val_dataset:
+  val_size: 1000
+  checkpoint_save_path: ${checkpoint_save_path}
+  use_cuda: USE_CUDA
+  cuda_device_num: 0
+  epochs: 8100
+  train_episodes: 10000  # 10 * 1000
+  train_batch_size: 64
+  prev_model_path: None
+  optimizer_cfg:
+    optimizer:
+      lr: 1e-4
+      weight_decay: 1e-5
+    scheduler:
+      milestones: [ 8001, 8051 ]
+      gamma: 0.1
+  logging:
+    model_save_interval: 5 # 500
+    img_save_interval: 500
+    log_image_params_1:
+      json_foldername: log_image_style
+      filename: style_cvrp_20.json
+    log_image_params_2:
+      json_foldername: log_image_style
+      filename: style_loss_1.json
+  model_load:
+    enable: True  # enable loading pre-trained model
+    path: 'models/POMO/POMO/cvrp/POMO/result/saved_ckpts'  # directory path of pre-trained model and log files saved.
+    epoch: 90  # epoch version of pre-trained model to laod.
+
+
+# global paths and logging
+log_lvl: INFO
+tb_log_path: 'logs/tb/'
+logger_cfg:
+  log_file:
+  desc: 'logs_i/'  # train_${problem}_n${graph_size}_with_${coords_dist}
+log_path: 'logs/'
+checkpoint_save_path: 'checkpoints/'
+checkpoint_load_path: 'models/POMO/POMO/cvrp/POMO/result/saved_ckpts/checkpoint-90.pt'
+#models/POMO/POMO/${problem}/result/Saved_CVRP100_Model/ACTOR_state_dic.pt
+#models/POMO/POMO/cvrp/result/Saved_CVRP100_Model/ACTOR_state_dic.pt

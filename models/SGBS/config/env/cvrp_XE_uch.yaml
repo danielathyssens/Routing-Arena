@@ -1,0 +1,24 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+XE_type: XE_1
+out_name: ${problem}_${XE_type}_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
+normalize_data: True
+checkpoint_load_path: models/SGBS/SGBS/${problem}/1_pre_trained_model/Saved_CVRP100_Model/${coords_dist}/checkpoint-30500.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}

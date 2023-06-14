@@ -1,0 +1,15 @@
+# @package _global_
+# policy config
+
+policy: "SGBS"
+
+
+model_cfg:
+  embedding_dim: 128
+  sqrt_embedding_dim: 11.3137 # 128**(1/2)
+  encoder_layer_num: 6
+  qkv_dim: 16
+  head_num: 8
+  logit_clipping: 10
+  ff_hidden_dim: 512
+  # eval_type: 'argmax'
