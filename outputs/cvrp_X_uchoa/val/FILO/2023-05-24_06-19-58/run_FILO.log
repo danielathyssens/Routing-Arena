@@ -1,0 +1,121 @@
+2023/05/24 06:19:58 __main__: problem: cvrp
+graph_size: null
+coords_dist: uchoa
+out_name: ${problem}_X_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/X
+normalize_data: false
+env_kwargs:
+  generator_args: null
+  sampling_args: null
+policy: FILO
+policy_cfg:
+  num_workers: 6
+  filo_exe_path: ./models/FILO/lib/filo/build/filo
+  int_prec: 10000
+run_type: val
+number_runs: 3
+debug_lvl: 0
+global_seed: 1234
+cuda: false
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: implicit
+  save_solutions: true
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  fixed_dataset: true
+  data_file_path: ${data_file_path}
+  dataset_size: 50
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
+
+2023/05/24 06:20:00 models.runner_utils: torch.cuda.is_available() False
+2023/05/24 06:20:00 models.runner_utils: cfg.cuda False
+2023/05/24 06:20:00 models.runner_utils: Running val-run on cpu
+2023/05/24 06:20:01 models.runner_utils: CPU Specs: cpu_name: Intel(R) Core(TM) i7-10850H CPU @ 2.70GHz, threads_per_cpu: 2, total_cores: 6
+2023/05/24 06:20:01 models.runner_utils: Different per-instance Time Budgets. Size-dependent Time Limits are loaded with instances in Dataset...
+2023/05/24 06:20:01 models.FILO.runner: Per Instance Time Limit is set for each instance separately after loading data.
+2023/05/24 06:20:01 data.base_dataset: Test Data provided, No new samples are generated.
+2023/05/24 06:20:01 data.base_dataset: BKS file should exists for /home/thyssens/git/Research/L2O/routing-arena/data/test_data/cvrp/uchoa/X
+2023/05/24 06:20:01 data.base_dataset: Loading Best Known Solutions from /home/thyssens/git/Research/L2O/routing-arena/data/test_data/cvrp/uchoa/X/BKS_X.pkl
+2023/05/24 06:20:01 data.base_dataset: BaseSol file should exists for /home/thyssens/git/Research/L2O/routing-arena/data/test_data/cvrp/uchoa/X
+2023/05/24 06:20:01 data.base_dataset: Loading Base Solver Results (for WRAP eval.) from /home/thyssens/git/Research/L2O/routing-arena/data/test_data/cvrp/uchoa/X/BaseSol_X.pkl
+2023/05/24 06:20:01 data.base_dataset: Loaded 100 BKS for the test (val) set.
+2023/05/24 06:20:01 data.base_dataset: Loading dataset from: /home/thyssens/git/Research/L2O/routing-arena/data/test_data/cvrp/uchoa/X
+2023/05/24 06:20:01 data.base_dataset: Loading .vrp instances...
+2023/05/24 06:20:01 data.cvrp_dataset: 50 Test/Validation Instances for cvrp with None uchoa-distributed customers loaded.
+2023/05/24 06:20:01 metrics.metrics: Base Reference for this machine in metrics initialisation set to 2000
+2023/05/24 06:20:01 models.FILO.runner: Run-time dependent parameters: cpu Device (threads: 6), Adjusted Time Budget: None / instance.
+2023/05/24 06:20:01 models.FILO.runner: Parallelize search runs: running 6 instances in parallel at a time.
+2023/05/24 06:20:01 models.FILO.runner: running inference 1/3...
+2023/05/24 08:28:30 models.FILO.runner: Starting Evaluation for run 1/3 with time limit None for FILO
+2023/05/24 08:28:30 data.base_dataset: Saving solution trajectory for instance X-n439-k37
+2023/05/24 08:28:30 metrics.metrics: Cost 136461.62963106815 for instance X-n733-k159 not found in time limit. Original runtime is 802.0. Normalized runtime is 1088.314. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 136469.0 found in 1020.464 and break.
+2023/05/24 08:28:30 metrics.metrics: Cost 119502.0 for instance X-n979-k58 not found in time limit. Original runtime is 829.0. Normalized runtime is 1124.953. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 119511.0 found in 1031.32 and break.
+2023/05/24 08:28:30 metrics.metrics: Cost 194562.0 for instance X-n837-k142 not found in time limit. Original runtime is 787.0. Normalized runtime is 1067.959. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 194571.0 found in 724.638 and break.
+2023/05/24 08:28:30 metrics.metrics: Cost 72767.0 for instance X-n1001-k43 not found in time limit. Original runtime is 780.0. Normalized runtime is 1058.46. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 72779.0 found in 1010.965 and break.
+2023/05/24 08:28:30 metrics.metrics: Cost 89084.78331959309 for instance X-n856-k95 not found in time limit. Original runtime is 784.0. Normalized runtime is 1063.888. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 89096.0 found in 1046.247 and break.
+2023/05/24 08:28:30 metrics.metrics: Cost 54086.0 for instance X-n895-k37 not found in time limit. Original runtime is 892.0. Normalized runtime is 1210.444. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 54087.0 found in 945.829 and break.
+2023/05/24 08:28:30 metrics.metrics: Cost 99618.0 for instance X-n876-k59 not found in time limit. Original runtime is 818.0. Normalized runtime is 1110.026. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 99624.0 found in 968.898 and break.
+2023/05/24 08:28:30 metrics.metrics: Cost 158970.0 for instance X-n819-k171 not found in time limit. Original runtime is 782.0. Normalized runtime is 1061.174. Global Time Limit is 1054.389
+2023/05/24 08:28:30 metrics.metrics: Working with last cost found in time limit: Cost_last 158975.0 found in 1050.318 and break.
+2023/05/24 08:28:30 models.runner_utils: WRAP = 1 for 8 instances out of 50.
+2023/05/24 08:28:30 models.runner_utils: FILO did not solve the following instances: []
+2023/05/24 08:28:30 models.runner_utils: Stats for run 1/3:
+2023/05/24 08:28:30 models.runner_utils: =================================
+2023/05/24 08:28:30 models.runner_utils: 
+Instance X-n439-k37 Cost: 36410.95294437347, 
+Instance X-n439-k37 PI: 0.1675665665390902, 
+Instance X-n439-k37 WRAP: 1.0, 
+Instance X-n439-k37 Run Time (best sol found): 259.0, 
+Instance X-n439-k37 Run Time (total): 777.0
+2023/05/24 08:28:30 models.runner_utils: 
+Instance X-n733-k159 Cost: 136461.62963106815, 
+Instance X-n733-k159 PI: 0.49798113702101965, 
+Instance X-n733-k159 WRAP: 0.22903343649192254, 
+Instance X-n733-k159 Run Time (best sol found): 802.0, 
+Instance X-n733-k159 Run Time (total): 1297.0
+2023/05/24 08:28:30 models.runner_utils: 
+Instance X-n242-k48 Cost: 82857.1008553735, 
+Instance X-n242-k48 PI: 0.16174917835909408, 
+Instance X-n242-k48 WRAP: 0.09609443604846932, 
+Instance X-n242-k48 Run Time (best sol found): 172.0, 
+Instance X-n242-k48 Run Time (total): 428.0
+2023/05/24 08:28:30 models.runner_utils: 
+Instance X-n153-k22 Cost: 21231.653088587405, 
+Instance X-n153-k22 PI: 0.06795121665468251, 
+Instance X-n153-k22 WRAP: 0.011392228412020916, 
+Instance X-n153-k22 Run Time (best sol found): 71.02, 
+Instance X-n153-k22 Run Time (total): 271.0
+2023/05/24 08:28:30 models.runner_utils: 
+Instance X-n469-k138 Cost: 223055.21626435174, 
+Instance X-n469-k138 PI: 0.6945496784925842, 
+Instance X-n469-k138 WRAP: 0.15700464553689597, 
+Instance X-n469-k138 Run Time (best sol found): 735.0, 
+Instance X-n469-k138 Run Time (total): 830.0
+2023/05/24 08:28:30 models.runner_utils: 
+Average cost: 68172.84735320727 +/- 59548.117803283654, 
+Average PI: 0.4636671215768753 +/- 0.3016902013040293, 
+Average WRAP: 0.34932433331313106 +/- 0.3525852972871081, 
+Average Run Time (best sol found): 382.98302 +/- 315.1820497075612, 
+Average Run Time (total): 796.02 +/- 465.5946516015836
+2023/05/24 08:28:32 models.runner_utils: CPU Specs: cpu_name: Intel(R) Core(TM) i7-10850H CPU @ 2.70GHz, threads_per_cpu: 2, total_cores: 6
+2023/05/24 08:28:32 models.runner_utils: Storing Results of run 1 in /home/thyssens/git/Research/L2O/routing-arena/outputs/cvrp_X_uchoa/val/FILO/2023-05-24_06-19-58/logs/
+2023/05/24 08:28:32 models.FILO.runner: running inference 2/3...

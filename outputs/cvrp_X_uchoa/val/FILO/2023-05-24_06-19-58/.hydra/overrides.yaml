@@ -1,0 +1,6 @@
+- env=cvrp_X_uch
+- test_cfg.save_solutions=True
+- test_cfg.time_limit=implicit
+- test_cfg.dataset_size=50
+- policy_cfg.num_workers=6
+- number_runs=3

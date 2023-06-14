@@ -1,0 +1,40 @@
+problem: cvrp
+graph_size: null
+coords_dist: uchoa
+out_name: ${problem}_X_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/X
+normalize_data: false
+env_kwargs:
+  generator_args: null
+  sampling_args: null
+policy: FILO
+policy_cfg:
+  num_workers: 6
+  filo_exe_path: ./models/FILO/lib/filo/build/filo
+  int_prec: 10000
+run_type: val
+number_runs: 3
+debug_lvl: 0
+global_seed: 1234
+cuda: false
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: implicit
+  save_solutions: true
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  fixed_dataset: true
+  data_file_path: ${data_file_path}
+  dataset_size: 50
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
