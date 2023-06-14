@@ -1,0 +1,19 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+XE_type: XE_1
+# data/test_data/cvrp/uchoa/XE/XE_1 --> size 101
+# data/test_data/cvrp/uchoa/XE/XE_2 --> size 125
+# ...
+out_name: ${problem}_${XE_type}_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
+normalize_data: False
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:

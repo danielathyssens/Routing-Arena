@@ -1,0 +1,25 @@
+# @package _global_
+# policy config
+
+policy: "LKH"
+
+policy_cfg:
+  num_workers: 8 #1
+  model_path: #
+  lkh_exe_path: "./models/NeuroLKH/LKH"
+  max_trials: 10000
+  int_prec: 10000
+  batch_size: 1
+  #TRACE_LEVEL: 1
+
+# TIME_LIMIT: round(${test_cfg.time_limit} / (${CPU_passMark} / ${CPU_BASE_REF}))   # ${test_cfg.time_limit}
+
+# cvrp50_unf, max_trials=100:
+# {'cost_mean': 11.740063499571335, 'cost_std': 1.4335089813410204,
+# 'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0,
+# 'run_time_mean': 0.2304279296875, 'run_time_total': 117.9791}
+
+# cvrp50_unf, max_trials=1000:
+# {'cost_mean': 11.689013329039227, 'cost_std': 1.4211023335208428,
+# 'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 3.443786419921875, 'run_time_total': 1763.218647, 'num_infeasible': 0}

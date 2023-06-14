@@ -1,0 +1,68 @@
+# @package _global_
+
+# tensorboard --host localhost --port 8080 --logdir=./outputs
+
+run_type: train
+debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
+global_seed: 1234
+cuda: True
+CPU_passMark:
+GPU_passMark:
+
+# global paths and logging
+log_lvl: INFO
+tb_logging: False
+tb_log_path: 'logs/tb/'
+log_path: 'logs/'
+checkpoint_save_path: 'checkpoints/'
+checkpoint_load_path:
+
+# NLNS Search Train CFG
+mode: train
+validation_seed: 0
+device: cuda
+round_distances: True
+split_delivery: False
+lns_nb_cpus: 8 # 8  # 10
+
+# Model Training CFG
+train_opts_cfg:
+  run_name: 1             # needs to be int for NLNS
+  split_delivery: False
+  output_path: ${output_path}
+  actor_lr: 1e-4
+  critic_lr: 5e-4
+  max_grad_norm: 2.
+  batch_size: 256            # duplicate with global batch_size
+  pointer_hidden_size: 128
+  critic_hidden_size: 128
+  nb_train_batches: 250000
+  nb_batches_training_set: 1500
+  lns_destruction_p: 0.1
+  lns_destruction: "P"
+  instance_blueprint: # XE_1,  ALTR_100
+  valid_size: 500
+  test_size: 2000
+  validation_seed: 0
+  lns_max_iterations: 50000
+  lns_timelimit: 180
+  lns_batch_size: 125
+  lns_t_max: 1000
+  lns_t_min: 10
+  lns_reheating_nb: 5
+  lns_Z_param: 0.8
+  lns_adaptive_search: False  # default=False
+  round_distances: True
+  device: ${device}
+  transform_args:
+    mode: train
+    data_type: ${data_key}
+
+test_cfg:
+  data_file_path:          # data/test_data/cvrp/uniform/cvrp20_test_seed1234.pkl
+  checkpoint_load_path:
+  dataset_size:
+
+val_dataset:             # Dataset file to use for validation
+val_size: ${valid_size}             # Number of instances used for reporting validation performance
+generator_args: {}

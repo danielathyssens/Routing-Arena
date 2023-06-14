@@ -1,0 +1,31 @@
+# @package _global_
+# policy config
+
+model: 'NLNS'
+
+# Training
+actor_lr: 1e-4
+critic_lr: 5e-4
+max_grad_norm: 2.
+batch_size: 256            # duplicate with global batch_size
+pointer_hidden_size: 128
+critic_hidden_size: 128
+nb_train_batches: 250000
+nb_batches_training_set: 1500
+lns_destruction_p: 0.3
+lns_destruction: "P"
+instance_blueprint: "XE_1"
+valid_size: 500
+
+# NLNS Search Params
+lns_max_iterations: 50000  # 50000       # Is ignored by single instance search
+lns_batch_size: 2 #128
+lns_t_max: 1000
+lns_t_min: 10
+lns_reheating_nb: 5
+lns_Z_param: 0.8
+lns_adaptive_search: False  # default=False
+nb_runs: 1
+
+
+lns_timelimit_validation: ${lns_timelimit_validation:${lns_timelimit},${valid_size},${test_size}}

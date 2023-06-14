@@ -1,0 +1,20 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: 'XML'
+# ...
+out_name: ${problem}_${graph_size}_${coords_dist}
+# after download is finished:
+  # - rename the folder from Vrp-Set-XML100 to XML100
+  # - data_file_path below should change to data/test_data/cvrp/XML100/instances
+data_file_path: data/test_data/cvrp/XML100/subsampled/instances
+normalize_data: True
+checkpoint_load_path: models/AM/pretrained/${problem}_${graph_size}/uchoa/epoch-99.pt
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:

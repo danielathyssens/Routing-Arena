@@ -1,0 +1,34 @@
+# @package _global_
+# policy config
+
+policy: "hygese"
+
+policy_cfg:
+  nbIter: 20000
+  useSwapStar: True
+  hgs_exe_path:
+
+#works with precision of 1000 --> x_coords = (np.random.rand(n) * 1000) with n=20
+#Default Params
+#@dataclass
+#class AlgorithmParameters:
+#    nbGranular: int = 20
+#    mu: int = 25
+#    lambda_: int = 40
+#    nbElite: int = 4
+#    nbClose: int = 5
+#    targetFeasible: float = 0.2
+#    seed: int = 1
+#    nbIter: int = 20000
+#    timeLimit: float = 0.0
+#    useSwapStar: bool = True
+
+# cvrp50_unf, time_limit: 2
+#{'cost_mean': 12.255993989765585, 'cost_std': 1.5285906986331457,
+# 'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 2.0020456086348375, 'run_time_total': 1025.0473516210368, 'num_infeasible': 0}
+
+# cvrp50_unf, time_limit: 4
+# {'cost_mean': 12.22693548556893, 'cost_std': 1.5252949675259087,
+# 'num_vehicles_mean': 8.0, 'num_vehicles_std': 0.0, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 4.002361403464754, 'run_time_total': 2049.209038573954, 'num_infeasible': 0}

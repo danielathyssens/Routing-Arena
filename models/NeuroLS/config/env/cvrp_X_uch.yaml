@@ -1,0 +1,36 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+out_name: ${problem}_X_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/X
+normalize_data: True
+checkpoint_load_path: models/NeuroLS/checkpoints/cvrp_100_uniform/SELECT_EPSILON-SELECT_LS+-ALL/ep22_model_rew=0.005784.ckpt
+num_iters: 10000
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:
+
+
+# Model VecEnv cfg
+env_cfg:
+  share_memory: False
+  fixed_dataset: False
+  create_nbh_graph: True    # automatically set to False for FFEncoder
+  k_nbh_frac: 16
+
+# overrides for validation env
+val_env_cfg:
+  fixed_dataset: True
+  data_file_path: data/val_data/cvrp/uchoa100_seed1234_size512.pt
+  # data/CVRP/cvrp${graph_size}/data_val_seed123_size512_${coords_dist}.pt
+
+# overrides for test env
+tester_cfg:
+  test_env_cfg:
+    fixed_dataset: True
+    data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed123_size512.pt

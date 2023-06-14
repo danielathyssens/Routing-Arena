@@ -1,0 +1,17 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'golden'
+out_name: ${problem}_${coords_dist}
+data_file_path: data/test_data/cvrp/Golden
+normalize_data: False
+checkpoint_load_path: models/DPDP/DPDP/logs/${problem}_uchoa100/best_val_loss_checkpoint.tar
+heatmap_load_path: models/DPDP/DPDP/results/${problem}/${problem}_uchoa100_val_seed4321/heatmaps/heatmaps_${problem}_uchoa100.pkl
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:

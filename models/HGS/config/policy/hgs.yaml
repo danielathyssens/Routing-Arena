@@ -1,0 +1,29 @@
+# @package _global_
+# policy config
+
+policy: "HGS"
+explicit_name: False
+
+policy_cfg:
+  num_workers: 1 #8
+  hgs_exe_path: "./models/HGS/HGS/build/hgs"
+  nbIter: 20000
+  int_precision: 1000 # 000
+  #TRACE_LEVEL: 1
+
+
+#Call with: ./hgs instancePath solPath [-it nbIter] [-t myCPUtime] [-bks bksPath] [-seed mySeed] [-veh nbVehicles] [-log verbose]
+#[-it <int>] sets a maximum number of iterations without improvement. Defaults to 20,000
+#[-t <double>] sets a time limit in seconds. If this parameter is set, the code will be run iteratively until the time limit
+#[-seed <int>] sets a fixed seed. Defaults to 0
+#[-veh <int>] sets a prescribed fleet size. Otherwise a reasonable UB on the fleet size is calculated
+#[-round <bool>] rounding the distance to the nearest integer or not. It can be 0 (not rounding) or 1 (rounding). Defaults to 1.
+#[-log <bool>] sets the verbose level of the algorithm log. It can be 0 or 1. Defaults to 1.
+
+#Additional Arguments:
+#[-nbGranular <int>] Granular search parameter, limits the number of moves in the RI local search. Defaults to 20
+#[-mu <int>] Minimum population size. Defaults to 25
+#[-lambda <int>] Number of solutions created before reaching the maximum population size (i.e., generation size). Defaults to 40
+#[-nbElite <int>] Number of elite individuals. Defaults to 5
+#[-nbClose <int>] Number of closest solutions/individuals considered when calculating diversity contribution. Defaults to 4
+#[-targetFeasible <double>] target ratio of feasible individuals in the last 100 generatied individuals. Defaults to 0.2

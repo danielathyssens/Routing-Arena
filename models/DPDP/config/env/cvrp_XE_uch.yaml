@@ -1,0 +1,21 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+XE_type: XE_1
+# data/test_data/cvrp/uchoa/XE/XE_1 --> size 101
+# data/test_data/cvrp/uchoa/XE/XE_2 --> size 125
+# ...
+out_name: ${problem}_${XE_type}_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
+normalize_data: False
+checkpoint_load_path: models/DPDP/DPDP/logs/${problem}_${coords_dist}100/best_val_loss_checkpoint.tar
+heatmap_load_path: models/DPDP/DPDP/results/${problem}/${problem}_${coords_dist}100_val_seed4321/heatmaps/heatmaps_${problem}_${coords_dist}100.pkl
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:

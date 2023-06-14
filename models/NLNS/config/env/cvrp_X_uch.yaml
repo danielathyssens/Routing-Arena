@@ -1,0 +1,18 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+out_name: ${problem}_X_${coords_dist}
+# NLNS does not work for mixed-size dataset - run on specific instance (one at a time)
+data_file_path: data/test_data/cvrp/uchoa/X  #/X-n101-k25.vrp
+normalize_data: True
+integer_precision: 10000  # for model
+data_key: XE  # for model
+checkpoint_load_path: models/NLNS/NLNS/trained_models/cvrp/XE_1
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:

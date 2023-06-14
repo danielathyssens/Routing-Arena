@@ -1,0 +1,21 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: 'uniform'
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed4321_size512.pkl
+normalize_data: True
+checkpoint_load_path: models/AM/pretrained/${problem}_${graph_size}/${coords_dist}/epoch-99.pt
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+  sampling_args:
+    sample_size: 1024
+    graph_size: ${graph_size}
+    k: 16
+    cap: 50

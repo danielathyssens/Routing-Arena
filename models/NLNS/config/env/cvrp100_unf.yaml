@@ -1,0 +1,28 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: 'uniform'
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed4321_size512.pkl
+normalize_data: False
+data_key: uniform  # for model
+integer_precision: 10000  # for model
+checkpoint_load_path: models/NLNS/NLNS/trained_models/cvrp/altr_C_${graph_size}
+# checkpoint_load_path: models/NLNS/NLNS/trained_models/cvrp/altr_C_20 # NOTE: N = 20
+# checkpoint_load_path: models/NLNS/NLNS/trained_models/cvrp/altr_C_50 # NOTE: N = 50
+# checkpoint_load_path: models/NLNS/NLNS/trained_models/cvrp/altr_C_100 # NOTE: N = 100
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    k: 12
+    cap: 50
+    max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+    n_depots: 1 #number of depots (default = 1)

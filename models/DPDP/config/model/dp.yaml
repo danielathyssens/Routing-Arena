@@ -1,0 +1,31 @@
+# @package _global_
+# model parameters
+
+# POLICY model
+# policy_cfg:
+#  embedding_dim: 128
+model: "DPDP"
+
+
+# eval options
+eval_opts_cfg:
+  o: None                               # Name of the results file to write
+  width: 0
+  decode_strategy: dpdp                 # Deep Policy Dynamic Programming (dpdp) or Deep Policy Beam Search (dpbs)
+  beam_size: 100000                     # Sizes of beam to use for beam search/DP
+  score_function: heatmap_potential     # Policy/score function to use to select beam: 'cost', 'heatmap' or 'heatmap_potential'
+  no_progress_bar: False                # Disable progress bar
+  verbose: False                        # Set to show statistics
+  num_processes: 1                      # Number of processes to use per device (cpu or gpu). ONLY WORKING FOR 1 curr.
+  # heatmap: None                       # Heatmaps to use --> WILL BE TREATED LIKE MODEL CHECKPOINT FOR EVAL
+  heatmap_threshold: 1e-5               # Use sparse graph based on heatmap treshold
+  knn:                                  # Use sparse knn graph
+  kthvalue_method: sort                 # Which kthvalue method to use for dpdp ('auto' = auto determine)
+  skip_oom: True                        # Skip batch when out of memory
+  offset: 0                             # Offset where to start in dataset (default 0)
+  system_info:
+    used_device_count: 1
+    used_num_processes: 0
+    devices: 0
+    cpu_count: 0
+    memory_gb: 16

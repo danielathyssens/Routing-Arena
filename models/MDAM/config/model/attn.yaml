@@ -1,0 +1,21 @@
+# @package _global_
+# model parameters
+
+# POLICY model
+# policy_cfg:
+#  embedding_dim: 128
+model: "MDAM"
+
+# model params
+model_cfg:
+  model_type: "Attention"
+  model_args:
+    embedding_dim: 128
+    hidden_dim: 128
+    n_encode_layers: 3
+    tanh_clipping: 10.0
+    normalization: batch
+    checkpoint_encoder:
+    shrink_size: 20           # Shrink bs if at least this many instances in batch are finished
+    n_paths: 5
+    n_EG: 2 # 200

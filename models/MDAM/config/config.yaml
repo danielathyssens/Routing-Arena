@@ -1,0 +1,30 @@
+# @package _global_
+# primary config file for experiments
+
+defaults:
+  - _self_
+  - env: cvrp100_uch
+  - model: attn
+  - baseline: rollout
+  - meta: run
+  - override hydra/job_logging: simple
+#  - mk: mk3
+#  - hp_override: none
+#  - override hydra/job_logging: simple
+
+hydra:
+  # standard output path
+  # change with command line argument: hydra.run.dir=XXX
+  run:
+    dir: outputs/${out_name}/${run_type}/${model}/${now:%Y-%m-%d_%H-%M-%S}
+
+  # overwrite root log level
+  job_logging:
+    root:
+      level: ${log_lvl}
+
+  #
+  # help flag output. customize for application
+  help:
+    # App name, override to match the name your app is known by
+    app_name: ${hydra.job.name}.py - train or evaluate specified models according to config.

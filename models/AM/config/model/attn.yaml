@@ -1,0 +1,26 @@
+# @package _global_
+# model parameters
+
+# POLICY model
+# policy_cfg:
+#  embedding_dim: 128
+model: "AM"
+
+# model params
+model_cfg:
+  model_type: "Attention"
+  model_args:
+    hidden_dim: 128
+    num_layers: 3
+    tanh_clipping: 10.0
+    norm_type: "batch"
+
+# eval options
+eval_opts_cfg:
+  o: None
+  width: ${test_cfg.sample_size}
+  decode_strategy: ${test_cfg.decode_type}
+  eval_batch_size: ${test_cfg.eval_batch_size}
+  max_calc_batch_size: 10000
+  compress_mask: True
+  softmax_temperature: 1

@@ -1,0 +1,9 @@
+# @package _global_
+# policy config
+
+policy: "FILO"
+
+policy_cfg:
+  num_workers: 6
+  filo_exe_path: "./models/FILO/lib/filo/build/filo"
+  int_prec: 10000

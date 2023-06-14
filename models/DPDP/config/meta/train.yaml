@@ -1,0 +1,47 @@
+# @package _global_
+
+# tensorboard --host localhost --port 8080 --logdir=./outputs
+
+run_type: "train"
+debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
+global_seed: 1234
+cuda: True
+
+# global paths and logging
+log_lvl: INFO
+tb_logging: False
+tb_log_path: 'logs/tb/'
+log_path: 'logs/'
+checkpoint_save_path: 'checkpoints/'
+checkpoint_load_path:
+  # None    # Path to load model parameters and optimizer state from#
+
+data_file_path: #          # data/test_data/cvrp/uniform/cvrp20_test_seed1234.pkl
+heatmap_load_path: #
+val_dataset: #              # Dataset file to use for validation
+val_size: 10000             # Number of instances used for reporting validation performance
+generator_args: {}
+
+
+train_opts_cfg:
+  run_name: 'run'             # Name to identify the run
+  use_cuda: False
+  device: "cpu"
+  graph_size: 20              # The size of the problem graph
+  val_size: 10000
+  batch_size: 512             # Number of instances per batch during training
+  epoch_size: 1280000         # Number of instances per epoch during training
+  lr_model: 1e-4              # Set the learning rate for the actor network
+  lr_critic: 1e-4             # Set the learning rate for the critic network
+  lr_decay: 1.0               # Learning rate decay per epoch
+  eval_only: False            # Set this value to only evaluate model
+  max_grad_norm: 1.0          # Max. L2 norm for grad-clipping,default 1.0 (0 to disable clipping)
+  exp_beta: 0.8               # Exponential moving average baseline decay (default 0.8)
+  baseline: None              # Baseline: 'rollout','critic','exponential'. Default: no baseline.
+  bl_alpha: 0.05              # Significance in the t-test for updating rollout baseline
+  bl_warmup_epochs: 1         # Number epochs to warmup the baseline, default None = 1 (rollout)
+  eval_batch_size: 1024       # Batch size to use during (baseline) evaluation
+  checkpoint_encoder: False   # Set to decrease memory usage by checkpointing encoder
+  data_distribution: None     # Data distribution to use during training (depends on problem)
+  no_progress_bar: False      # Disable progress bar
+  log_step: 50                # Log info every log_step steps'

@@ -1,0 +1,38 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+XE_type: XE_1
+out_name: ${problem}_${XE_type}_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
+normalize_data: True
+integer_precision: 10000  # for model
+data_key: XE  # for model
+checkpoint_load_path: models/NLNS/NLNS/trained_models/cvrp/${XE_type}
+
+# description model checkpoints NLNS (Uchoa Data):
+  #          N,Dep,Cust, Dem.,   Q:
+  #XE 1     100 R RC(7) 1-100   206
+  #XE 2     124 R C(5)  Q       188
+  #XE 3     128 E RC(8) 1-10    39
+  #XE 4     161 C RC(8) 50-100  1174
+  #XE 5     180 R C(6)  U       8
+  #XE 6     185 R R     50-100  974
+  #XE 7     199 R C(8)  Q       402
+  #XE 8     203 C RC(6) 50-100  836
+  #XE 9     213 C C(4)  1-100   944
+  #XE 10    218 E R     U       3
+  #XE 11    236 E R     U       18
+  #XE 12    241 E R     1-10    28
+  #XE 13    269 C RC(5) 50-100  585
+  #XE 14    274 R C(3)  U       10
+  #XE 15    279 E R     SL      192
+  #XE 16    293 C R     1-100   285
+  #XE 17    297 R R     1-100   55
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:
