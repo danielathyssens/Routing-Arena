@@ -54,7 +54,6 @@ class Runner:
         OmegaConf.set_struct(self.cfg, False)
 
         # Model acronym
-        # TODO incorp different versions of POMO (single_traj vs PomoSize=N)
         self.acronym, self.acronym_ls = self.get_acronym(model_name="POMO", pomo_cfg=self.cfg.tester_cfg)
 
         # Name to identify run
@@ -121,7 +120,6 @@ class Runner:
         self._build_env()
         self._build_model()
         if self.cfg.run_type in ["val", "test"]:
-            print('self.cfg.data_file_path', self.cfg.data_file_path)
             if self.cfg.data_file_path is not None and self.passMark is not None \
                     and self.cfg.test_cfg.eval_type != "simple":
                 assert self.device in [torch.device("cpu"), torch.device("cuda")], \
@@ -184,7 +182,6 @@ class Runner:
         """Load and prepare data and initialize GORT routing models."""
         from models.or_tools.or_tools import ParallelSolver
         policy_cfg = self.cfg.test_cfg.ls_policy_cfg.copy()
-        # print('policy_cfg', policy_cfg)
         self.policy_ls = ParallelSolver(
             problem=self.cfg.problem,
             solver_args=policy_cfg,
@@ -296,8 +293,6 @@ class Runner:
             # check if not surpassed construction time budget and still have time for search in Time Budget
             time_for_ls = self.per_instance_time_limit_ls if self.per_instance_time_limit_ls is not None \
                 else np.mean([d.time_limit for d in self.ds.data])
-            print('np.mean(time_constr)', np.mean(time_constr))
-            print('np.mean([d.time_limit for d in self.ds.data])', np.mean([d.time_limit for d in self.ds.data]))
             if np.mean(time_constr) < time_for_ls:
                 logger.info(f"\n finished construction... starting LS")
                 sols_search = self.policy_ls.solve(self.ds.data,
@@ -420,17 +415,17 @@ class Runner:
 
     def get_acronym(self, model_name: str, pomo_cfg: DictConfig):
         acronym, acronym_ls = model_name, None
-        print('str(pomo_cfg.aug_factor)', str(pomo_cfg.aug_factor))
         augmentation = str(pomo_cfg.aug_factor) if pomo_cfg.augmentation_enable else 'no'
         pomo_size = str(pomo_cfg.pomo_size)
-        print('augmentation', augmentation)
-        print('pomo_size', pomo_size)
         if self.cfg.run_type in ["val", "test"]:
             model_name_aug = model_name + '_aug_' + augmentation
             # if augmentation != 'no':
             #     model_name_aug = model_name + '_aug_' + augmentation
             if pomo_size == '1':
                 model_name_aug = model_name_aug + '_greedy'
+                logger.info(f"Evaluating POMO with greedy rollout")
+            else:
+                logger.info(f"Evaluation POMO with sampling - sampling size set to {pomo_size}")
             if self.cfg.test_cfg.add_ls:
                 ls_policy = str(self.cfg.test_cfg.ls_policy_cfg.local_search_strategy).upper()
                 acronym_ls = ''.join([word[0] for word in ls_policy.split("_")])

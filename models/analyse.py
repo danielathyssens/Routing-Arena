@@ -9,6 +9,7 @@ from data import CVRPDataset, TSPDataset
 from models import runner_utils
 from metrics.metrics import Metrics
 from typing import Optional, Dict, Union, List
+import glob
 import warnings
 
 INSTANCE_SET_TYPES = ["X", "XE", "uniform", "uchoa"]
@@ -105,22 +106,14 @@ class Analyser:
         set_metric_means = {}
         for set_type in set_type_list:
             set_TL_list = info_dct[set_type].keys() if TLs_list is None else TLs_list
-            print('set_type', set_type)
-            print('set_TL_list', set_TL_list)
-            print('self.info_dct[set_type].keys()', info_dct[set_type].keys())
             TLs = [TL for TL in set_TL_list if TL in info_dct[set_type].keys()]
             TLs_sort = [int(TL[3:]) for TL in TLs]
             TLs_sort.sort()
-            print('TLs_sort init', TLs_sort)
             TLs_sort = [TLs_sort[0]] if across_sets else TLs_sort
-            print('TLs_sort after', TLs_sort)
             metric_means = {}
             for TL in TLs_sort:
                 set_model_list = info_dct[set_type]["TL_" + str(TL)].keys() \
                     if model_names_list is None else model_names_list
-                print('set_model_list', set_model_list)
-                print('self.info_dct[set_type]["TL_" + str(TL)].keys()',
-                      info_dct[set_type]["TL_" + str(TL)].keys())
                 models_list = [modl for modl in set_model_list if
                                modl in info_dct[set_type]["TL_" + str(TL)].keys()]
                 models_list = [modl for modl in models_list if metric_name
@@ -139,7 +132,6 @@ class Analyser:
                 else:
                     save_dr = os.path.join(self.results_dir, set_type)
             if across_timeLimit:
-                print('metric_means', metric_means)
                 plot_metric_across_TL(metric_means, metric.upper(), set_type,
                                       save_dr, TLs_sort)
             else:
@@ -193,42 +185,26 @@ class Analyser:
                           set_name: str = None, inst_ids: List = None):
         fig, ax = plt.subplots()
         set_name = set_name if set_name is not None else list(self.info_dct.keys())[0]
-        print('set_name', set_name)
         inst_ids = list(self.insts_dct.keys()) if inst_ids is None else inst_ids
         TL_results = self.info_dct[set_name].keys()
         TL_results = [int(TL[3:]) for TL in TL_results]
         TL_results.sort()
         TL_results = ["TL_" + str(t_l) for t_l in TL_results]
-        print('TL_results', TL_results)
-        print('inst_ids', inst_ids)
-        print('Time Limit', timelimit)
         model_name_list = self.info_dct[set_name][
             list(TL_results)[-1]].keys() if model_name_list is None else model_name_list
         means_across_time_all = []
         for model_n in model_name_list:
             model_means_across_time, tl_list = [], []
             for tl in TL_results:
-                print('tl', tl)
-                print('tl[3:]', tl[3:])
                 if int(tl[3:]) <= timelimit:
-                    print("list(self.info_dct[set_name][tl][model_n]['gap_to_bks'].values()",
-                          list(self.info_dct[set_name][tl][model_n]['gap_to_bks'].values()))
                     model_mean_tl = np.mean(list(self.info_dct[set_name][tl][model_n]['gap_to_bks'].values()))
-                    print('model_mean_tl', model_mean_tl)
                     model_means_across_time.append(model_mean_tl)
                     result_tl = int(tl[3:])
-                    print('result_tl', result_tl)
-                    print('timelimit', timelimit)
                     percentage_time = round((result_tl / timelimit) * 100)
-                    print('percentage_time', percentage_time)
                     tl_list.append(percentage_time)
             means_across_time_all.append(model_means_across_time)
-            print('tl_list', tl_list)
-            print('model_means_across_time', model_means_across_time)
             xi_ticks = list(range(len(tl_list)))
-            # xi_ticks = [np.log(t_i) for t_i in range(len(tl_list))]
             ax.plot(xi_ticks, model_means_across_time, label=model_n)
-            # ax.set_xscale('log')
         save_name = os.path.join(save_dir, 'gaps_over_time')
 
         plt.xticks(xi_ticks, tl_list)
@@ -253,29 +229,15 @@ class Analyser:
             fig, ax = plt.subplots() if not plot_inst else plt.subplots(1, 2, figsize=(8, 4))
             for cs, ts, model_name, final_cost, final_runtime in zip(c_lists, t_lists, model_names_list, final_costs,
                                                                      final_runtimes):
-                print('inst_id', inst_id)
-                print('cs[inst_id]', cs[inst_id])
                 if cs[inst_id] is not None:
                     if full_trajectories:
                         # append final run_time and final cost
                         if ts[inst_id][-1] < int(TL[3:]):
-                            print('ts[inst_id][-5:]', ts[inst_id][-5:])
-                            print('final_runtime[inst_id]', final_runtime[inst_id])
-                            print('cs[inst_id][-5:]', cs[inst_id][-5:])
-                            print('final_cost[inst_id]', final_cost[inst_id])
                             if final_cost[inst_id] <= cs[inst_id][-1]:
                                 cs[inst_id].append(final_cost[inst_id])
                             else:
                                 cs[inst_id].append(cs[inst_id][-1])
                             ts[inst_id].append(final_runtime[inst_id])
-                            print('ts[inst_id][-5:]', ts[inst_id][-5:])
-                            print('cs[inst_id][-5:]', cs[inst_id][-5:])
-
-                    # print('model_name', model_name)
-                    # print('cs[inst_id][:5]', cs[inst_id][:5])
-                    # print('ts[inst_id][:5]', ts[inst_id][:5])
-                    # print('len(cs[inst_id])', len(cs[inst_id]))
-                    # print('len(cs[inst_id]) > 1', len(cs[inst_id]) > 1)
                     if len(cs[inst_id]) > 1 and inst_id in cs.keys():
                         if not plot_inst:
                             if plot_gaps:
@@ -343,24 +305,14 @@ class Analyser:
                 ax[0].annotate(i, (locations[i, 0], locations[i, 1]),
                                xytext=(locations[i, 0] + 0.012, locations[i, 1] + 0.012),
                                fontsize='medium', fontweight='roman')
-        # fig.set_figheight(15)
-        # if ax.geometry() != geometry:
-        #     ax.change_geometry(*geometry)
-        # ax = fig.axes.append(ax)
-        # fig.axes.append(ax_plot)
         save_name = os.path.join(save_dr, 'subplot_plttd_trajectories_' + instance_id)
         plt.legend()
         plt.savefig(save_name + '.pdf')
         plt.show()
-        # ax1.plot(x, y)
-        # ax2.plot(x, -y)
 
     def get_info_dct(self) -> Dict:
         main_dir_name = self.results_dir.split("/")[-1]
         sub_main_dir_name = self.results_dir.split("/")[-2]
-        print('main_dir_name', main_dir_name)
-        print('sub_main_dir_name', sub_main_dir_name)
-        # print('self.TL', self.TL)
         make_final_dct, make_sub_final_dct = False, False
         if main_dir_name not in INSTANCE_SET_TYPES:
             make_final_dct = True
@@ -368,20 +320,15 @@ class Analyser:
             make_sub_final_dct = True
         results_dct = {}
         dir_entry_names = [str(dir_n).split(" ")[1][:-1][1:-1] for dir_n in list(os.scandir(self.results_dir))]
-        print('dir_entry_names', dir_entry_names)
-        print('self.TL', self.TL)
         if self.TL is not None and "TL_" + str(self.TL[0]) in dir_entry_names:
             filter_dir_list = [dir_n for dir_n in list(os.scandir(self.results_dir)) if
                                str(dir_n).split(" ")[1][:-1][1:-1] in ["TL_" + str(tl) for tl in self.TL]]
         else:
             filter_dir_list = os.scandir(self.results_dir)
-        print('filter_dir_list', filter_dir_list)
         for dir_ in filter_dir_list:
-            print('dir_', dir_)
             if not dir_.is_file():
                 results_dct[dir_.name] = {}
                 sub_dir_entry_names = [str(dir_n).split(" ")[1][:-1][1:-1] for dir_n in list(os.scandir(dir_))]
-                print('sub_dir_entry_names', sub_dir_entry_names)
                 if self.TL is not None and "TL_" + str(self.TL[0]) in sub_dir_entry_names:
                     filter_sub_dir_list = [dir_n for dir_n in list(os.scandir(dir_)) if
                                            str(dir_n).split(" ")[1][:-1][1:-1] in ["TL_" + str(tl) for tl in self.TL]]
@@ -396,12 +343,10 @@ class Analyser:
                 # print('filter_sub_dir_list', filter_sub_dir_list)
                 # for sub_dir in os.scandir(dir_):
                 for sub_dir in filter_sub_dir_list:
-                    print('sub_dir', sub_dir)
                     if not sub_dir.is_file():
                         results_dct[dir_.name][sub_dir.name] = {}
                         sub_sub_dir_entry_names = [str(dir_n).split(" ")[1][:-1][1:-1] for dir_n in
                                                    list(os.scandir(sub_dir))]
-                        print('sub_sub_dir_entry_names', sub_sub_dir_entry_names)
                         if self.TL is not None and "TL_" + str(self.TL[0]) in sub_sub_dir_entry_names:
                             filter_sub_sub_dir_list = [dir_n for dir_n in list(os.scandir(sub_dir)) if
                                                        str(dir_n).split(" ")[1][:-1][1:-1] in ["TL_" + str(tl) for tl in
@@ -468,12 +413,10 @@ class Analyser:
 
     def get_instances(self):
         data_type = self.results_dir.split("saved_results")[-1]
-        print('data_type', data_type)
         if data_type == "XE_avg":
             # update data_type
             data_type = "XE"
         data_type_set_name = data_type.split("/")[-1] if data_type.split("/")[1] in ['XE', 'XE_avg'] else None
-        print('data_type', data_type)
         try:
             # print('DATA_STORE_PATHS[data_type.split("/")[1]]', DATA_STORE_PATHS[data_type.split("/")[1]])
             data_store_path = DATA_STORE_PATHS[data_type.split("/")[1]]
@@ -482,7 +425,6 @@ class Analyser:
             data_store_path = DATA_STORE_PATHS[updated_key]
         if data_type_set_name is not None:
             data_store_path = os.path.join(data_store_path, data_type_set_name)
-        print('data_store_path', data_store_path)
         dataset = self.ds_class(
             store_path=data_store_path,
             re_evaluate=True,
@@ -531,14 +473,12 @@ DATA_STORE_PATHS = {
     "cvrp_50_uniform": "data/test_data/cvrp/uniform/cvrp50",
     "XML": "data/test_data/XML",
     "cvrp_100_XML": "data/test_data/cvrp/XML100/subsampled/instances",
-    "Li": "data/test_data/Li"
 }
 
 C_METHODS = ["AM", "MDAM", "POMO", "SGBS", "Savings"]
 
 
 def extract_data(path):
-    print('path in extract data', path)
     if "trajectory" in path:
         inst_id = path.split("/")[-1].split("_")[2]
         value_list = torch.load(path)
@@ -549,15 +489,7 @@ def extract_data(path):
     elif "run_avg_results" in path:
         # if "run_avg" in path:
         res_dct = torch.load(path, map_location=torch.device('cpu'))
-        # else:
-        #     res_dct = None
-        # if "run_1" in path:
-        #     res_dct_1 = torch.load(path, map_location=torch.device('cpu'))
-        # elif "run_2" in path:
-        #     res_dct_2 = torch.load(path, map_location=torch.device('cpu'))
-        # elif "run_3" in path:
-        #     res_dct_2 = torch.load(path, map_location=torch.device('cpu'))
-        print('path', path)
+        print('Getting Problem Instances from: ', path)
         if isinstance(res_dct, dict):
             sol_tuples = res_dct["solutions"]
         else:
@@ -565,10 +497,6 @@ def extract_data(path):
         # if None not in [sol.pi_score for sol in sol_tuples] and None not in [sol.wrap_score for sol in sol_tuples]:
         pi_list = [sol.pi_score for sol in sol_tuples if sol.pi_score is not None]
         wrap_list = [sol.wrap_score for sol in sol_tuples if sol.wrap_score is not None]
-        print('pi_list', pi_list)
-        print('wrap_list', wrap_list)
-        print('sol.cost         ', [sol.cost for sol in sol_tuples])
-        print('gap_bks(sol.cost, sol.instance.BKS)', [gap_bks(sol.cost, sol.instance.BKS) for sol in sol_tuples])
         return {
             "final_costs": {str(sol.instance.instance_id): sol.cost for sol in sol_tuples},
             "total_runtimes": {str(sol.instance.instance_id): sol.run_time for sol in sol_tuples},
@@ -594,7 +522,6 @@ def plot_metric_across_sets(metric_values: Dict, metric_name: str, save_dir: str
     set_name_lst = metric_values.keys()
     model_set_metrics = {}
     for i, set_name in enumerate(metric_values):
-        print('metric_values[set_name]', metric_values[set_name])
         for model_name in metric_values[set_name]:
             if model_name not in model_set_metrics.keys() and i == 0:
                 model_set_metrics[model_name] = [metric_values[set_name][model_name][0][1]]
@@ -607,9 +534,7 @@ def plot_metric_across_sets(metric_values: Dict, metric_name: str, save_dir: str
         for model_n in model_set_metrics.keys():
             if len(model_set_metrics[model_n]) - 1 != i:
                 model_set_metrics[model_n].append(None)
-            print('len(model_set_metrics[model_n])', len(model_set_metrics[model_n]))
     for model_name in model_set_metrics.keys():
-        print('model_set_metrics[model_name]', model_set_metrics[model_name])
         ax.plot(np.arange(len(set_name_lst)), model_set_metrics[model_name], label=model_name)
     plt.xticks(np.arange(len(set_name_lst)), set_name_lst)
     plt.xlabel('Data Sets')
@@ -626,28 +551,14 @@ def plot_metric_across_sets(metric_values: Dict, metric_name: str, save_dir: str
 def plot_metric_across_TL(metric_values: Dict, metric_name: str, set_type: str, save_dir: str, TL_lst: List):
     fig, ax = plt.subplots()
     for i, model_name in enumerate(metric_values):
-        # print('np.arange(len(TL_lst))', np.arange(len(TL_lst)))
-        # print('metric_values[model_name]', metric_values[model_name])
-        # if len(TL_lst) == len(metric_values[model_name]):
-        #     ax.plot(np.arange(len(TL_lst)), metric_values[model_name], label=model_name)
-        # else:
-        print('metric_values[model_name]', metric_values[model_name])
-        # add dummy entries to metric values if for model have not all TL metrics - to iterate over all TLs in TL_lst
-        # while len(metric_values[model_name]) < len(TL_lst):
-        #     metric_values[model_name].append((0, 0))
         model_metrics_lst = []
-        print('TL_lst', TL_lst)
         for tl in TL_lst:
-            print('tl', tl)
             tls_models = [metr_val[0] for metr_val in metric_values[model_name]]
             if tl in tls_models:
                 model_metrics_lst.append(
                     [metr_val[1] for metr_val in metric_values[model_name] if metr_val[0] == tl][0])
             else:
                 model_metrics_lst.append(None)
-            print('model_metrics_lst', model_metrics_lst)
-        # model_metrics_lst = [metr_val[1]   else None]
-        # ax.plot(np.arange(len(TL_lst)), metric_values[model_name], label=model_name)
         ax.plot(np.arange(len(TL_lst)), model_metrics_lst, label=model_name)
     plt.xticks(np.arange(len(TL_lst)), TL_lst)
     plt.xlabel('Time Limits')
@@ -676,8 +587,19 @@ def plot_scatter_per_instance(metric_values, metric_name, instance_ids, instance
     plt.show()
 
 
-def average_run_results(run_results: List[Dict], save_dir_sols, save_dir_info, data_length):
+def average_run_results(path_to_results: str, model_name: str, number_runs: int, save_dir_sols: str = None,
+                        save_dir_info: str = None, data_length=None):
+
+    # get plain model name
+    all_file_names_in_dir = [file.split("_")[-1].split(".")[-2] for file in glob.glob(path_to_results+"/*.pkl")]
+    model_n = [file_n for file_n in all_file_names_in_dir if model_name in file_n][0]
+
+    # get run_results
+    run_results = [torch.load(path_to_results + "/run_" + str(
+                r) + "_results_" + model_n + ".pkl") for r in np.arange(1, number_runs+1)]
+
     if data_length is None:
+        # for cvrp_100_uniform data have subsamples --> length 128
         data_length = len(run_results[0]["solutions"])
     final_costs, num_vehicles, gaps, pi_scores, wrap_scores, final_runtime, final_runn_t = [], [], [], [], [], [], []
     cost_stds, gap_stds, pi_stds, wrap_stds, n_vehicles_std, runn_t_std = [], [], [], [], [], []
@@ -693,16 +615,9 @@ def average_run_results(run_results: List[Dict], save_dir_sols, save_dir_info, d
             np.mean([gap_bks(run_sol[i].cost, run_sol[i].instance.BKS) for i in range(data_length) if run_sol[i].cost != float('inf')]))
         average_run_pi.append(np.mean([run_sol[i].pi_score for i in range(data_length)]))
         average_run_wrap.append(np.mean([run_sol[i].wrap_score for i in range(data_length)]))
-    print('average_run_cost', average_run_cost)
-    print('average_run_gaps', average_run_gaps)
-    print('average_run_pi', average_run_pi)
-    print('average_run_wrap', average_run_wrap)
 
     # averages over 3 runs per instance
     for i in range(data_length):
-        # print('i', i)
-        # for run_sol in run_solutions:
-        # solutions.append(r_sol.solution for r_sol in run_sol[:data_length])
         final_costs.append(np.mean([r_sol[i].cost for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
         cost_stds.append(np.std([r_sol[i].cost for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
         cost_min.append(np.min([r_sol[i].cost for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
@@ -763,10 +678,12 @@ def average_run_results(run_results: List[Dict], save_dir_sols, save_dir_info, d
                     'std_wrap': np.std(average_run_wrap),
                     }
 
-    torch.save(avergage_info_sols, save_dir_sols)
-    torch.save(avergage_info_dicts, save_dir_info)
+    if save_dir_info is not None:
+        torch.save(avergage_info_dicts, save_dir_info)
+    if save_dir_sols is not None:
+        torch.save(avergage_info_sols, save_dir_sols)
 
-    return summary_runs, avergage_info_dicts
+    return summary_runs
 
 
 def re_evaluate_results(time_budgets: List[int],

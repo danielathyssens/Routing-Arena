@@ -404,26 +404,15 @@ class RoutingSolver:
             search_parameters.local_search_operators.use_extended_swap_active = 3
             search_parameters.local_search_operators.use_relocate_neighbors = 3
             search_parameters.local_search_operators.use_cross_exchange = 3
-
             search_parameters.local_search_operators.use_path_lns = 3
             search_parameters.local_search_operators.use_inactive_lns = 3
-
-            # search_parameters.use_relocate_and_make_active = 3   # expensive
-            # search_parameters.heuristic_expensive_chain_lns_num_arcs_to_consider = 5
-            # search_parameters.relocate_expensive_chain_num_arcs_to_consider = 20
-
-            # search_parameters.guided_local_search_lambda_coefficient = 0.5
-            # search_parameters.guided_local_search_reset_penalties_on_new_best_solution = 3
             search_parameters.heuristic_close_nodes_lns_num_nodes = 10  # default=5
             search_parameters.improvement_limit_parameters.improvement_rate_coefficient = 550.5
             search_parameters.improvement_limit_parameters.improvement_rate_solutions_distance = 38  # 50
-        logger.info(f'Search Parameters used for search with TL={time_limit}: {search_parameters}')
+        # logger.info(f'Search Parameters used for search with TL={time_limit}: {search_parameters}')
         if log_search:
             search_parameters.log_search = True  # should search steps be logged?
         if time_limit is not None:
-            # print('adjusted time_limit for the runs: ', time_limit)
-            # print('GORT needs time limit in millisecond integer, so set to: ', int(time_limit))
-            # search_parameters.lns_time_limit.seconds = int(time_limit)
             search_parameters.time_limit.seconds = int(time_limit)  # convert seconds to milliseconds
         if solution_limit is not None:
             search_parameters.solution_limit = solution_limit

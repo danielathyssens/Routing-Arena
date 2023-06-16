@@ -44,7 +44,7 @@ tester_cfg:
   cuda_device_num: 0
   test_episodes: 1 # 512  # 10000 # 10*1000  # as long as dataset --> handled internally in pomo.py
   test_batch_size: 1 # 1000
-  augmentation_enable: False
+  augmentation_enable: True
   aug_factor: 8
   pomo_size: ${graph_size} # or 1 (single trajectory)
   aug_batch_size: 400  # note: needs to be divisble by number of test instances -> 400 only for 10000

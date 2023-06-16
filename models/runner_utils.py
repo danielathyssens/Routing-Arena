@@ -83,7 +83,6 @@ XE_DIMS = {'XE_1': 100, 'XE_2': 124, 'XE_3': 128, 'XE_4': 161, 'XE_5': 180, 'XE_
 
 
 def get_time_limit(cfg):
-    print('cfg.test_cfg.time_limit', cfg.test_cfg.time_limit)
     if cfg.test_cfg.time_limit is not None and isinstance(cfg.test_cfg.time_limit, int):
         return cfg.test_cfg.time_limit
     else:
@@ -260,44 +259,15 @@ def get_seperate_PassMarks(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int
     # all_ingredients_PassM = 1 / (((1 / (CPU_Mark * 0.396566187)) + (1 / (twoD_Mark * 3.178718116))
     #                               + (1 / (threeD_Mark * 2.525195879)) + (1 / (Memory_Mark * 1.757085479))
     #                               + (1 / (Disk_Mark * 1.668158805))) / 5)
-    print('number_threads', number_threads)
     cpu_performance = min(round(number_threads * CPU_Mark_single), CPU_Mark)
-    # cpu_perf = round((number_threads * (CPU_Mark / total_threads)))
-    print('cpu_performance', cpu_performance)
     # reset total cpus to 1, because passmark value incorp all cores already
     if total_gpus != 0:
         GPU_passmark = round((cpu_performance + ((0.5 * threeD_Mark) + (0.5 * twoD_Mark))) / 2)
-        print('GPU_passmark', GPU_passmark)
-        print('GPU_BASE_REF', GPU_BASE_REF)
     else:
         GPU_passmark = None
-    # print('CPU_overall_PassMark (not used)', round(1 / (1 / (additional_cpus * (cpu_perf * 0.396566187)))))
-    CPU_passmark = cpu_performance  # round(1 / (1 / (additional_cpus * (cpu_perf * 0.396566187))))
-    print('overall CPU passMark: ', CPU_passmark)
-    print('CPU_BASE_REF', CPU_BASE_REF_SINGLE if number_threads == 1 else CPU_BASE_REF_MULTI)
+    CPU_passmark = cpu_performance
 
     return GPU_passmark, CPU_passmark
-
-
-def get_overall_PassMark_v1(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
-                            total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
-    print('CPU_Mark_single', CPU_Mark_single)
-    print('threeD_Mark', threeD_Mark)
-    print('number_threads', number_threads)
-    print('total_cpus', total_cpus)
-    print('total_gpus', total_gpus)
-    # compute cpu performance
-    cpu_performance = min(round(number_threads * CPU_Mark_single), CPU_Mark)  # CPU_Mark is Mark for whole processor
-    print('cpu_performance', cpu_performance)
-    if total_gpus == 0:
-        gpu_performance = 0
-    else:
-        gpu_performance = (0.5 * threeD_Mark) + (0.5 * twoD_Mark)
-    print('gpu_performance', gpu_performance)
-    # overall_passmark = round(cpu_performance + (0.5 * (total_gpus * threeD_Mark)))
-    overall_passmark = round((cpu_performance + (total_gpus * gpu_performance)) / 2)
-    print('overall passMark (V1): ', overall_passmark)
-    return overall_passmark
 
 
 def set_passMark(cfg, device, number_threads=1, passmark_version=PASSMARK_VERSION):
@@ -333,23 +303,23 @@ def set_passMark(cfg, device, number_threads=1, passmark_version=PASSMARK_VERSIO
         else:
             G3DMark, G2DMark = None, None
             cuda_device_count = 0
-        if passmark_version == "v1":
-            passMark = get_overall_PassMark_v1(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
-                                               total_threads, total_cpus, cuda_device_count)
-            cpu_perf = passMark
-        else:
-            passMark, cpu_perf = get_seperate_PassMarks(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
-                                                        total_threads, total_cpus, cuda_device_count)
-            if passMark is None:
-                passMark = cpu_perf
+        # if passmark_version == "v1":
+        #     passMark = get_overall_PassMark_v1(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
+        #                                        total_threads, total_cpus, cuda_device_count)
+        #     cpu_perf = passMark
+        # else:
+        passMark, cpu_perf = get_seperate_PassMarks(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
+                                                    total_threads, total_cpus, cuda_device_count)
+        if passMark is None:
+            passMark = cpu_perf
     else:
         passMark, cpu_perf = None, None
     return passMark, cpu_perf
 
 
 def set_device(cfg):
-    logger.info(f"torch.cuda.is_available() {torch.cuda.is_available()}")
-    logger.info(f"cfg.cuda {cfg.cuda}")
+    # logger.info(f"torch.cuda.is_available() {torch.cuda.is_available()}")
+    # logger.info(f"cfg.cuda {cfg.cuda}")
     if torch.cuda.is_available() and not cfg.cuda:
         warn(f"Cuda GPU is available but not used! Specify <cuda=True> in config file.")
     device = torch.device("cuda" if cfg.cuda and torch.cuda.is_available() else "cpu")
@@ -372,27 +342,18 @@ def set_device(cfg):
 
 
 def _adjust_time_limit(original_TL, pass_mark, device, nr_threads=1, passmark_version=PASSMARK_VERSION):
-    # TODO: Tmax = n × 240/100 seconds (used in HGS-CVRP)
-    #  "Therefore, the smallest instance with 100 clients
-    # is run for 4 minutes, whereas the largest instance containing 1000 clients is run for 40 minutes."
-
-    print(f'IN ADJUST TIME LIMIT: device: {device}, pass_mark: {pass_mark}, nr_threads: {nr_threads}, '
-          f'passmark_v: {passmark_version}, ')
-    if passmark_version == "v1":
-        print(f"MACHINE_BASE_REF_v1: {MACHINE_BASE_REF_v1}")
-        return np.round(original_TL / (pass_mark / MACHINE_BASE_REF_v1))
+    # print(f' IN ADJUST TIME LIMIT: device: {device}, pass_mark: {pass_mark}, nr_threads: {nr_threads}')
+    if device == torch.device("cuda"):
+        # print(f"GPU_BASE_REF: {GPU_BASE_REF}")
+        return np.round(original_TL / (pass_mark / GPU_BASE_REF))
+        # return np.round(original_TL / (pass_mark / COMBINED_BASE_REF))
+    elif device == torch.device("cpu"):
+        CPU_BASE_REF = CPU_BASE_REF_SINGLE if nr_threads == 1 else CPU_BASE_REF_MULTI
+        # nr_threads*CPU_BASE_REF_SINGLE
+        # print(f"CPU_BASE_REF: {CPU_BASE_REF}")
+        return np.round(original_TL / (pass_mark / CPU_BASE_REF))
     else:
-        if device == torch.device("cuda"):
-            print(f"GPU_BASE_REF: {GPU_BASE_REF}")
-            return np.round(original_TL / (pass_mark / GPU_BASE_REF))
-            # return np.round(original_TL / (pass_mark / COMBINED_BASE_REF))
-        elif device == torch.device("cpu"):
-            CPU_BASE_REF = CPU_BASE_REF_SINGLE if nr_threads == 1 else CPU_BASE_REF_MULTI
-            # nr_threads*CPU_BASE_REF_SINGLE
-            print(f"CPU_BASE_REF: {CPU_BASE_REF}")
-            return np.round(original_TL / (pass_mark / CPU_BASE_REF))
-        else:
-            logger.info(f"Device {device} not known - specify 'cuda' or 'cpu' to adjust Time Limit for Evaluation.")
+        logger.info(f"Device {device} not known - specify 'cuda' or 'cpu' to adjust Time Limit for Evaluation.")
 
 
 def merge_sols(sols_search, sols_construct):

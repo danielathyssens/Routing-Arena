@@ -152,8 +152,6 @@ class BaseDataset(Dataset):
         verified_costs, verified_times, verified_sols = [], [], []
         verified_costs_full, verified_times_full, verified_sols_full = [], [], []
         prev_cost = float('inf')
-        print('self.adjusted_time_limit ', self.adjusted_time_limit)
-        print('self.time_limit ', self.time_limit)
         time_limit = self.adjusted_time_limit if self.adjusted_time_limit is not None else times[-1]  # if 'simple' eval
         # and time <= adjusted_time_limit
         sols = [None]*len(costs) if sols is None else sols

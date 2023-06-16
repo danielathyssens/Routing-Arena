@@ -21,9 +21,7 @@ logger = logging.getLogger(__name__)
 EPS = 0.01  # 0.002 changed in cluster b/c of NLNS # np.finfo(np.float32).eps
 
 CVRPLIB_LINKS = {
-    "D": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-D.zip", "D"],
-    "X": ["vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-X.zip", "X"],
-    "Li": ["vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-Li.zip", "Li"],
+    "X": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-X.zip", "X"],
     "Golden": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-Golden.zip", "Golden"],
     "XML100": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-XML100.zip", "XML100"]
 }
@@ -137,7 +135,6 @@ class CVRPDataset(BaseDataset):
         self.time_limit = TimeLimit
         self.machine_info = machine_info
         self.re_evaluate = re_evaluate
-        print('self.machine_info', machine_info)
         self.metric = None
         self.max_cap_factor = max_cap_factor
         self.transform_func = transform_func
@@ -302,7 +299,6 @@ class CVRPDataset(BaseDataset):
 
     def _instance_bks_updates(self):
         # always update benchmark data instances with newest BKS registry if registry given for loaded data
-        print('self.data[0].instance_id, self.data[0].time_limit', self.data[0].instance_id, self.data[0].time_limit)
         return [
             CVRPInstance(
                 coords=instance.coords,
