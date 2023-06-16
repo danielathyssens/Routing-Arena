@@ -1,0 +1,80 @@
+problem: cvrp
+graph_size: 100
+coords_dist: uniform
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/cvrp/uniform/cvrp100/val_seed4321_size512.pkl
+normalize_data: true
+checkpoint_load_path: models/POMO/POMO/${problem}/POMO/result/saved_CVRP100_model/${coords_dist}/checkpoint-30500.pt
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: null
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    k: 16
+    cap: 50
+    max_cap_factor: null
+    n_depots: 1
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}
+model: POMO
+model_cfg:
+  embedding_dim: 128
+  sqrt_embedding_dim: 11.3137
+  encoder_layer_num: 6
+  qkv_dim: 16
+  head_num: 8
+  logit_clipping: 10
+  ff_hidden_dim: 512
+  eval_type: argmax
+run_type: val
+number_runs: 2
+debug_lvl: 0
+global_seed: 1234
+cuda: true
+G3DMark: 17177
+G2DMark: 975
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: implicit
+  save_solutions: false
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  fixed_dataset: true
+  data_file_path: ${data_file_path}
+  dataset_size: 1
+  add_ls: true
+  ls_policy: sa
+  ls_policy_cfg:
+    local_search_strategy: SIMULATED_ANNEALING
+    solution_limit: null
+    verbose: false
+    log_search: false
+    batch_size: 1
+    search_workers: 1
+tester_cfg:
+  cuda_device_num: 0
+  test_episodes: 1
+  test_batch_size: 1
+  augmentation_enable: false
+  aug_factor: 8
+  pomo_size: ${graph_size}
+  aug_batch_size: 400
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
+checkpoint_save_path: checkpoints/

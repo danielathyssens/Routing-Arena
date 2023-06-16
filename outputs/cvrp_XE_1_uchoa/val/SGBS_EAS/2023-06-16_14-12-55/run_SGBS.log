@@ -1,0 +1,329 @@
+2023/06/16 14:12:55 __main__: problem: cvrp
+graph_size: null
+coords_dist: uchoa
+XE_type: XE_1
+out_name: ${problem}_${XE_type}_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
+normalize_data: true
+checkpoint_load_path: models/SGBS/SGBS/${problem}/1_pre_trained_model/Saved_CVRP100_Model/${coords_dist}/checkpoint-30500.pt
+env_kwargs:
+  generator_args: null
+  sampling_args: null
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}
+policy: SGBS_EAS
+model_cfg:
+  embedding_dim: 128
+  sqrt_embedding_dim: 11.3137
+  encoder_layer_num: 6
+  qkv_dim: 16
+  head_num: 8
+  logit_clipping: 10
+  ff_hidden_dim: 512
+  eval_type: argmax
+run_args:
+  cuda_device_num: ${tester_cfg.cuda_device_num}
+  num_episodes: ${tester_cfg.test_episodes}
+  index_begin: 0
+  solution_max_length: 200
+  num_eas_sgbs_loop: 28
+  lr: 0.0041
+  lambda: 0.01
+  beta: 0.0
+  eas_num_iter: 1
+  eas_batch_size: 180
+  beam_width: 4
+  rollout_per_node: 3
+  sgbs_batch_size: 3000
+run_type: val
+number_runs: 2
+debug_lvl: 0
+global_seed: 1234
+cuda: true
+G3DMark: 17177
+G2DMark: 975
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: implicit
+  save_solutions: false
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  fixed_dataset: true
+  data_file_path: ${data_file_path}
+  dataset_size: 1
+  add_ls: false
+  ls_policy: false
+  ls_policy_cfg:
+    local_search_strategy: SIMULATED_ANNEALING
+    solution_limit: null
+    verbose: false
+    log_search: false
+    batch_size: 1
+    search_workers: 1
+tester_cfg:
+  cuda_device_num: 0
+  test_episodes: 1
+  test_batch_size: 1
+  augmentation_enable: true
+  mode: sgbs
+  num_starting_points: 4
+  sampling_num: 1200
+  obs_bw: 1200
+  mcts_rollout_per_step: 12
+  sgbs_beta: 4
+  sgbs_gamma_minus1: 3
+  pomo_size: ${graph_size}
+  index_begin: 0
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
+checkpoint_save_path: checkpoints/
+
+2023/06/16 14:12:55 models.runner_utils: torch.cuda.is_available() True
+2023/06/16 14:12:55 models.runner_utils: cfg.cuda True
+2023/06/16 14:12:55 models.runner_utils: Running val-run on cuda
+2023/06/16 14:12:56 models.runner_utils: CPU Specs: cpu_name: Intel(R) Core(TM) i7-10850H CPU @ 2.70GHz, threads_per_cpu: 2, total_cores: 6
+2023/06/16 14:12:56 models.runner_utils: GPU Device Name: NVIDIA GeForce RTX 3060
+2023/06/16 14:12:56 models.SGBS.runner: Eval PassMark for SGBS_EAS_aug: 5896. Adjusted Time Limit per Instance: 207.0.
+2023/06/16 14:12:56 data.base_dataset: Test Data provided, No new samples are generated.
+2023/06/16 14:12:56 data.base_dataset: BKS file should exists for /home/thyssens/github_projects/RA/data/test_data/cvrp/uchoa/XE/XE_1
+2023/06/16 14:12:56 data.base_dataset: Loading Best Known Solutions from /home/thyssens/github_projects/RA/data/test_data/cvrp/uchoa/XE/XE_1/BKS_XE_1.pkl
+2023/06/16 14:12:56 data.base_dataset: BaseSol file should exists for /home/thyssens/github_projects/RA/data/test_data/cvrp/uchoa/XE/XE_1
+2023/06/16 14:12:56 data.base_dataset: Loading Base Solver Results (for WRAP eval.) from /home/thyssens/github_projects/RA/data/test_data/cvrp/uchoa/XE/XE_1/BaseSol_XE_1.pkl
+2023/06/16 14:12:56 data.base_dataset: Loaded 20 BKS for the test (val) set.
+2023/06/16 14:12:56 data.base_dataset: Loading dataset from: /home/thyssens/github_projects/RA/data/test_data/cvrp/uchoa/XE/XE_1
+2023/06/16 14:12:56 data.base_dataset: Loading .vrp instances...
+2023/06/16 14:12:56 data.cvrp_dataset: 1 Test/Validation Instances for cvrp with None uchoa-distributed customers loaded.
+2023/06/16 14:12:56 metrics.metrics: Base Reference for this machine in metrics initialisation set to 4974
+2023/06/16 14:12:58 models.SGBS.runner: running inference 1/2...
+2023/06/16 14:12:58 models.SGBS.runner: Run-time dependent parameters: cuda Device, Adjusted Time Budget for construction: 207.0 / instance.
+2023/06/16 14:12:58 models.SGBS.runner: running test inference for SGBS_EAS_aug as construction method...
+2023/06/16 14:12:58 models.SGBS.sgbs: tester_cfg before RUN: {'cuda_device_num': '${tester_cfg.cuda_device_num}', 'num_episodes': '${tester_cfg.test_episodes}', 'index_begin': 0, 'solution_max_length': 200, 'num_eas_sgbs_loop': 28, 'lr': 0.0041, 'lambda': 0.01, 'beta': 0.0, 'eas_num_iter': 1, 'eas_batch_size': 180, 'beam_width': 4, 'rollout_per_node': 3, 'sgbs_batch_size': 3000, 'test_episodes': 1}
+2023/06/16 14:12:58 root: [cuda:0] EAS+SGBS Loop Started 
+2023/06/16 14:12:59 root: 	eas batch [0:1] score: 22.693308
+2023/06/16 14:13:07 root: 	sgbs batch [0:1] score: 22.259079
+2023/06/16 14:13:07 root: [cuda:0] loop   1/28, Elapsed[0.16m], Remain[4.40m], score: 22.259079
+2023/06/16 14:13:08 root: 	eas batch [0:1] score: 22.259079
+2023/06/16 14:13:16 root: 	sgbs batch [0:1] score: 22.259079
+2023/06/16 14:13:16 root: [cuda:0] loop   2/28, Elapsed[0.31m], Remain[4.02m], score: 22.259079
+2023/06/16 14:13:16 root: 	eas batch [0:1] score: 22.259079
+2023/06/16 14:13:25 root: 	sgbs batch [0:1] score: 22.233210
+2023/06/16 14:13:25 root: [cuda:0] loop   3/28, Elapsed[0.45m], Remain[3.79m], score: 22.233210
+2023/06/16 14:13:25 root: 	eas batch [0:1] score: 22.233212
+2023/06/16 14:13:34 root: 	sgbs batch [0:1] score: 22.133667
+2023/06/16 14:13:34 root: [cuda:0] loop   4/28, Elapsed[0.60m], Remain[3.60m], score: 22.133667
+2023/06/16 14:13:34 root: 	eas batch [0:1] score: 22.133667
+2023/06/16 14:13:42 root: 	sgbs batch [0:1] score: 22.024338
+2023/06/16 14:13:42 root: [cuda:0] loop   5/28, Elapsed[0.75m], Remain[3.43m], score: 22.024338
+2023/06/16 14:13:43 root: 	eas batch [0:1] score: 22.024338
+2023/06/16 14:13:51 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:13:51 root: [cuda:0] loop   6/28, Elapsed[0.89m], Remain[3.27m], score: 22.000443
+2023/06/16 14:13:51 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:14:00 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:14:00 root: [cuda:0] loop   7/28, Elapsed[1.04m], Remain[3.12m], score: 22.000443
+2023/06/16 14:14:00 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:14:09 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:14:09 root: [cuda:0] loop   8/28, Elapsed[1.19m], Remain[2.96m], score: 22.000443
+2023/06/16 14:14:09 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:14:17 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:14:17 root: [cuda:0] loop   9/28, Elapsed[1.33m], Remain[2.81m], score: 22.000443
+2023/06/16 14:14:18 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:14:26 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:14:26 root: [cuda:0] loop  10/28, Elapsed[1.48m], Remain[2.66m], score: 22.000443
+2023/06/16 14:14:27 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:14:35 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:14:35 root: [cuda:0] loop  11/28, Elapsed[1.62m], Remain[2.51m], score: 22.000443
+2023/06/16 14:14:35 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:14:44 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:14:44 root: [cuda:0] loop  12/28, Elapsed[1.77m], Remain[2.36m], score: 22.000443
+2023/06/16 14:14:44 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:14:53 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:14:53 root: [cuda:0] loop  13/28, Elapsed[1.92m], Remain[2.21m], score: 22.000443
+2023/06/16 14:14:53 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:15:01 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:15:01 root: [cuda:0] loop  14/28, Elapsed[2.06m], Remain[2.06m], score: 22.000443
+2023/06/16 14:15:02 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:15:10 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:15:10 root: [cuda:0] loop  15/28, Elapsed[2.21m], Remain[1.91m], score: 22.000443
+2023/06/16 14:15:10 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:15:19 root: 	sgbs batch [0:1] score: 22.000443
+2023/06/16 14:15:19 root: [cuda:0] loop  16/28, Elapsed[2.35m], Remain[1.77m], score: 22.000443
+2023/06/16 14:15:19 root: 	eas batch [0:1] score: 22.000443
+2023/06/16 14:15:28 root: 	sgbs batch [0:1] score: 21.955082
+2023/06/16 14:15:28 root: [cuda:0] loop  17/28, Elapsed[2.50m], Remain[1.62m], score: 21.955082
+2023/06/16 14:15:28 root: 	eas batch [0:1] score: 21.955082
+2023/06/16 14:15:37 root: 	sgbs batch [0:1] score: 21.893232
+2023/06/16 14:15:37 root: [cuda:0] loop  18/28, Elapsed[2.65m], Remain[1.47m], score: 21.893232
+2023/06/16 14:15:37 root: 	eas batch [0:1] score: 21.893230
+2023/06/16 14:15:45 root: 	sgbs batch [0:1] score: 21.893230
+2023/06/16 14:15:45 root: [cuda:0] loop  19/28, Elapsed[2.80m], Remain[1.32m], score: 21.893230
+2023/06/16 14:15:46 root: 	eas batch [0:1] score: 21.893232
+2023/06/16 14:15:54 root: 	sgbs batch [0:1] score: 21.893232
+2023/06/16 14:15:54 root: [cuda:0] loop  20/28, Elapsed[2.94m], Remain[1.18m], score: 21.893232
+2023/06/16 14:15:54 root: 	eas batch [0:1] score: 21.893232
+2023/06/16 14:16:03 root: 	sgbs batch [0:1] score: 21.878428
+2023/06/16 14:16:03 root: [cuda:0] loop  21/28, Elapsed[3.09m], Remain[1.03m], score: 21.878428
+2023/06/16 14:16:03 root: 	eas batch [0:1] score: 21.878428
+2023/06/16 14:16:12 root: 	sgbs batch [0:1] score: 21.878428
+2023/06/16 14:16:12 root: [cuda:0] loop  22/28, Elapsed[3.24m], Remain[0.88m], score: 21.878428
+2023/06/16 14:16:12 root: 	eas batch [0:1] score: 21.878428
+2023/06/16 14:16:21 root: 	sgbs batch [0:1] score: 21.878428
+2023/06/16 14:16:21 root: [cuda:0] loop  23/28, Elapsed[3.38m], Remain[0.74m], score: 21.878428
+2023/06/16 14:16:21 root: 	eas batch [0:1] score: 21.878428
+2023/06/16 14:16:29 root: 	sgbs batch [0:1] score: 21.878428
+2023/06/16 14:16:29 root: [cuda:0] *** Done *** 
+2023/06/16 14:16:29 root: eas_start_time_list = [7.947285970052083e-09, 0.0027158835861417984, 0.005152203771803114, 0.00757248666551378, 0.009994626707500882, 0.012431014113956028, 0.014855189588334825, 0.017322845657666525, 0.019760932988590663, 0.02219132079018487, 0.024632106224695843, 0.0270734179019928, 0.029507534172799853, 0.03193295213911269, 0.034372107916408115, 0.03680494613117642, 0.039247939321729874, 0.04171507630083296, 0.0441558747821384, 0.04659752070903778, 0.04904571493466695, 0.05149954703119066, 0.05393516328599718, 0.05638332135147518]
+2023/06/16 14:16:29 root: eas_end_time_list = [0.0003783900207943386, 0.002798079450925191, 0.005233688685629103, 0.007652179797490438, 0.010074933502409194, 0.012510218818982443, 0.014934652050336202, 0.017401635779274834, 0.019839749534924823, 0.022270231114493475, 0.024710954229036967, 0.02715308407942454, 0.029586021833949618, 0.03201287157005734, 0.03445070379310184, 0.03688399255275726, 0.039326356384489274, 0.041794688171810576, 0.04423731181356642, 0.04667942768997616, 0.04912559880150689, 0.05157976521386041, 0.05401368372970157, 0.05646485222710503]
+2023/06/16 14:16:29 root: eas_start_score_list = [22.693307876586914, 22.259078979492188, 22.259078979492188, 22.233211517333984, 22.1336669921875, 22.024337768554688, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 21.955081939697266, 21.893230438232422, 21.893232345581055, 21.893232345581055, 21.878427505493164, 21.878427505493164, 21.878427505493164]
+2023/06/16 14:16:29 root: sgbs_end_time_list = [0.0027158493465847438, 0.005152179598808288, 0.007572461035516527, 0.009994594057401022, 0.012430989344914755, 0.014855164753066169, 0.017322819895214503, 0.019760907093683878, 0.022191294895278085, 0.02463208066092597, 0.02707339220576816, 0.029507509072621663, 0.03193292597929637, 0.0343720825513204, 0.036804919242858884, 0.03924791322814094, 0.041715048882696365, 0.044155849085913766, 0.046597490774260626, 0.049045688576168485, 0.05149952087137434, 0.05393513732486301, 0.05638329479429457]
+2023/06/16 14:16:29 root: sgbs_start_time_list = [0.00037846386432647703, 0.0027981170680787828, 0.005233729945288764, 0.00765222258037991, 0.01007497767607371, 0.012510255575180054, 0.014934688674079048, 0.017401672138108146, 0.019839784767892627, 0.0222702689965566, 0.02471099078655243, 0.027153120968076917, 0.02958606137169732, 0.03201290912098355, 0.03445074021816254, 0.03688402904404534, 0.0393263938691881, 0.04179472479555342, 0.04423735605345832, 0.0466794651084476, 0.04912563681602478, 0.05157980276478662, 0.05401372134685516]
+2023/06/16 14:16:29 root: sgbs_end_score_list = [22.259078979492188, 22.259078979492188, 22.23320960998535, 22.1336669921875, 22.024337768554688, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 21.955081939697266, 21.893232345581055, 21.893230438232422, 21.893232345581055, 21.878427505493164, 21.878427505493164, 21.878427505493164]
+2023/06/16 14:16:29 root: sgbs_start_score_list = [22.693307876586914, 22.259078979492188, 22.259078979492188, 22.233211517333984, 22.1336669921875, 22.024337768554688, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 21.955081939697266, 21.893230438232422, 21.893232345581055, 21.893232345581055, 21.878427505493164, 21.878427505493164]
+2023/06/16 14:16:29 root: eas_end_score_list = [22.693307876586914, 22.259078979492188, 22.259078979492188, 22.233211517333984, 22.1336669921875, 22.024337768554688, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 22.000442504882812, 21.955081939697266, 21.893230438232422, 21.893232345581055, 21.893232345581055, 21.878427505493164, 21.878427505493164, 21.878427505493164]
+2023/06/16 14:16:29 root: [cuda:0] Final Score: 21.878427505493164
+2023/06/16 14:16:29 models.SGBS.runner: finished.
+2023/06/16 14:16:29 models.SGBS.runner: Starting Evaluation for run 1/2 with time limit 240 for SGBS_EAS_aug
+2023/06/16 14:16:29 data.base_dataset: Saving solution trajectory for instance 18
+2023/06/16 14:16:30 models.runner_utils: Stats for run 1/2:
+2023/06/16 14:16:30 models.runner_utils: =================================
+2023/06/16 14:16:30 models.runner_utils: 
+Instance 18 Cost: 21878.42823111426, 
+Instance 18 PI: 2.0867630964562345, 
+Instance 18 WRAP: 0.6511539611629708, 
+Instance 18 Run Time (best sol found): 185.39827513694763, 
+Instance 18 Run Time (total): 185.39827513694763
+2023/06/16 14:16:30 models.runner_utils: 
+Average cost: 21878.42823111426 +/- 0.0, 
+Average PI: 2.0867630964562345 +/- 0.0, 
+Average WRAP: 0.6511539611629708 +/- 0.0, 
+Average Run Time (best sol found): 185.39827513694763 +/- 0.0, 
+Average Run Time (total): 185.39827513694763 +/- 0.0
+2023/06/16 14:16:31 models.runner_utils: CPU Specs: cpu_name: Intel(R) Core(TM) i7-10850H CPU @ 2.70GHz, threads_per_cpu: 2, total_cores: 6
+2023/06/16 14:16:31 models.runner_utils: Storing Results of run 1 for analysis in /home/thyssens/github_projects/RA/outputs/saved_results/XE/XE_1/TL_implicit
+2023/06/16 14:16:31 models.SGBS.runner: running inference 2/2...
+2023/06/16 14:16:31 models.SGBS.runner: Run-time dependent parameters: cuda Device, Adjusted Time Budget for construction: 207.0 / instance.
+2023/06/16 14:16:31 models.SGBS.runner: running test inference for SGBS_EAS_aug as construction method...
+2023/06/16 14:16:31 models.SGBS.sgbs: tester_cfg before RUN: {'cuda_device_num': '${tester_cfg.cuda_device_num}', 'num_episodes': '${tester_cfg.test_episodes}', 'index_begin': 0, 'solution_max_length': 200, 'num_eas_sgbs_loop': 28, 'lr': 0.0041, 'lambda': 0.01, 'beta': 0.0, 'eas_num_iter': 1, 'eas_batch_size': 180, 'beam_width': 4, 'rollout_per_node': 3, 'sgbs_batch_size': 3000, 'test_episodes': 1}
+2023/06/16 14:16:31 root: [cuda:0] EAS+SGBS Loop Started 
+2023/06/16 14:16:31 root: 	eas batch [0:1] score: 22.716080
+2023/06/16 14:16:40 root: 	sgbs batch [0:1] score: 22.138584
+2023/06/16 14:16:40 root: [cuda:0] loop   1/28, Elapsed[0.15m], Remain[4.03m], score: 22.138584
+2023/06/16 14:16:40 root: 	eas batch [0:1] score: 22.138584
+2023/06/16 14:16:49 root: 	sgbs batch [0:1] score: 22.092190
+2023/06/16 14:16:49 root: [cuda:0] loop   2/28, Elapsed[0.30m], Remain[3.86m], score: 22.092190
+2023/06/16 14:16:49 root: 	eas batch [0:1] score: 22.092190
+2023/06/16 14:16:58 root: 	sgbs batch [0:1] score: 22.092190
+2023/06/16 14:16:58 root: [cuda:0] loop   3/28, Elapsed[0.44m], Remain[3.71m], score: 22.092190
+2023/06/16 14:16:58 root: 	eas batch [0:1] score: 22.092190
+2023/06/16 14:17:07 root: 	sgbs batch [0:1] score: 22.092190
+2023/06/16 14:17:07 root: [cuda:0] loop   4/28, Elapsed[0.59m], Remain[3.55m], score: 22.092190
+2023/06/16 14:17:07 root: 	eas batch [0:1] score: 22.092190
+2023/06/16 14:17:15 root: 	sgbs batch [0:1] score: 22.079720
+2023/06/16 14:17:15 root: [cuda:0] loop   5/28, Elapsed[0.74m], Remain[3.40m], score: 22.079720
+2023/06/16 14:17:16 root: 	eas batch [0:1] score: 22.079720
+2023/06/16 14:17:24 root: 	sgbs batch [0:1] score: 22.079720
+2023/06/16 14:17:24 root: [cuda:0] loop   6/28, Elapsed[0.89m], Remain[3.25m], score: 22.079720
+2023/06/16 14:17:25 root: 	eas batch [0:1] score: 22.079720
+2023/06/16 14:17:33 root: 	sgbs batch [0:1] score: 22.079720
+2023/06/16 14:17:33 root: [cuda:0] loop   7/28, Elapsed[1.03m], Remain[3.10m], score: 22.079720
+2023/06/16 14:17:33 root: 	eas batch [0:1] score: 22.079720
+2023/06/16 14:17:42 root: 	sgbs batch [0:1] score: 21.862354
+2023/06/16 14:17:42 root: [cuda:0] loop   8/28, Elapsed[1.18m], Remain[2.95m], score: 21.862354
+2023/06/16 14:17:42 root: 	eas batch [0:1] score: 21.862356
+2023/06/16 14:17:51 root: 	sgbs batch [0:1] score: 21.862356
+2023/06/16 14:17:51 root: [cuda:0] loop   9/28, Elapsed[1.33m], Remain[2.81m], score: 21.862356
+2023/06/16 14:17:51 root: 	eas batch [0:1] score: 21.862356
+2023/06/16 14:18:00 root: 	sgbs batch [0:1] score: 21.862356
+2023/06/16 14:18:00 root: [cuda:0] loop  10/28, Elapsed[1.48m], Remain[2.66m], score: 21.862356
+2023/06/16 14:18:00 root: 	eas batch [0:1] score: 21.862354
+2023/06/16 14:18:09 root: 	sgbs batch [0:1] score: 21.862354
+2023/06/16 14:18:09 root: [cuda:0] loop  11/28, Elapsed[1.63m], Remain[2.51m], score: 21.862354
+2023/06/16 14:18:09 root: 	eas batch [0:1] score: 21.862356
+2023/06/16 14:18:17 root: 	sgbs batch [0:1] score: 21.862356
+2023/06/16 14:18:17 root: [cuda:0] loop  12/28, Elapsed[1.77m], Remain[2.36m], score: 21.862356
+2023/06/16 14:18:18 root: 	eas batch [0:1] score: 21.862354
+2023/06/16 14:18:26 root: 	sgbs batch [0:1] score: 21.862354
+2023/06/16 14:18:26 root: [cuda:0] loop  13/28, Elapsed[1.92m], Remain[2.22m], score: 21.862354
+2023/06/16 14:18:27 root: 	eas batch [0:1] score: 21.862356
+2023/06/16 14:18:35 root: 	sgbs batch [0:1] score: 21.789654
+2023/06/16 14:18:35 root: [cuda:0] loop  14/28, Elapsed[2.07m], Remain[2.07m], score: 21.789654
+2023/06/16 14:18:36 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:18:44 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:18:44 root: [cuda:0] loop  15/28, Elapsed[2.22m], Remain[1.92m], score: 21.789656
+2023/06/16 14:18:44 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:18:53 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:18:53 root: [cuda:0] loop  16/28, Elapsed[2.37m], Remain[1.78m], score: 21.789656
+2023/06/16 14:18:53 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:19:02 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:19:02 root: [cuda:0] loop  17/28, Elapsed[2.52m], Remain[1.63m], score: 21.789656
+2023/06/16 14:19:02 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:19:11 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:19:11 root: [cuda:0] loop  18/28, Elapsed[2.66m], Remain[1.48m], score: 21.789656
+2023/06/16 14:19:11 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:19:20 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:19:20 root: [cuda:0] loop  19/28, Elapsed[2.81m], Remain[1.33m], score: 21.789656
+2023/06/16 14:19:20 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:19:29 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:19:29 root: [cuda:0] loop  20/28, Elapsed[2.96m], Remain[1.18m], score: 21.789656
+2023/06/16 14:19:29 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:19:37 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:19:37 root: [cuda:0] loop  21/28, Elapsed[3.11m], Remain[1.04m], score: 21.789656
+2023/06/16 14:19:38 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:19:46 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:19:46 root: [cuda:0] loop  22/28, Elapsed[3.26m], Remain[0.89m], score: 21.789656
+2023/06/16 14:19:47 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:19:55 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:19:55 root: [cuda:0] loop  23/28, Elapsed[3.40m], Remain[0.74m], score: 21.789656
+2023/06/16 14:19:55 root: 	eas batch [0:1] score: 21.789656
+2023/06/16 14:20:04 root: 	sgbs batch [0:1] score: 21.789656
+2023/06/16 14:20:04 root: [cuda:0] *** Done *** 
+2023/06/16 14:20:04 root: eas_start_time_list = [5.563100179036459e-09, 0.002487549516889784, 0.004953541623221504, 0.007410988940132989, 0.009859892659717135, 0.012331462105115255, 0.014781695273187425, 0.017234817412164476, 0.019691487020916408, 0.022158688836627537, 0.024632660614119634, 0.027099861171510486, 0.029554778469933405, 0.03202932834625244, 0.03450341893566979, 0.036982148819499544, 0.03945664836300744, 0.04193789435757531, 0.04440831018818749, 0.046871133976512484, 0.04933214207490285, 0.05179567224449581, 0.05426011098755731, 0.05671807203027937]
+2023/06/16 14:20:04 root: eas_end_time_list = [0.00011419660515255398, 0.002569357951482137, 0.005035589536031088, 0.007492855919731988, 0.00994275258647071, 0.012412962251239354, 0.014864105317327712, 0.01731646200021108, 0.019772430459658305, 0.02224040965239207, 0.02471494654814402, 0.027181104752752518, 0.029637534949514602, 0.0321115697754754, 0.034585000541475085, 0.037063848508728875, 0.039540163344807096, 0.04202079163657294, 0.04449000597000122, 0.04695302214887407, 0.049414901932080584, 0.051879851553175184, 0.05434602439403534, 0.056800072524282666]
+2023/06/16 14:20:04 root: eas_start_score_list = [22.716079711914062, 22.13858413696289, 22.09218978881836, 22.09218978881836, 22.09218978881836, 22.07971954345703, 22.07971954345703, 22.07971954345703, 21.862356185913086, 21.862356185913086, 21.862354278564453, 21.862356185913086, 21.862354278564453, 21.862356185913086, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805]
+2023/06/16 14:20:04 root: sgbs_end_time_list = [0.0024875197145673962, 0.004953511026170519, 0.007410962912771437, 0.009859866367446051, 0.012331434885660807, 0.014781668583552043, 0.017234791583485072, 0.019691460066371493, 0.02215866254435645, 0.024632371531592475, 0.02709983507792155, 0.02955475330352783, 0.03202930159038968, 0.034503392113579646, 0.03698212193118201, 0.03945662240187327, 0.04193786693943871, 0.04440828204154968, 0.04687110410796271, 0.04933211591508654, 0.05179564509126875, 0.05426008423169454, 0.0567180464665095]
+2023/06/16 14:20:04 root: sgbs_start_time_list = [0.00011426276630825467, 0.002569398548867967, 0.005035626292228698, 0.007492894662751092, 0.009942788547939724, 0.012412999007436963, 0.014864149159855313, 0.017316499087545605, 0.019772466752264236, 0.02224045409096612, 0.024714983767933317, 0.02718114197254181, 0.029637572765350343, 0.03211161070399814, 0.03458503848976559, 0.037063886059655084, 0.03954020016723209, 0.04202083090941111, 0.04449004332224528, 0.04695305890507168, 0.04941494047641754, 0.05187989042864905, 0.05434606207741632]
+2023/06/16 14:20:04 root: sgbs_end_score_list = [22.13858413696289, 22.09218978881836, 22.09218978881836, 22.09218978881836, 22.07971954345703, 22.07971954345703, 22.07971954345703, 21.862354278564453, 21.862356185913086, 21.862356185913086, 21.862354278564453, 21.862356185913086, 21.862354278564453, 21.789653778076172, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805]
+2023/06/16 14:20:04 root: sgbs_start_score_list = [22.716079711914062, 22.13858413696289, 22.09218978881836, 22.09218978881836, 22.09218978881836, 22.07971954345703, 22.07971954345703, 22.07971954345703, 21.862356185913086, 21.862356185913086, 21.862354278564453, 21.862356185913086, 21.862354278564453, 21.862356185913086, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805]
+2023/06/16 14:20:04 root: eas_end_score_list = [22.716079711914062, 22.13858413696289, 22.09218978881836, 22.09218978881836, 22.09218978881836, 22.07971954345703, 22.07971954345703, 22.07971954345703, 21.862356185913086, 21.862356185913086, 21.862354278564453, 21.862356185913086, 21.862354278564453, 21.862356185913086, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805, 21.789655685424805]
+2023/06/16 14:20:04 root: [cuda:0] Final Score: 21.789655685424805
+2023/06/16 14:20:04 models.SGBS.runner: finished.
+2023/06/16 14:20:04 models.SGBS.runner: Starting Evaluation for run 2/2 with time limit 240 for SGBS_EAS_aug
+2023/06/16 14:20:04 models.runner_utils: Stats for run 2/2:
+2023/06/16 14:20:04 models.runner_utils: =================================
+2023/06/16 14:20:04 models.runner_utils: 
+Instance 18 Cost: 21789.655418520535, 
+Instance 18 PI: 1.5818094154774087, 
+Instance 18 WRAP: 0.4919007517775409, 
+Instance 18 Run Time (best sol found): 124.21221160888673, 
+Instance 18 Run Time (total): 124.21221160888673
+2023/06/16 14:20:04 models.runner_utils: 
+Average cost: 21789.655418520535 +/- 0.0, 
+Average PI: 1.5818094154774087 +/- 0.0, 
+Average WRAP: 0.4919007517775409 +/- 0.0, 
+Average Run Time (best sol found): 124.21221160888673 +/- 0.0, 
+Average Run Time (total): 124.21221160888673 +/- 0.0
+2023/06/16 14:20:05 models.runner_utils: CPU Specs: cpu_name: Intel(R) Core(TM) i7-10850H CPU @ 2.70GHz, threads_per_cpu: 2, total_cores: 6
+2023/06/16 14:20:05 models.runner_utils: Storing Results of run 2 for analysis in /home/thyssens/github_projects/RA/outputs/saved_results/XE/XE_1/TL_implicit
+2023/06/16 14:20:05 models.runner_utils: 
+
+Summary Stats of the 2 Runs: 
+
+Average Obj. Costs over 2 Runs: 21834.041824817396
+Std. Dev. of Avg Costs over 2 Runs: 44.38640629686233
+Average PI Score over 2 Runs: 1.8342862559668216
+Average WRAP Score over 2 Runs: 0.5715273564702559
+Average Runtime (until best cost found) over 2 Runs: 154.80524337291718
+Average Total Runtime of method over 2 Runs: 154.80524337291718

@@ -1,0 +1,6 @@
+- policy=sgbs_EAS
+- env=cvrp_XE_uch
+- XE_type=XE_1
+- test_cfg.time_limit=implicit
+- number_runs=2
+- test_cfg.dataset_size=1

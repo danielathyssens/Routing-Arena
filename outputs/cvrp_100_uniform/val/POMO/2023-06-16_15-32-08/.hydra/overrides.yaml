@@ -1,0 +1,4 @@
+- env=cvrp100_unf
+- test_cfg.time_limit=120
+- number_runs=2
+- test_cfg.dataset_size=1
