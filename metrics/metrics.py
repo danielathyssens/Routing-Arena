@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # https://www.cpubenchmark.net/singleThread.html#laptop-thread
 CPU_BASE_REF_SINGLE = 2000  # equivalent to AMD Ryzen 7 PRO 3700U or Intel Xeon E3-1505M v5 @ 2.80GHz (single thread)
 CPU_BASE_REF_MULTI = 8000  # roughly equivalent to AMD Ryzen 7 PRO 3700U or Intel Xeon E3-1505M v5 @ 2.80GHz 4C 8T
-CPU_PASSMARK_BASE_SOL = 1612  # 1174 (uniform), 1612 (XML), 1612 (XE_1)
+# CPU_PASSMARK_BASE_SOL = 1612  # 1174 (uniform), 1612 (XML), 1612 (XE_1) --> in BaseSol file
 ### GPU
 # https://www.videocardbenchmark.net/high_end_gpus.html
 GPU_3D_BASE_REF = 15000  # reasoning: no one is using less than GeForce GTX 1080 (orig. PassMark: 15416)
@@ -73,7 +73,7 @@ class Metrics:
         else:
             assert cpu is False and is_cpu_search is False
             self.base_ref = GPU_BASE_REF
-        self.base_pass_mark = CPU_PASSMARK_BASE_SOL
+        self.base_pass_mark = None  # self.base_sol_results
         self.base_ref_base = CPU_BASE_REF_SINGLE
         logger.info(f'Base Reference for this machine in metrics initialisation set to {self.base_ref}')
         if self.base_ref_constr is not None:
@@ -105,6 +105,7 @@ class Metrics:
         # get base sol runtimes and costs
         base_costs_, base_runtimes_ = self.base_sol_results[instance_id][0], self.base_sol_results[instance_id][1]
         c_opt = self.bks[instance_id][0]
+        self.base_pass_mark = self.base_sol_results[instance_id][3]
 
         if self.scale_costs is not None:
             # SCALE ALL COST ENTITIES
