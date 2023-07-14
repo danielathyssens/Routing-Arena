@@ -32,7 +32,7 @@ test_cfg:
   add_ls: True  # boolean to add local search (spec in 'ls_policy_cfg') after construction
   ls_policy: sa
   ls_policy_cfg:
-    local_search_strategy: 'SIMULATED_ANNEALING' #'SIMULATED_ANNEALING' #'GUIDED_LOCAL_SEARCH'
+    local_search_strategy: 'SIMULATED_ANNEALING' #'GUIDED_LOCAL_SEARCH'
     solution_limit: #None
     verbose: False
     log_search: False

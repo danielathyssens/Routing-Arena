@@ -12,7 +12,7 @@ from tqdm import tqdm
 from typing import Optional, Tuple, List, Dict, Union, NamedTuple, Any
 from data.tsp_dataset import TSPDataset
 from data.cvrp_dataset import CVRPDataset
-from data.vrptw_dataset import VRPTWDataset
+# from data.vrptw_dataset import VRPTWDataset
 from formats import RPSolution
 
 
@@ -73,8 +73,8 @@ class BaseModel(nn.Module):
             self.dataset_class = TSPDataset
         elif problem == "cvrp":
             self.dataset_class = CVRPDataset
-        elif problem == "vrptw":
-            self.dataset_class = VRPTWDataset
+        # elif problem == "vrptw":
+        #     self.dataset_class = VRPTWDataset
         else:
             print("There exists no dataset class yet for this problem!")
             self.dataset_class = None
