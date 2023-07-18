@@ -22,14 +22,7 @@ CPU_BASE_REF_MULTI = 8000  # roughly equivalent to AMD Ryzen 7 PRO 3700U or Inte
 GPU_3D_BASE_REF = 15473  # reasoning: no one is using less than GeForce GTX 1080 (PassMark: 15416)
 GPU_2D_BASE_REF = 896  # reasoning: no one is using less than GeForce GTX 1080 (PassMark: 15416)
 GPU_BASE_REF = round((CPU_BASE_REF_SINGLE + ((0.5 * GPU_3D_BASE_REF) + (0.5 * GPU_2D_BASE_REF))) / 2)
-
-######## MACHINE PASSMARK SETTING #########
-std_nr_threads = 1
-alpha = 0.5
-std_nr_gpus = 1
-MACHINE_BASE_REF_v1 = round((CPU_BASE_REF_SINGLE + ((0.5 * GPU_3D_BASE_REF) + (0.5 * GPU_2D_BASE_REF))) / 2)
-
-PASSMARK_VERSION = "sep"
+# PASSMARK_VERSION = "sep"
 
 SET_TYPES = ["X", "XE", "XML"]
 
@@ -270,7 +263,7 @@ def get_seperate_PassMarks(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int
     return GPU_passmark, CPU_passmark
 
 
-def set_passMark(cfg, device, number_threads=1, passmark_version=PASSMARK_VERSION):
+def set_passMark(cfg, device, number_threads=1, passmark_version=None):
     if cfg.run_type in ["val", "test"]:
         global NUMBER_THREADS_USED
         NUMBER_THREADS_USED = number_threads
@@ -341,8 +334,9 @@ def set_device(cfg):
     return device
 
 
-def _adjust_time_limit(original_TL, pass_mark, device, nr_threads=1, passmark_version=PASSMARK_VERSION):
-    # print(f' IN ADJUST TIME LIMIT: device: {device}, pass_mark: {pass_mark}, nr_threads: {nr_threads}')
+def _adjust_time_limit(original_TL, pass_mark, device, nr_threads=1, passmark_version=None):
+    # print(f' IN ADJUST TIME LIMIT: original Time Limit: {original_TL},'
+    #       f' device: {device}, pass_mark: {pass_mark}, nr_threads: {nr_threads}')
     if device == torch.device("cuda"):
         # print(f"GPU_BASE_REF: {GPU_BASE_REF}")
         return np.round(original_TL / (pass_mark / GPU_BASE_REF))
@@ -680,52 +674,3 @@ def subsample_XML(instances_path, subsample_path=None, nr_inst_per_group=1, nr_g
     for file_name in os.listdir(instances_path):
         if file_name[7:-4] in inst_ids_group:
             shutil.copyfile(instances_path + "/" + file_name, subsample_path + "/" + file_name)
-
-# def get_overall_PassMark_v2(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
-#                         total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
-# print('CPU_Mark', CPU_Mark)
-# print('number_threads', number_threads)
-# # cpu_performance = max(round(number_threads * CPU_Mark_single), CPU_Mark)  # CPU_Mark is Mark for whole processor
-# if twoD_Mark is None and threeD_Mark is None:
-#     overall_passmark = round(1 / (1 / (CPU_Mark * 0.396566187)))
-#     # overall_passmark = round(1 / (1 / (CPU_Mark * 1)))  # 11980
-# else:
-#     print('counting GPU')
-#     overall_passmark = round(1 / ((1 / (CPU_Mark * 0.396566187)) +
-#                                   (1 / (twoD_Mark * 3.178718116)) +
-#                                   (1 / (threeD_Mark * 1.525195879)) / 3))
-#
-# print('overall passMark (V2): ', overall_passmark)
-# return overall_passmark
-
-# MACHINE_BASE_REF_v2 = round(1 / (((1 / (CPU_BASE_REF_SINGLE * 0.396566187))
-#                                   + (1 / (GPU_2D_BASE_REF * 3.178718116)) + (
-#                                               1 / (GPU_3D_BASE_REF * 2.525195879))) / 3))
-
-
-# def get_overall_PassMark_v3(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int,
-# number_threads: int, total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
-#     # https://forums.passmark.com/performancetest/4599-formula-cpu-mark-memory-mark-and-disk-mark
-#     #  version 10 the updated numbers (2020):
-#     # all_ingredients_PassM = 1 / (((1 / (CPU_Mark * 0.396566187)) + (1 / (twoD_Mark * 3.178718116))
-#     #                               + (1 / (threeD_Mark * 2.525195879)) + (1 / (Memory_Mark * 1.757085479))
-#     #                               + (1 / (Disk_Mark * 1.668158805))) / 5)
-#     print('CPU_Mark', CPU_Mark)
-#     print('number_threads', number_threads)
-#     # CPU_Mark is Mark for whole processor
-#     cpu_performance = min(round(number_threads * CPU_Mark_single), CPU_Mark)
-#     print('cpu_performance', cpu_performance)
-#     if twoD_Mark is None and threeD_Mark is None:
-#         # overall_passmark = round(1 / (1 / (CPU_Mark * 0.396566187)))
-#         overall_passmark = round(1 / (1 / (cpu_performance * 1)))
-#     else:
-#         overall_passmark = round(1 / (((1 / (cpu_performance * 0.396566187)) +
-#                                        (1 / (total_gpus * (twoD_Mark * 3.178718116))) +
-#                                        (1 / (total_gpus * (threeD_Mark * 1.525195879)))) / 3))
-#
-#     print('overall passMark (V3): ', overall_passmark)
-#     return overall_passmark
-
-# MACHINE_BASE_REF_v3 = round(1 / (((1 / (std_nr_threads * CPU_BASE_REF_SINGLE * 0.396566187))
-#                                   + (1 / (std_nr_gpus * GPU_2D_BASE_REF * 3.178718116))
-#                                   + (1 / (std_nr_gpus * GPU_3D_BASE_REF * 2.525195879))) / 3))

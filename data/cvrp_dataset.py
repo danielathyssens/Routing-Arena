@@ -149,8 +149,13 @@ class CVRPDataset(BaseDataset):
             assert self.data is not None, f"No data loaded! Please initiate class with valid data path"
             if self.dataset_size is not None and self.dataset_size < len(self.data):
                 self.data = self.data[:self.dataset_size]
-            logger.info(f"{len(self.data)} Test/Validation Instances for {self.problem} with {self.graph_size} "
-                        f"{self.distribution}-distributed customers loaded.")
+            if self.graph_size is not None:
+                logger.info(f"{len(self.data)} Test/Validation Instances for {self.problem} with {self.graph_size} "
+                            f"{self.distribution}-distributed customers loaded.")
+            else:
+                if self.graph_size is not None:
+                    logger.info(f"{len(self.data)} Test/Validation Instances for {self.problem} with mixed-size "
+                                f"{self.distribution}-distributed customers loaded.")
             # Transform loaded data to CVRPInstance format IF NOT already is in format
             if not isinstance(self.data[0], CVRPInstance):
                 self.data = self._make_CVRPInstance()

@@ -153,8 +153,8 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
             # print('env.env_params', env.env_params)
             if env.env_params['problem_size'] is None or env.env_params['problem_size'] != instance.graph_size - 1:
                 # means that problem_size (aka graph_size) in test set is set to None, b/c instances have different size
-                print('instance.graph_size', instance.graph_size)
-                print('instance.graph_size - 1', instance.graph_size - 1)
+                # print('instance.graph_size', instance.graph_size)
+                # print('instance.graph_size - 1', instance.graph_size - 1)
                 env.env_params['problem_size'] = instance.graph_size - 1
                 env.problem_size = instance.graph_size - 1
             if env.env_params['pomo_size'] is None or env.env_params['pomo_size'] != instance.graph_size - 1:
@@ -167,7 +167,7 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
             # print('instance.graph_size', instance.graph_size)
             # print("tester_cfg['solution_max_length']", tester_cfg['solution_max_length'])
             tester_cfg['solution_max_length'] = (instance.graph_size - 1)*2
-            logger.info(f'tester_cfg before RUN: {tester_cfg}')
+            logger.info(f'SGBS-EAS eval options: {tester_cfg}')
             tester = Tester(env=env,
                             model=model,
                             run_params=tester_cfg,

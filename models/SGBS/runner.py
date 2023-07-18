@@ -138,7 +138,7 @@ class Runner:
         self._build_env()
         self._build_model()
         if self.cfg.run_type in ["val", "test"]:
-            print('self.cfg.data_file_path', self.cfg.data_file_path)
+
             if self.cfg.data_file_path is not None and self.passMark is not None \
                     and self.cfg.test_cfg.eval_type != "simple":
                 assert self.device in [torch.device("cpu"), torch.device("cuda")], \
