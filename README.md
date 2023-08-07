@@ -38,3 +38,13 @@ from models.analyse import average_run_results
 avg_res = average_run_results(path_to_results="outputs/saved_results/XE/XE_1/TL_implicit", model_name="SGBS-EAS", number_runs=3) # gives dict with summary stats
 ```
 
+---
+[1] J. Choo, Y. Kwon, J. Kim, J. Jae, A. Hottung, K. Tierney, and Y. Gwon. 
+Simulation-guided beam search for neural combinatorial optimization. In 
+NeurIPS, 2022. URL http://papers.nips.cc/paper_files/paper/2022/hash/39b9b60f0d149eabd1fff2d7c7d5afc4-Abstract-Conference.html
+
+[2] A. Hottung and K. Tierney. Neural large neighborhood search for the capacitated vehicle routing
+problem. In G. D. Giacomo, A. Catalá, B. Dilkina, M. Milano, S. Barro, A. Bugarín, and
+J. Lang, editors, ECAI 2020 - 24th European Conference on Artificial Intelligence, Santiago de
+Compostela, Spain, volume 325 of Frontiers in Artificial Intelligence and Applications, pages
+443–450. IOS Press, 2020. doi: 10.3233/FAIA200124. URL https://doi.org/10.3233/FAIA200124.
