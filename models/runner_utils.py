@@ -28,38 +28,6 @@ SET_TYPES = ["X", "XE", "XML"]
 
 # DEVICE, NUMBER_THREADS_USED = None, None
 
-GPU_MACHINES = {
-    # "GPU_NAME" = [GPU-Average G3D Mark, GPU-Average G2D Mark]
-    'NVIDIA GeForce GTX 1080': [15473, 896],
-    'NVIDIA GeForce RTX 4090': [39487, 1325],
-    'NVIDIA GeForce RTX 3060': [17177, 979],
-    'NVIDIA GeForce RTX 3060 Ti': [20608, 1002],
-    'NVIDIA A40': [9170, 502],  
-    'NVIDIA GeForce RTX 3090': [26962, 1047], 
-    'NVIDIA RTX A4000': [19097, 964],  
-    'NVIDIA GeForce GTX 950M': [2600, 217], 
-    'NVIDIA GeForce RTX 2080 Ti': [21893, 939], 
-    'NVIDIA GeForce GTX 1080 Ti': [18508, 943],  
-
-}
-
-CPU_MACHINES = {
-    # # "CPU_NAME" = [cpuMark, cpuMark_single_thread, total_cores (as should be), total_threads (as should be)]
-    'Intel(R) Core(TM) i5-6300HQ CPU @ 2.30GHz': [4692, 1790, 4, 4],  
-    'Intel(R) Core(TM) i7-10850H CPU @ 2.70GHz': [11980, 2714, 6, 12], 
-    'AMD EPYC 7402 24-Core Processor': [42245, 1947, 24, 48],  
-    'AMD EPYC 7543 32-Core Processor': [56562, 2563, 32, 64], 
-    'AMD EPYC 7713P 64-Core Processor': [83439, 2742, 64, 128], 
-    'Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz': [9251, 1635, 16, 32],  
-    'Intel(R) Xeon(R) CPU E5-1660 v4 @ 3.20GHz': [13500, 2187, 8, 16],
-    'Intel(R) Xeon(R) CPU E5-1620 v4 @ 3.50GHz': [7416, 2236, 4, 8], 
-    'Intel(R) Xeon(R) CPU E5620 @ 2.40GHz': [6442, 1077, 8, 16],  
-    'Intel(R) Xeon(R) CPU           E5620  @ 2.40GHz': [6442, 1077, 8, 16],
-    'Intel(R) Xeon(R) CPU E5645 @ 2.40GHz': [9148, 1174, 12, 24], 
-    'Intel(R) Xeon(R) CPU           E5645  @ 2.40GHz': [9148, 1174, 12, 24], 
-    'Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz': [20036, 1612, 20, 40],  
-}
-
 NORMED_BENCHMARKS = ['cvrp20_test_seed1234.pkl',
                      'cvrp50_test_seed1234.pkl',
                      'cvrp100_test_seed1234.pkl',
@@ -73,6 +41,9 @@ NORMED_BENCHMARKS = ['cvrp20_test_seed1234.pkl',
 XE_DIMS = {'XE_1': 100, 'XE_2': 124, 'XE_3': 128, 'XE_4': 161, 'XE_5': 180, 'XE_6': 185, 'XE_7': 199,
            'XE_8': 203, 'XE_9': 213, 'XE_10': 218, 'XE_11': 236, 'XE_12': 241, 'XE_13': 269, 'XE_14': 274,
            'XE_15': 279, 'XE_16': 293, 'XE_17': 297}
+
+CPU_MACHINES = torch.load("formats/CPU_MACHINES.pkl")
+GPU_MACHINES = torch.load("formats/GPU_MACHINES.pkl")
 
 
 def get_time_limit(cfg):
@@ -245,13 +216,8 @@ def get_cpu_specs():
     return cpu_name, threads_per_cpu, total_cores
 
 
-def get_seperate_PassMarks(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
-                           total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
-    # https://forums.passmark.com/performancetest/4599-formula-cpu-mark-memory-mark-and-disk-mark
-    #  version 10 the updated numbers (2020):
-    # all_ingredients_PassM = 1 / (((1 / (CPU_Mark * 0.396566187)) + (1 / (twoD_Mark * 3.178718116))
-    #                               + (1 / (threeD_Mark * 2.525195879)) + (1 / (Memory_Mark * 1.757085479))
-    #                               + (1 / (Disk_Mark * 1.668158805))) / 5)
+def get_PassMarks(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
+                  total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
     cpu_performance = min(round(number_threads * CPU_Mark_single), CPU_Mark)
     # reset total cpus to 1, because passmark value incorp all cores already
     if total_gpus != 0:
@@ -270,7 +236,10 @@ def set_passMark(cfg, device, number_threads=1, passmark_version=None):
         # get cpu info
         cpu_name, threads_per_cpu, total_cpus = get_cpu_specs()
         if cpu_name not in CPU_MACHINES:
-            warnings.warn(f"Getting CPUMark from config.")
+            warnings.warn(f"CPU specs for {cpu_name} unrecognised in 'formats/CPU_MACHINES.pkl'. "
+                          f"Please add you CPU specs for key {cpu_name} to CPU_MACHINES.pkl or specify CPUMark_single, "
+                          f"CPUMark, cpu_cores and total_threads in config/meta/run.yaml. "
+                          f"Defaulting to PassMark values specified in config.")
             CPUMark_single = cfg.CPU_Mark_single
             CPUMark = cfg.CPU_Mark
             total_threads = cfg.cpu_threads
@@ -287,7 +256,10 @@ def set_passMark(cfg, device, number_threads=1, passmark_version=None):
             cuda_device_name = torch.cuda.get_device_name()
             logger.info(f"GPU Device Name: {cuda_device_name}")
             if cuda_device_name not in GPU_MACHINES.keys():
-                warnings.warn(f"Getting G3DMark and G2DMark from config.")
+                warnings.warn(f"GPU specs for {cuda_device_name} unrecognised in 'formats/GPU_MACHINES.pkl'. "
+                              f"Please add you GPU specs for key {cuda_device_name} to GPU_MACHINES.pkl "
+                              f"or specify G3DMark and G2DMark in config/meta/run.yaml. "
+                              f"Defaulting to PassMark values specified in config.")
                 G3DMark = cfg.G3DMark
                 G2DMark = cfg.G2DMark
             else:
@@ -301,8 +273,8 @@ def set_passMark(cfg, device, number_threads=1, passmark_version=None):
         #                                        total_threads, total_cpus, cuda_device_count)
         #     cpu_perf = passMark
         # else:
-        passMark, cpu_perf = get_seperate_PassMarks(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
-                                                    total_threads, total_cpus, cuda_device_count)
+        passMark, cpu_perf = get_PassMarks(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
+                                           total_threads, total_cpus, cuda_device_count)
         if passMark is None:
             passMark = cpu_perf
     else:

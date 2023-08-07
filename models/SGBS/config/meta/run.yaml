@@ -7,15 +7,15 @@ number_runs: 1
 debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
 global_seed: 1234
 cuda: True
-# eGPU GeForce RTX 3060 (G3DMark Mark: 17177, G2DMark: 975)
+
+# GPU SPECIFICATIONS (Default: GeForce RTX 3060 (G3DMark Mark: 17177, G2DMark: 975))
 G3DMark: 17177
 G2DMark: 975
-# DELL Machine (Intel® Core™ i7-10850H - 12 Threads): 11980
-# DELL Machine (Intel® Core™ i7-10850H - 1 Threads): 2714
-CPU_Mark_single: 2714
-CPU_Mark: 11980
-number_threads: 12
-number_cpus: 6
+# CPU SPECIFICATIONS (Default: DELL Machine Intel® Core™ i7-10850H - 12 Threads: 11980 - 1 Thread: 2714)
+CPU_Mark_single: 2714  # single thread CPU Mark
+CPU_Mark: 11980  # multi thread CPU Mark
+number_threads: 12  # number threads (total)
+number_cpus: 6  # number cores (total)
 
 test_cfg:
   eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi', ['pi', 'wrap']

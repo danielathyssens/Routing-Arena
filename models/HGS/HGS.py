@@ -41,11 +41,11 @@ def read_results(log_filename, sol_filename):
     prev_best_obj = float("inf")
     with open(log_filename, "r") as f:
         lines = f.readlines()
-        for line in lines:  # read log file to get running objective and WRONG runtime for each improving iteration
+        for line in lines:  # read log file to get running objective
             if line[:2] == "It" and float(line.strip().split()[9]) < prev_best_obj:
                 line = line.strip().split()
                 running_objs_log.append(float(line[9]))  # add better obj than prev_best_obj
-                running_times_log.append(float(line[5]))  # in seconds --> but WRONG, see running_times list for correct
+                running_times_log.append(float(line[5]))
             elif line[:13] == "----- GENETIC":
                 final_runtime = float(line.strip().split()[-1])  # seconds
             line_count += 1
@@ -175,15 +175,6 @@ def eval_HGS(
     os.makedirs("result/" + dataset_name + "/HGS_log", exist_ok=True)
     os.makedirs("result/" + dataset_name + "/cvrp", exist_ok=True)
 
-    # convert data to input format for HGS
-    # [1:, ...] since demand for depot node is always 0 and hardcoded in "write_instance"
-    # in l2O-meta originally: 'np.ceil(1 + d.node_features[1:, d.constraint_idx[0]] * int_prec).astype(int).tolist()
-    # print('(d.coords*int_prec).astype(int).tolist()', (data[1].coords*int_prec).astype(int).tolist())
-    # print('(d.coords).tolist()', (data[1].coords).tolist())
-    # print('np.ceil(d.node_features[1:, d.constraint_idx[0]] * int_prec).astype(int).tolist()', np.ceil(data[1].node_features[1:, data[1].constraint_idx[0]] * int_prec).astype(int).tolist())
-    # print('int(d.original_capacity * int_prec)', int(data[1].original_capacity * int_prec))
-    # print('data[1].instance_id', data[1].instance_id)
-
     if is_normalized:
         dataset = [
             [
@@ -215,13 +206,6 @@ def eval_HGS(
             ]
             # print('dataset[0]', dataset[0])
     # run solver
-    # print('dataset_name', dataset_name)
-    # print('dataset[0]', dataset[0])
-    # print('data[0]', data[0])
-    # print('str(i)', str(0))
-    # print('rerun', rerun)
-    # print('TIME_LIMIT', TIME_LIMIT)
-    # print('hgs_exe_path', hgs_exe_path)
     if num_workers <= 1:
         if TIME_LIMIT is not None:
             results = list(tqdm.tqdm([
