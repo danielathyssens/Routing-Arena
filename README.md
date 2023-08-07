@@ -39,6 +39,7 @@ avg_res = average_run_results(path_to_results="outputs/saved_results/XE/XE_1/TL_
 ```
 
 ---
+#### References
 [1] J. Choo, Y. Kwon, J. Kim, J. Jae, A. Hottung, K. Tierney, and Y. Gwon. 
 Simulation-guided beam search for neural combinatorial optimization. In 
 NeurIPS, 2022. URL http://papers.nips.cc/paper_files/paper/2022/hash/39b9b60f0d149eabd1fff2d7c7d5afc4-Abstract-Conference.html
