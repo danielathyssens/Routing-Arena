@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 from torch.utils.data import Dataset
-from formats import CVRPInstance, RPSolution
+from formats import TSPInstance, CVRPInstance, RPSolution
 from data.generator import RPGenerator
 from data.data_utils import format_ds_save_path
 from metrics.metrics import Metrics
@@ -39,7 +39,9 @@ TEST_SETS_BKS = ['cvrp20_test_seed1234.pkl',
                  'val_seed123_size512.pt',
                  'val_seed123_size512.pkl',
                  'val_seed4321_size512.pkl',
+                 'val_seed1234_size128.pkl',
                  'E_R_6_seed123_size512.pt',
+                 'test_seed1234.pkl',
                  'XE',
                  'X',
                  'XML100',
@@ -155,25 +157,36 @@ class BaseDataset(Dataset):
         time_limit = self.adjusted_time_limit if self.adjusted_time_limit is not None else times[-1]  # if 'simple' eval
         # and time <= adjusted_time_limit
         sols = [None]*len(costs) if sols is None else sols
-        for cost, time, sol in zip(costs, times, sols):
-            if time <= time_limit:
-                if cost < prev_cost and cost != float('inf'):
-                    verified_costs.append(cost)
-                    verified_times.append(time)
-                    verified_sols.append(sol)
-                    verified_costs_full.append(cost)
-                    verified_times_full.append(time)
-                    verified_sols_full.append(sol)
-                    prev_cost = cost
-                    # print('verified_costs', verified_costs)
-                elif cost == prev_cost:
-                    verified_costs_full.append(prev_cost)
-                    verified_times_full.append(time)
-                    verified_sols_full.append(sol)
-                # print('prev_cost', prev_cost)
+        if times != [None]:
+            for cost, time, sol in zip(costs, times, sols):
+                if time <= time_limit:
+                    if cost < prev_cost and cost != float('inf'):
+                        verified_costs.append(cost)
+                        verified_times.append(time)
+                        verified_sols.append(sol)
+                        verified_costs_full.append(cost)
+                        verified_times_full.append(time)
+                        verified_sols_full.append(sol)
+                        prev_cost = cost
+                        # print('verified_costs', verified_costs)
+                    elif cost == prev_cost:
+                        verified_costs_full.append(prev_cost)
+                        verified_times_full.append(time)
+                        verified_sols_full.append(sol)
+                    # print('prev_cost', prev_cost)
 
         return verified_costs, verified_times, verified_sols, \
             verified_costs_full, verified_times_full, verified_sols_full
+
+    def eval_costs(self, mode: str, instance: Union[TSPInstance, CVRPInstance], v_costs: list, v_times: list,
+                   orig_r_times: list, model_name: str):
+        return self._eval_metric(model_name=model_name,
+                                 inst_id=str(instance.instance_id),
+                                 instance=instance,
+                                 verified_costs=v_costs,
+                                 verified_times=v_times,
+                                 run_times_orig=orig_r_times,
+                                 eval_type=mode)
 
     def _eval_metric(self,
                      model_name: str,
@@ -239,9 +252,13 @@ class BaseDataset(Dataset):
                             data = pickle.load(f)
             # if directory is not empty & has MULTIPLE files --> load files in directory as one dataset
             elif len(os.listdir(self.store_path)) > 1:
-                logger.info("Loading .vrp instances...")
-                data = [self.read_vrp_instance(self.store_path+"/"+file) for file in os.listdir(self.store_path)
-                        if (file[:3] != 'BKS' and file[-3:] == 'vrp')]
+                logger.info("Loading instance files...")
+                if self.problem.lower() == "cvrp":
+                    data = [self.read_vrp_instance(self.store_path+"/"+file) for file in os.listdir(self.store_path)
+                            if (file[:3] != 'BKS' and file[-3:] == 'vrp')]
+                else:
+                    data = [self.read_tsp_instance(self.store_path + "/" + file) for file in os.listdir(self.store_path)
+                            if (file[:3] != 'BKS' and file[-3:] == 'tsp')]
             # download data
             else:
                 print(f'{self.problem.upper()} dataset for {file_name} needs to be downloaded in the directory - '
@@ -256,6 +273,118 @@ class BaseDataset(Dataset):
             data = None
 
         return data, self.data_key
+
+    def get_running_values(self,
+                           instance: Union[TSPInstance, CVRPInstance],
+                           running_sol: List[List[List]],
+                           running_costs: List[float],
+                           running_t: List[float],
+                           final_runtime: float,
+                           final_cost: float,
+                           scale_factor: int,
+                           grid_size: int,
+                           is_denormed: bool,
+                           place_holder_final_sol: bool = False,
+                           update_runn_sols: bool = True):
+        runn_costs_upd, runn_sols = None, None
+        if running_sol is not None and running_t is not None:
+            runn_costs = [self.feasibility_check(instance, sol, is_running=True)[0] for sol in running_sol]
+            if update_runn_sols and (len(runn_costs) != len(running_t)):
+                assert len(runn_costs) == len(running_sol), f"Cannot update running sols - not same length with costs"
+                prev_cost = float('inf')
+                runn_sols, runn_costs_upd = [], []
+                for cost, sol in zip(runn_costs, running_sol):
+                    if cost < prev_cost and cost != float('inf'):
+                        runn_costs_upd.append(cost)
+                        runn_sols.append(sol)
+                        prev_cost = cost
+                print(
+                    f"len runn_cost_upd {len(runn_costs_upd)}, len runn_sols {len(runn_sols)}, len running_t {len(running_t)}")
+                runn_costs = runn_costs_upd
+                # if len(runn_costs) > len(running_t):
+                #     runn_costs.pop()
+                #     runn_sols.pop()
+                # assert len(runn_costs) == len(runn_sols) == len(running_t)
+                # runn_costs = runn_costs_upd
+            if scale_factor is not None:
+                # print('scaling running COSTS with self.scale_factor', self.scale_factor)
+                runn_costs = [c * scale_factor for c in runn_costs]
+            elif is_denormed and os.path.basename(self.store_path) in NORMED_BENCHMARKS:
+                runn_costs = [c / grid_size for c in runn_costs]
+            else:
+                runn_costs = runn_costs
+            runn_times = running_t
+        elif running_costs is not None and running_t is not None:
+            warnings.warn(f"Getting objective costs directly from solver - feasibility not checked by BaseDataset")
+            if scale_factor is not None:
+                runn_costs = [c * scale_factor for c in running_costs]
+            elif is_denormed and os.path.basename(self.store_path) in NORMED_BENCHMARKS:
+                runn_costs = [c / grid_size for c in running_costs]
+            else:
+                runn_costs = running_costs
+            runn_times = running_t
+            # print('FINAL COST:', final_cost)
+            # print("final_cost == float('inf')", final_cost == float('inf'))
+            if final_cost is not None and runn_costs:
+                if np.round(final_cost, 2) != np.round(runn_costs[-1], 2):
+                    if final_cost != float('inf') and final_cost > runn_costs[-1]:
+                        # np.round(
+                        warnings.warn(f"Last running cost {runn_costs[-1]} is smaller than calculated final"
+                                      f" cost {final_cost}. Removing running costs < final costs, because don't have"
+                                      f" solution for this cost.")
+                        runn_costs, runn_times = [], []
+                        for r_cost, r_time in zip(running_costs, running_t):
+                            if r_cost > final_cost:
+                                runn_costs.append(r_cost)
+                                runn_times.append(r_time)
+                            elif r_cost < final_cost:
+                                runn_costs.append(final_cost)
+                                runn_times.append(r_time)
+                                break
+                    elif final_cost == float('inf'):
+                        if place_holder_final_sol:
+                            print(f"Is placeholder final solution in Re-evaluation...")
+                    else:
+                        if np.round(final_cost, 1) < np.round(runn_costs[-1], 1):
+                            warnings.warn(f"Last running cost {runn_costs[-1]} is larger than calculated final"
+                                          f" cost {final_cost}. Adding final costs to running costs.")
+                            runn_costs.append(final_cost)
+                            runn_times.append(final_runtime)
+                        else:
+                            # is rounding precision error --> replace better final cost in runn_costs
+                            runn_costs[-1] = final_cost
+
+        else:
+            if self.scale_factor is not None:
+                runn_costs = [final_cost * self.scale_factor]
+            # elif self.is_denormed: --> FINAL COST ALREADY NORMALIZED
+            #     runn_costs = [final_cost / self.grid_size]
+            else:
+                runn_costs = [final_cost]
+            runn_times = [final_runtime]
+        # runn_costs = runn_costs_upd if runn_costs_upd is not None else runn_costs
+        runn_sols = runn_sols if runn_sols is not None else running_sol
+
+        return self.verify_costs_times(runn_costs, runn_times, runn_sols, instance.time_limit), runn_times
+
+    def update_BKS(self, instance, cost):
+        # self.bks[str(instance.instance_id)] = cost
+        logger.info(f"New BKS found for instance {instance.instance_id} of the {self.distribution}-"
+                    f"distributed {self.problem} Test Set")
+        logger.info(f"New BKS with cost {cost} is {instance.BKS - cost} better than old BKS with cost {instance.BKS}")
+
+        return str(instance.instance_id)
+
+    @staticmethod
+    def return_infeasible_sol(mode, instance, solution, cost, nr_vs=None):
+        if mode in ['wrap', 'pi'] or 'wrap' in mode or 'pi' in mode:
+            logger.info(f"Metric Analysis for instance {instance.instance_id} cannot be performed. No feasible "
+                        f"solution provided in Time Limit. Setting PI score to 10 and WRAP score to 1.")
+            pi_ = 10 if mode == 'pi' or 'pi' in mode else None
+            wrap_ = 1 if mode == 'wrap' or 'wrap' in mode else None
+            return solution.update(cost=cost, pi_score=pi_, wrap_score=wrap_, num_vehicles=nr_vs), None, None
+        else:
+            return solution.update(cost=cost, num_vehicles=nr_vs), None, None
 
     # from L2O-Meta
     @staticmethod
@@ -356,26 +485,43 @@ class BaseDataset(Dataset):
             *features,
         ))
 
+    def check_eval_mode(self, eval_mode: str, solution: RPSolution):
+        if eval_mode != "simple" and eval_mode != ["simple"]:
+            eval_mode = eval_mode if self.bks else "simple"
+            if eval_mode == "simple":
+                warnings.warn(f"Defaulting to simple evaluation - no BKS loaded for PI or WRAP Evaluation.")
+            elif not self.bks[str(solution.instance.instance_id)][0] == solution.instance.BKS:
+                warnings.warn(f"ID mismatch: Instance Tuple BKS does not match loaded global BKS repository."
+                              f" Defaulting to simple evaluation")
+                eval_mode = "simple"
+            return eval_mode
+        else:
+            return eval_mode
+
     # @staticmethod
-    def save_trajectory(self, instance_id, costs, times, model, save_trajectory_for=None, instance=None):
+    def save_trajectory(self, instance_id, costs, times, model, save_trajectory_for=None, instance=None,
+                        save_name=None):
         if save_trajectory_for is None and self.save_traj_flag:
             save_trajectory_for = instance_id
             self.save_traj_flag = False
-        if instance_id == str(save_trajectory_for):
-            logger.info(f'Saving solution trajectory for instance {instance_id}')
-            if instance is not None:
+        if instance is not None:
+            if self.problem == "cvrp":
                 save_name = "_instance_" + instance_id + "_c_dist_" + str(instance.coords_dist) + "_d_dist_" \
                             + str(instance.demands_dist) \
                             + "_depot_type_" + str(instance.depot_type)
+            # elif self.problem == "vrptw":
+            else:
+                save_name = "_instance_" + instance_id + "_c_dist_" + str(instance.coords_dist) + "_depot_type_" \
+                            + str(instance.depot_type)
+        if instance_id == str(save_trajectory_for):
+            logger.info(f'Saving solution trajectory for instance {instance_id}')
+            if instance is not None:
                 self.plot_trajectory(instance_id, model, times, costs, save_name, instance.time_limit)
             else:
                 self.plot_trajectory(instance_id, model, times, costs)
         elif isinstance(save_trajectory_for, List) and int(instance_id) in save_trajectory_for:
             logger.info(f'Saving solution trajectory for instance {instance_id}')
             if instance is not None:
-                save_name = "_instance_" + instance_id + "_c_dist_" + str(instance.coords_dist) + "_d_dist_" \
-                            + str(instance.demands_dist) \
-                            + "_depot_type_" + str(instance.depot_type)
                 self.plot_trajectory(instance_id, model, times, costs, save_name, instance.time_limit)
             else:
                 self.plot_trajectory(instance_id, model, times, costs)
@@ -408,6 +554,10 @@ class BaseDataset(Dataset):
 
     @abstractmethod
     def _download(self, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def feasibility_check(self, **kwargs):
         raise NotImplementedError
 
     def __len__(self):

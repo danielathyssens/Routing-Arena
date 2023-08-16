@@ -58,6 +58,10 @@ class TSPInstance(NamedTuple):
     time_limit: float = None  # overall time limit for solving this instance (needed to calculate PI)
     BKS: float = None  # Best Known Solution (for this particular instance so far)
     instance_id: Optional[int] = None  # Test instances of a particular dataset have an ID - due to BKS registry
+    coords_dist: Union[int, str] = None  # 'unif' or 'gauss', 'mixed'
+    depot_type: Union[int, str] = None  # 'unif' or 'gauss', 'mixed'
+    original_locations: Union[np.ndarray, torch.Tensor] = None  # for NLNS (original scale - by default scaled to 0-1)
+    type: str = None  # general "distribution" or type of data instance ('uniform', 'uchoa', 'gm', ...)
 
     def __repr__(self) -> str:
         cls = self.__class__.__name__

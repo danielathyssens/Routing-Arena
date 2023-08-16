@@ -19,11 +19,11 @@ from torch.optim.lr_scheduler import MultiStepLR as Scheduler
 from formats import TSPInstance, CVRPInstance, RPSolution
 
 # TSP
-from models.SGBS.SGBS.TSP.SGBS.E_TSPEnv import TSPEnv
-from models.SGBS.SGBS.TSP.SGBS.E_TSPModel import TSPModel
+from models.SGBS.SGBS.tsp.SGBS.E_TSPEnv import TSPEnv
+from models.SGBS.SGBS.tsp.SGBS.E_TSPModel import TSPModel
 # + EAS
-from models.SGBS.SGBS.TSP.SGBS_EAS.E_TSPEnv import TSPEnv as TSPEnv_EAS
-from models.SGBS.SGBS.TSP.SGBS_EAS.E_TSPModel import TSPModel as TSPModel_EAS
+from models.SGBS.SGBS.tsp.SGBS_EAS.E_TSPEnv import TSPEnv as TSPEnv_EAS
+from models.SGBS.SGBS.tsp.SGBS_EAS.E_TSPModel import TSPModel as TSPModel_EAS
 # CVRP
 from models.SGBS.SGBS.cvrp.SGBS.E_CVRPEnv import CVRPEnv
 from models.SGBS.SGBS.cvrp.SGBS.CVRPModel import CVRPModel
@@ -35,8 +35,8 @@ from models.SGBS.SGBS.cvrp.SGBS_EAS.E_CVRPModel import CVRPModel as CVRPEnv_EAS
 # from models.SGBS.SGBS.TSP.SGBS.TSPTrainer import TSPTrainer
 from models.SGBS.SGBS.cvrp.SGBS.CVRPTester import CVRPTester
 from models.SGBS.SGBS.cvrp.SGBS_EAS.CVRPTester import CVRPTester as CVRPTester_EAS
-from models.SGBS.SGBS.TSP.SGBS.TSPTester import TSPTester
-from models.SGBS.SGBS.TSP.SGBS_EAS.TSPTester import TSPTester as TSPTester_EAS
+from models.SGBS.SGBS.tsp.SGBS.TSPTester import TSPTester
+from models.SGBS.SGBS.tsp.SGBS_EAS.TSPTester import TSPTester as TSPTester_EAS
 
 logger = logging.getLogger(__name__)
 
@@ -117,18 +117,15 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
             sols, runtimes, costs, costs_aug = [], [], [], []
             for instance in data:
                 if env.env_params['problem_size'] is None:
-                    env.problem_size = instance.graph_size - 1
+                    env.problem_size = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
                 if env.env_params['pomo_size'] is None:
-                    tester_cfg['pomo_size'] = instance.graph_size - 1
-                    env.pomo_size = instance.graph_size - 1
+                    tester_cfg['pomo_size'] = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
+                    env.pomo_size = instance.graph_size - 1  if problem == "cvrp" else instance.graph_size
                 tester = Tester(env=env,
                                 model=model,
                                 tester_params=tester_cfg,
                                 USE_CUDA=USE_CUDA)
-                print('time_limit', time_limit)
-                print('instance.time_limit', instance.time_limit)
                 time_budget = time_limit if time_limit is not None else instance.time_limit
-                print('time_budget', time_budget)
                 sol, runtime, cost = tester.run(data=[instance],
                                                 time_budget=time_budget)  # , cost_aug
                 sols.append(sol[0])
@@ -155,19 +152,19 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
                 # means that problem_size (aka graph_size) in test set is set to None, b/c instances have different size
                 # print('instance.graph_size', instance.graph_size)
                 # print('instance.graph_size - 1', instance.graph_size - 1)
-                env.env_params['problem_size'] = instance.graph_size - 1
-                env.problem_size = instance.graph_size - 1
+                env.env_params['problem_size'] = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
+                env.problem_size = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
             if env.env_params['pomo_size'] is None or env.env_params['pomo_size'] != instance.graph_size - 1:
                 # means that pomo_size is set to graph_size of instances in test set, but instances have different size
                 # print('instance.graph_size', instance.graph_size)
                 # print('instance.graph_size - 1', instance.graph_size - 1)
-                env.env_params['pomo_size'] = instance.graph_size - 1
-                env.pomo_size = instance.graph_size - 1
+                env.env_params['pomo_size'] = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
+                env.pomo_size = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
             # if instance.graph_size > tester_cfg['solution_max_length']:
             # print('instance.graph_size', instance.graph_size)
             # print("tester_cfg['solution_max_length']", tester_cfg['solution_max_length'])
-            tester_cfg['solution_max_length'] = (instance.graph_size - 1)*2
-            logger.info(f'SGBS-EAS eval options: {tester_cfg}')
+            tester_cfg['solution_max_length'] = (instance.graph_size - 1)*2 if problem == "cvrp" else instance.graph_size
+            logger.info(f'tester_cfg before RUN: {tester_cfg}')
             tester = Tester(env=env,
                             model=model,
                             run_params=tester_cfg,
@@ -182,14 +179,8 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
             running_sols.append(running_sol)
             running_rts.append(running_rt)
             running_costs.append(running_cost)
-        # print('sols', sols)
-        # print('running_sols', running_sols)
-        # print('running_rts', running_rts)
-        # print('running_costs', running_costs)
         s_parsed = _get_sep_tours(problem, sols)
         s_parsed_running = [_get_sep_tours(problem, running_sol) for running_sol in running_sols]
-        # print('s_parsed_running', s_parsed_running)
-        # print('len(s_parsed_running', len(s_parsed_running))
         # print('len (running_costs', len(running_costs))
         # print('running_rts', running_rts)
         solutions = make_RPSolution(problem, costs, runtimes, s_parsed, data, s_parsed_running, running_rts,
@@ -204,8 +195,19 @@ def _get_sep_tours(problem: str, sols: Union[torch.Tensor, List]) -> List[List]:
     # parse solution
     if problem.lower() == 'tsp':
         # if problem is TSP - only have single tour
+        parsed_sols = []
         for sol_ in sols:
-            return sol_.tolist()
+            print('sol_', sol_)
+            # return sol_.tolist()
+            if torch.is_tensor(sol_):
+                print('sol_ is tensor')
+                parsed_sols.append(sol_.tolist())
+                print('parsed_sols in loop:', parsed_sols)
+            elif isinstance(sol_, list):
+                print('sol_ is running sol for one instance')
+                print('sol_', sol_)
+                parsed_sols.append([soll.tolist() for soll in sol_])
+        return parsed_sols
 
     elif problem.lower() == 'cvrp':
         sols_ = []

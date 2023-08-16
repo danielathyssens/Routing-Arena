@@ -108,9 +108,9 @@ class Runner:
             from models.SGBS.SGBS.cvrp.SGBS_EAS.E_CVRPModel import E_CVRPModel as CVRPModel
             from models.SGBS.SGBS.cvrp.SGBS_EAS.E_CVRPEnv import E_CVRPEnv as CVRPEnv
             from models.SGBS.SGBS.cvrp.SGBS_EAS.CVRPTester import CVRPTester
-            from models.SGBS.SGBS.TSP.SGBS_EAS.E_TSPModel import E_TSPModel as TSPModel
-            from models.SGBS.SGBS.TSP.SGBS_EAS.E_TSPEnv import E_TSPEnv as TSPEnv
-            from models.SGBS.SGBS.TSP.SGBS_EAS.TSPTester import TSPTester
+            from models.SGBS.SGBS.tsp.SGBS_EAS.E_TSPModel import E_TSPModel as TSPModel
+            from models.SGBS.SGBS.tsp.SGBS_EAS.E_TSPEnv import E_TSPEnv as TSPEnv
+            from models.SGBS.SGBS.tsp.SGBS_EAS.TSPTester import TSPTester
             self.Env = TSPEnv if self.cfg.problem.upper() == "TSP" else CVRPEnv
             self.Model = TSPModel if self.cfg.problem.upper() == "TSP" else CVRPModel
             self.Tester = TSPTester if self.cfg.problem.upper() == "TSP" else CVRPTester
@@ -118,9 +118,10 @@ class Runner:
             from models.SGBS.SGBS.cvrp.SGBS.CVRPModel import CVRPModel
             from models.SGBS.SGBS.cvrp.SGBS.E_CVRPEnv import E_CVRPEnv as CVRPEnv
             from models.SGBS.SGBS.cvrp.SGBS.CVRPTester import CVRPTester
-            from models.SGBS.SGBS.TSP.SGBS.E_TSPModel import E_TSPModel as TSPModel
-            from models.SGBS.SGBS.TSP.SGBS.E_TSPEnv import E_TSPEnv as TSPEnv
-            from models.SGBS.SGBS.TSP.SGBS.TSPTester import TSPTester
+            # from models.SGBS.SGBS.tsp.SGBS.E_TSPModel import E_TSPModel as TSPModel
+            from models.SGBS.SGBS.tsp.SGBS.TSPModel import TSPModel
+            from models.SGBS.SGBS.tsp.SGBS.E_TSPEnv import E_TSPEnv as TSPEnv
+            from models.SGBS.SGBS.tsp.SGBS.TSPTester import TSPTester
             self.Env = TSPEnv if self.cfg.problem.upper() == "TSP" else CVRPEnv
             self.Model = TSPModel if self.cfg.problem.upper() == "TSP" else CVRPModel
             self.Tester = TSPTester if self.cfg.problem.upper() == "TSP" else CVRPTester
@@ -138,7 +139,6 @@ class Runner:
         self._build_env()
         self._build_model()
         if self.cfg.run_type in ["val", "test"]:
-
             if self.cfg.data_file_path is not None and self.passMark is not None \
                     and self.cfg.test_cfg.eval_type != "simple":
                 assert self.device in [torch.device("cpu"), torch.device("cuda")], \

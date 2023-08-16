@@ -2,7 +2,6 @@ from data.base_dataset import BaseDataset
 from typing import Optional, Tuple, List, Dict, Union, NamedTuple, Any, Callable
 from omegaconf import DictConfig, ListConfig
 import warnings
-from abc import ABC
 import os
 from urllib.request import urlopen
 from io import BytesIO
@@ -12,7 +11,6 @@ import torch
 import numpy as np
 from formats import CVRPInstance, RPSolution
 from models.runner_utils import NORMED_BENCHMARKS, get_budget_per_size, _adjust_time_limit
-# , make_instance_vrptw
 # from data.data_utils import prepare_sol_instances
 import logging
 
@@ -21,7 +19,9 @@ logger = logging.getLogger(__name__)
 EPS = 0.01  # 0.002 changed in cluster b/c of NLNS # np.finfo(np.float32).eps
 
 CVRPLIB_LINKS = {
-    "X": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-X.zip", "X"],
+    # "D": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-D.zip", "D"],
+    "X": ["vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-X.zip", "X"],
+    # "Li": ["vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-Li.zip", "Li"],
     "Golden": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-Golden.zip", "Golden"],
     "XML100": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-XML100.zip", "XML100"]
 }
@@ -134,6 +134,8 @@ class CVRPDataset(BaseDataset):
         self.capacity = capacity
         self.time_limit = TimeLimit
         self.machine_info = machine_info
+        if self.machine_info is not None:
+            print('self.machine_info in Dataset', machine_info)
         self.re_evaluate = re_evaluate
         self.metric = None
         self.max_cap_factor = max_cap_factor
@@ -144,17 +146,17 @@ class CVRPDataset(BaseDataset):
         self.is_denormed = False
 
         if store_path is not None:
-            # load OR download (test) data
+            # load or download (test) data
             self.data, self.data_key = self.load_dataset()
             assert self.data is not None, f"No data loaded! Please initiate class with valid data path"
             if self.dataset_size is not None and self.dataset_size < len(self.data):
                 self.data = self.data[:self.dataset_size]
             if self.graph_size is not None:
-                logger.info(f"{len(self.data)} Test/Validation Instances for {self.problem} with {self.graph_size} "
+                logger.info(f"{len(self.data)} CVRP Test/Validation Instances for {self.problem} with {self.graph_size} "
                             f"{self.distribution}-distributed customers loaded.")
             else:
                 if self.graph_size is not None:
-                    logger.info(f"{len(self.data)} Test/Validation Instances for {self.problem} with mixed-size "
+                    logger.info(f"{len(self.data)} CVRP Test/Validation Instances for {self.problem} with mixed-size "
                                 f"{self.distribution}-distributed customers loaded.")
             # Transform loaded data to CVRPInstance format IF NOT already is in format
             if not isinstance(self.data[0], CVRPInstance):
@@ -183,7 +185,7 @@ class CVRPDataset(BaseDataset):
                             graph_size=20,
                             distribution="uniform",
                             log_info=True)
-
+            self.size = len(self.data)
         else:  # no data to load - but initiated CVRPDataset for sampling in training loop
             logger.info(f"No data loaded - initiated CVRPDataset with env config for sampling in training...")
             self.size = None
@@ -329,29 +331,29 @@ class CVRPDataset(BaseDataset):
     def _get_costs(self, sol: RPSolution) -> Tuple[float, int, bool, List[list]]:
         # perform problem-specific feasibility check while getting routing costs
         cost, k, solution_upd = self.feasibility_check(sol.instance, sol.solution)
-        print('k', k)
         is_feasible = True if cost != float("inf") else False
         return cost, k, is_feasible, solution_upd
 
-    def return_infeasible_sol(self, mode, instance, solution, cost, nr_vs):
-        if mode in ['wrap', 'pi'] or 'wrap' in mode or 'pi' in mode:
-            logger.info(f"Metric Analysis for instance {instance.instance_id} cannot be performed. No feasible "
-                        f"solution provided in Time Limit. Setting PI score to 10 and WRAP score to 1.")
-            pi_ = 10 if mode == 'pi' or 'pi' in mode else None
-            wrap_ = 1 if mode == 'wrap' or 'wrap' in mode else None
-            return solution.update(cost=cost, pi_score=pi_, wrap_score=wrap_, num_vehicles=nr_vs), None, None
-        else:
-            return solution.update(cost=cost, num_vehicles=nr_vs), None, None
+    # @staticmethod
+    # def return_infeasible_sol(mode, instance, solution, cost, nr_vs):
+    #     if mode in ['wrap', 'pi'] or 'wrap' in mode or 'pi' in mode:
+    #         logger.info(f"Metric Analysis for instance {instance.instance_id} cannot be performed. No feasible "
+    #                     f"solution provided in Time Limit. Setting PI score to 10 and WRAP score to 1.")
+    #         pi_ = 10 if mode == 'pi' or 'pi' in mode else None
+    #         wrap_ = 1 if mode == 'wrap' or 'wrap' in mode else None
+    #         return solution.update(cost=cost, pi_score=pi_, wrap_score=wrap_, num_vehicles=nr_vs), None, None
+    #     else:
+    #         return solution.update(cost=cost, num_vehicles=nr_vs), None, None
 
-    def eval_costs(self, mode: str, instance: CVRPInstance, v_costs: list, v_times: list, orig_r_times: list,
-                   model_name: str):
-        return self._eval_metric(model_name=model_name,
-                                 inst_id=str(instance.instance_id),
-                                 instance=instance,
-                                 verified_costs=v_costs,
-                                 verified_times=v_times,
-                                 run_times_orig=orig_r_times,
-                                 eval_type=mode)
+    # def eval_costs(self, mode: str, instance: CVRPInstance, v_costs: list, v_times: list, orig_r_times: list,
+    #                model_name: str):
+    #     return self._eval_metric(model_name=model_name,
+    #                              inst_id=str(instance.instance_id),
+    #                              instance=instance,
+    #                              verified_costs=v_costs,
+    #                              verified_times=v_times,
+    #                              run_times_orig=orig_r_times,
+    #                              eval_type=mode)
 
     def eval_solution(self,
                       model_name: str,
@@ -380,69 +382,23 @@ class CVRPDataset(BaseDataset):
         if not is_feasible:
             self.return_infeasible_sol(eval_mode, instance, solution, cost, nr_v)
 
-        # default to simple evaluation if no BKSs are loaded and ensure correct ID order if eval_mode = ['wrap','pi']
-        if eval_mode != "simple" and eval_mode != ["simple"]:
-            eval_mode = eval_mode if self.bks else "simple"
-            if eval_mode == "simple":
-                warnings.warn(f"Defaulting to simple evaluation - no BKS loaded for PI or WRAP Evaluation.")
-            else:
-                assert self.bks[str(solution.instance.instance_id)][0] == \
-                       solution.instance.BKS, f"ID mismatch: Instance Tuple BKS does not match " \
-                                              f"loaded global BKS repository"
+        # default to simple evaluation if no BKS loaded or incorrect ID order
+        eval_mode = self.check_eval_mode(eval_mode, solution)
 
-        # get and verify running values
-        if solution.running_sols is not None:
-            print('Len(running_sols) before VERIFY', len(solution.running_sols))
-        if solution.running_costs is not None:
-            print('Len(running_costs) before VERIFY', len(solution.running_costs))
-        print('Len(running_times) before VERIFY', len(solution.running_times))
-        print(f'getting running values for MODEL {model_name}')
-        running_costs, running_times, running_sols = self.get_running_values(instance,
-                                                                             solution.running_sols,
-                                                                             solution.running_costs,
-                                                                             solution.running_times,
-                                                                             solution.run_time,
-                                                                             cost,
-                                                                             place_holder_final_sol)
+        verified_values, running_times = self.get_running_values(
+            instance,
+            solution.running_sols,
+            solution.running_costs,
+            solution.running_times,
+            solution.run_time,
+            cost,
+            self.scale_factor,
+            self.grid_size,
+            self.is_denormed,
+            place_holder_final_sol
+        )
 
-        # if running_sols is not None:
-        #     if not running_sols[-1] == solution.solution:
-        #         if running_sols[-1] is not None and solution.solution is not None:
-        #             if round(cost, 2) < round(running_costs[-1], 2):
-        #                 warnings.warn(f"missmatch final solution (with cost: {cost}) and "
-        #                               f"last running solution (with cost: {running_costs[-1]})")
-        #                 print(f"Updating running solution with better final solution")
-                        # print('final runtime', solution.run_time)
-                        # print('running_costs', running_costs)
-                        # print('running_times', running_times)
-        #                 running_costs.append(cost)
-        #                 running_times.append(solution.run_time)  # we don't have running time here...
-        #                 running_sols.append(solution.solution)
-
-        v_costs, v_times, v_sols, v_costs_full, v_times_full, v_sols_full = self.verify_costs_times(running_costs,
-                                                                                                    running_times,
-                                                                                                    running_sols,
-                                                                                                    instance.time_limit)
-
-        # if running_sols is not None:
-        #     if not v_sols[-1] == solution.solution:
-        #         if v_sols[-1] is not None and solution.solution is not None:
-        #             if round(cost, 2) > round(v_costs[-1], 2):
-        #                 warnings.warn(f"missmatch final solution (with cost: {cost}) and "
-        #                               f"last running solution (with cost: {running_costs[-1]})")
-        #                 print(f"Updating final solution with better running cost solution")
-        #                 solution = solution.update(solution=running_sols[-1])
-        #                 cost = v_costs[-1]
-
-        print('Len(verified_costs) AFTER VERIFY', len(v_costs))
-        print('Len(verified_times) AFTER VERIFY', len(v_times))
-        print('Len(verified_sols) AFTER VERIFY', len(v_sols))
-        # print('verified_times in cvrp_dataset.eval_solution', verified_times)
-        # print('len(verified_costs)', len(verified_costs))
-        # print('len(v_costs_full)', len(v_costs_full))
-        # print('len(v_times_full)', len(v_times_full))
-        # print('verified_costs', verified_costs)
-        # print('verified_times', verified_times)
+        v_costs, v_times, v_sols, v_costs_full, v_times_full, v_sols_full = verified_values
 
         if isinstance(eval_mode, ListConfig) or isinstance(eval_mode, list):
             for mode in eval_mode:
@@ -488,113 +444,6 @@ class CVRPDataset(BaseDataset):
                                run_time=solution.run_time,  # self.adjusted_time_limit),
                                pi_score=pi_score,
                                wrap_score=wrap_score), None, new_best
-
-    def update_BKS(self, instance, cost):
-        # self.bks[str(instance.instance_id)] = cost
-        logger.info(f"New BKS found for instance {instance.instance_id} of the {self.distribution}-"
-                    f"distributed {self.problem} Test Set")
-        logger.info(f"New BKS with cost {cost} is {instance.BKS - cost} better than old BKS with cost {instance.BKS}")
-
-        return str(instance.instance_id)
-
-    def get_running_values(self,
-                           instance: CVRPInstance,
-                           running_sol: List[List[List]],
-                           running_costs: List[float],
-                           running_t: List[float],
-                           final_runtime: float,
-                           final_cost: float,
-                           place_holder_final_sol: bool = False,
-                           update_runn_sols: bool = True):
-        runn_costs_upd, runn_sols = None, None
-        if running_sol is not None and running_t is not None:
-            runn_costs = [self.feasibility_check(instance, sol, is_running=True)[0] for sol in running_sol]
-            if update_runn_sols and (len(runn_costs) != len(running_t)):
-                assert len(runn_costs) == len(running_sol), f"Cannot update running sols - not same length with costs"
-                prev_cost = float('inf')
-                runn_sols, runn_costs_upd = [], []
-                for cost, sol in zip(runn_costs, running_sol):
-                    if cost < prev_cost and cost != float('inf'):
-                        runn_costs_upd.append(cost)
-                        runn_sols.append(sol)
-                        prev_cost = cost
-                print(f"len runn_cost_upd {len(runn_costs_upd)}, len runn_sols {len(runn_sols)}, len running_t {len(running_t)}")
-                runn_costs = runn_costs_upd
-                # if len(runn_costs) > len(running_t):
-                #     runn_costs.pop()
-                #     runn_sols.pop()
-                # assert len(runn_costs) == len(runn_sols) == len(running_t)
-                # runn_costs = runn_costs_upd
-            if self.scale_factor is not None:
-                # print('scaling running COSTS with self.scale_factor', self.scale_factor)
-                runn_costs = [c * self.scale_factor for c in runn_costs]
-            elif self.is_denormed and os.path.basename(self.store_path) in NORMED_BENCHMARKS:
-                runn_costs = [c / self.grid_size for c in runn_costs]
-            else:
-                runn_costs = runn_costs
-            runn_times = running_t
-        elif running_costs is not None and running_t is not None:
-            warnings.warn(f"Getting objective costs directly from solver - feasibility not checked by BaseDataset")
-            if self.scale_factor is not None:
-                runn_costs = [c * self.scale_factor for c in running_costs]
-            elif self.is_denormed and os.path.basename(self.store_path) in NORMED_BENCHMARKS:
-                runn_costs = [c / self.grid_size for c in running_costs]
-            else:
-                runn_costs = running_costs
-            runn_times = running_t
-            print('FINAL COST:', final_cost)
-            print("final_cost == float('inf')", final_cost == float('inf'))
-            if final_cost is not None and runn_costs:
-                print('np.round(final_cost, 1)', np.round(final_cost, 1))
-                print('np.round(runn_costs[-1], 1)', np.round(runn_costs[-1], 1))
-                if np.round(final_cost, 2) != np.round(runn_costs[-1], 2):
-                    if final_cost != float('inf') and final_cost > runn_costs[-1]:
-                        # np.round(
-                        warnings.warn(f"Last running cost {runn_costs[-1]} is smaller than calculated final"
-                                      f" cost {final_cost}. Removing running costs < final costs, because don't have"
-                                      f" solution for this cost.")
-                        runn_costs, runn_times = [], []
-                        for r_cost, r_time in zip(running_costs, running_t):
-                            if r_cost > final_cost:
-                                runn_costs.append(r_cost)
-                                runn_times.append(r_time)
-                            elif r_cost < final_cost:
-                                print('np.round(r_cost)', np.round(r_cost))
-                                print('np.round(final_cost)', np.round(final_cost))
-                                runn_costs.append(final_cost)
-                                runn_times.append(r_time)
-                                break
-                        print('runn_costs', runn_costs)
-                        print('runn_times', runn_times)
-                        print('final_cost', final_cost)
-                        print('final_runtime', final_runtime)
-                    elif final_cost == float('inf'):
-                        if place_holder_final_sol:
-                            print(f"Is placeholder final solution in Re-evaluation...")
-                    else:
-                        print('np.round(final_cost, 1)', np.round(final_cost, 1))
-                        print('np.round(runn_costs[-1], 1)', np.round(runn_costs[-1], 1))
-                        if np.round(final_cost, 1) < np.round(runn_costs[-1], 1):
-                            warnings.warn(f"Last running cost {runn_costs[-1]} is larger than calculated final"
-                                          f" cost {final_cost}. Adding final costs to running costs.")
-                            runn_costs.append(final_cost)
-                            runn_times.append(final_runtime)
-                        else:
-                            # is rounding precision error --> replace better final cost in runn_costs
-                            runn_costs[-1] = final_cost
-
-        else:
-            if self.scale_factor is not None:
-                runn_costs = [final_cost * self.scale_factor]
-            # elif self.is_denormed: --> FINAL COST ALREADY NORMALIZED
-            #     runn_costs = [final_cost / self.grid_size]
-            else:
-                runn_costs = [final_cost]
-            runn_times = [final_runtime]
-        print('runn_costs[:3]', runn_costs[:3])
-        # runn_costs = runn_costs_upd if runn_costs_upd is not None else runn_costs
-        runn_sols = runn_sols if runn_sols is not None else running_sol
-        return runn_costs, runn_times, runn_sols
 
     def feasibility_check(self, instance: CVRPInstance, solution: List[List], is_running: bool = False):
         depot = instance.depot_idx[0]
