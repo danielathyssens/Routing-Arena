@@ -1,6 +1,6 @@
 #!/bin/env python
 
-# Mostly from https://github.com/yorak/VeRyPy
+# Most code in this file is based on the code on https://github.com/yorak/VeRyPy
 
 from __future__ import print_function
 from __future__ import division

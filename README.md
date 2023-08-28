@@ -64,3 +64,27 @@ problem. In G. D. Giacomo, A. Catalá, B. Dilkina, M. Milano, S. Barro, A. Bugar
 J. Lang, editors, ECAI 2020 - 24th European Conference on Artificial Intelligence, Santiago de
 Compostela, Spain, volume 325 of Frontiers in Artificial Intelligence and Applications, pages
 443–450. IOS Press, 2020. doi: 10.3233/FAIA200124. URL https://doi.org/10.3233/FAIA200124.
+
+---
+#### Acknowledgments
+
+The baseline code implementations in the models directory are based on the 
+following original source-code publications of the respective baselines:
+
+- AM: https://github.com/wouterkool/attention-learn-to-route
+- DACT: https://github.com/yining043/VRP-DACT
+- DPDP: https://github.com/wouterkool/dpdp
+- FILO: https://github.com/acco93/filo
+- HGS: https://github.com/vidalt/HGS-CVRP
+- MDAM: https://github.com/liangxinedu/MDAM
+- NeuroLKH: https://github.com/liangxinedu/
+- NeuroLS: https://github.com/jokofa/NeuroLS
+- NLNS: https://github.com/ahottung/NLNS
+- ortools: https://pypi.org/project/ortools/
+- POMO: https://github.com/yd-kwon/POMO/tree/master/NEW_py_ver
+- Savings: https://github.com/yorak/VeRyPy
+- SGBS: https://github.com/yd-kwon/SGBS
+
+For further information
+concerning implementation and paper references, see the README.md in the respective 
+baseline directories.

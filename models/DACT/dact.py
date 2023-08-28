@@ -1,4 +1,7 @@
-#
+####
+# Some parts of this code are taken from https://github.com/yining043/VRP-DACT
+# (Ma, Yining, et al. "Learning to iteratively solve routing problems with dual-aspect collaborative transformer." Advances in Neural Information Processing Systems 34 (2021): 11096-11107.)
+# such as calling the ppo agent class and calling the train procedure.
 import os
 import json
 import logging

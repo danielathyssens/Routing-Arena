@@ -1,3 +1,7 @@
+####
+# This code file is adapted from the original code provided in
+# https://github.com/yining043/VRP-DACT (Ma, Yining, et al. "Learning to iteratively solve routing problems with dual-aspect collaborative transformer." Advances in Neural Information Processing Systems 34 (2021): 11096-11107.)
+
 import os
 import warnings
 import torch
@@ -34,7 +38,7 @@ class Memory:
 def lr_sd(epoch, opts):
     return opts.lr_decay ** epoch
 
-# original PPO code from DACT ammended for training data input.
+# original PPO code from DACT (https://github.com/yining043/VRP-DACT) changed for training data input.
 class PPO:
     def __init__(self, problem_name, size, opts):
 

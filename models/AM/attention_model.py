@@ -1,3 +1,9 @@
+
+####
+# This code is based on and adapted from the original code provided in
+# https://github.com/wouterkool/attention-learn-to-route (Kool, W.; van Hoof, H.; and Welling, M. 2019. Attention,
+# Learn to Solve Routing Problems! In Proceedings of International Conference on Learning Representations (ICLR).)
+
 from typing import Optional, Tuple, List, Dict, Union, NamedTuple, Any
 import math
 import os

@@ -1,3 +1,7 @@
+####
+# This code file is adapted from the original code provided in
+# https://github.com/yining043/VRP-DACT (Ma, Yining, et al. "Learning to iteratively solve routing problems with dual-aspect collaborative transformer." Advances in Neural Information Processing Systems 34 (2021): 11096-11107.)
+# changes: added "device" argument in init
 from torch import nn
 import torch
 from .graph_layers import MultiHeadEncoder, MultiHeadDecoder, EmbeddingNet

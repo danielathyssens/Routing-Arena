@@ -1,3 +1,7 @@
+####
+# This code file is amended from the original code provided in
+# https://github.com/yining043/VRP-DACT (Ma, Yining, et al. "Learning to iteratively solve routing problems with dual-aspect collaborative transformer." Advances in Neural Information Processing Systems 34 (2021): 11096-11107.)
+# changes: line 16 (changed vrp to cvrp)
 import os
 import time
 import argparse

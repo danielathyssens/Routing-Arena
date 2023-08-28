@@ -1,3 +1,13 @@
+####
+# This code is partly based on and adapted from the code provided in
+# https://github.com/jokofa/NeuroLS (Falkner, Jonas K., et al. "Learning to Control Local Search for Combinatorial
+# Optimization." Joint European Conference on Machine Learning and
+# Knowledge Discovery in Databases. Cham: Springer Nature Switzerland, 2022.) and
+# https://github.com/liangxinedu/NeuroLKH (Xin, Liang, et al. "NeuroLKH:
+# Combining deep learning model with Lin-Kernighan-Helsgaun heuristic for
+# solving the traveling salesman problem."
+# Advances in Neural Information Processing Systems 34 (2021): 7472-7483.)
+
 import os
 import time
 import warnings
