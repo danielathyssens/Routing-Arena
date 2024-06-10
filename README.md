@@ -84,6 +84,7 @@ following original source-code publications of the respective baselines:
 - POMO: https://github.com/yd-kwon/POMO/tree/master/NEW_py_ver
 - Savings: https://github.com/yorak/VeRyPy
 - SGBS: https://github.com/yd-kwon/SGBS
+- NeuOpt: https://github.com/yining043/NeuOpt
 
 For further information
 concerning implementation and paper references, see the README.md in the respective 
