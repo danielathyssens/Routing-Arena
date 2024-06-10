@@ -1,9 +1,11 @@
 #!/bin/env python
 
-# Most code in this file is based on the code on https://github.com/yorak/VeRyPy
+# Mostly from https://github.com/yorak/VeRyPy
 
 from __future__ import print_function
 from __future__ import division
+
+import warnings
 from builtins import range
 from timeit import default_timer
 from typing import List, Union
@@ -17,6 +19,7 @@ from formats import TSPInstance, CVRPInstance, RPSolution
 from verypy.classic_heuristics.parallel_savings import parallel_savings_init, clarke_wright_savings_function
 from verypy.classic_heuristics.gaskell_savings import gaskell_lambda_savings_function, gaskell_pi_savings_function
 from verypy.util import sol2routes
+# from verypy.tsp_solvers
 
 C_EPS = 1e-10
 S_EPS = 1e-10
@@ -224,30 +227,44 @@ def eval_savings(data, savings_function, is_normalized):
         # We simply retrieve the first element of that list and treat it as the depot. In case this  index is not 0, we swap the nodes.
         # This will break if the instance has multiple depots
         assert len(instance['depot_idx']) == 1, print('This savings implementation does not deal with multiple depots')
-        depot_index = instance['depot_idx'][0]
-        instance['node_features'][[0, depot_index]] = instance['node_features'][[depot_index, 0]]
+        if isinstance(instance, CVRPInstance):
+            depot_index = instance['depot_idx'][0]
+            instance['node_features'][[0, depot_index]] = instance['node_features'][[depot_index, 0]]
+            demands = instance['node_features'][:, 4].tolist()
+            vehicle_capacity = instance.vehicle_capacity if is_normalized else instance.original_capacity
+        elif isinstance(instance, TSPInstance):
+            vehicle_capacity = []
+            demands = []
+        else:
+            warnings.warn("Parallel savings implementation can only solve TSP and CVRP instances")
+            demands, vehicle_capacity = None, None
+
         # instance['node_features'][:, 2:4]
         distances = calc_distance_matrix(instance.coords, instance.coords, p=2)
-        demands = instance['node_features'][:, 4].tolist()
-        vehicle_capacity = instance.vehicle_capacity if is_normalized else instance.original_capacity
 
         t1 = timer()
         solution = parallel_savings_init(D=distances, d=demands, C=vehicle_capacity, savings_callback=savings_func)
         solution = sol2routes(routes2sol(solution))
+        if isinstance(instance, TSPInstance):
+            # need to modify solution for TSP to be one single list and not adding a zero to the end.
+            solution = solution[0][:-1]
+
         t2 = timer()
         total_time = t2 - t1
 
         sol = RPSolution(
             solution=solution,
-            cost=cost(solution, distances),
+            cost=cost(solution, distances, instance.graph_size),
+            num_vehicles=len(solution) if isinstance(instance, CVRPInstance) else 1,
             run_time=total_time,
-            problem="CVRP",
-            instance=instance
+            problem="CVRP" if isinstance(instance, CVRPInstance) else "TSP",
+            instance=instance,
+            method_internal_cost=cost(solution, distances, instance.graph_size)
         )
 
         solutions.append(sol)
         times.append(total_time)
-        objs.append(cost(solution, distances))
+        objs.append(cost(solution, distances, instance.graph_size))
 
     runtimes = np.array(times)
     objs = np.array(objs)
@@ -260,71 +277,74 @@ def eval_savings(data, savings_function, is_normalized):
 
 
 # version veripy API
-def eval_savings_(
-        instance: CVRPInstance,
-        min_k: bool = False,
-        savings_function: str = 'clarke_wright',
-        **kwargs
-):
-    SAVINGS_FN = {
-        'clarke_wright': clarke_wright_savings_function,
-        'gaskell_lambda': gaskell_lambda_savings_function,
-        'gaskell_pi': gaskell_pi_savings_function
-    }
-    savings_func = SAVINGS_FN[savings_function]
-
-    demands = instance['node_features'][:, 4].tolist()  # instance.demands.copy()
-    vehicle_capacity = instance['vehicle_capacity']
-
-    t_start = default_timer()
-    distances = calc_distance_matrix(instance.coords, instance.coords, p=2)
-    solution = parallel_savings_init(
-        D=distances, d=demands, C=vehicle_capacity,
-        savings_callback=savings_func,
-        minimize_K=min_k,
-    )
-    solution = sol2routes(solution)
-    t_total = default_timer() - t_start
-
-    return solution, t_total, distances
-
-
-def run_savings(test_ds: List[CVRPInstance],
-                savings_func: str = 'clarke_wright',
-                min_k: bool = False,
-                disable_progress_bar: bool = False):
-    # sols = []
-    solutions, times, objs = [], [], []
-    for instance in tqdm(test_ds, disable=disable_progress_bar):
-        assign, rt, dist = eval_savings_(
-            instance=instance,
-            min_k=min_k,
-            savings_function=savings_func
-        )
-        # sols.append({
-        #     "instance": instance,
-        #     "assignment": assign,
-        #     "run_time": rt,
-        # })
-        solutions.append(assign)
-        times.append(rt)
-        objs.append(cost(assign, dist))
-
-    return [
-        RPSolution(
-            cost=obj,
-            solution=sol,
-            run_time=time,
-            instance=inst,
-            problem="CVRP"
-        )
-        for obj, sol, time, inst in zip(objs, solutions, times, test_ds)
-    ]
+# def eval_savings_(
+#         instance: Union[CVRPInstance, TSPInstance],
+#         min_k: bool = False,
+#         savings_function: str = 'clarke_wright',
+#         **kwargs
+# ):
+#     SAVINGS_FN = {
+#         'clarke_wright': clarke_wright_savings_function,
+#         'gaskell_lambda': gaskell_lambda_savings_function,
+#         'gaskell_pi': gaskell_pi_savings_function
+#     }
+#     savings_func = SAVINGS_FN[savings_function]
+#
+#     demands = instance['node_features'][:, 4].tolist()  # instance.demands.copy()
+#     vehicle_capacity = instance['vehicle_capacity']
+#
+#     t_start = default_timer()
+#     distances = calc_distance_matrix(instance.coords, instance.coords, p=2)
+#     solution = parallel_savings_init(
+#         D=distances, d=demands, C=vehicle_capacity,
+#         savings_callback=savings_func,
+#         minimize_K=min_k,
+#     )
+#     solution = sol2routes(solution)
+#     t_total = default_timer() - t_start
+#
+#     return solution, t_total, distances
 
 
-def cost(routes, D):
+# def run_savings(test_ds: Union[List[CVRPInstance], List[TSPInstance]],
+#                 savings_func: str = 'clarke_wright',
+#                 min_k: bool = False,
+#                 disable_progress_bar: bool = False):
+#     # sols = []
+#     solutions, times, objs = [], [], []
+#     for instance in tqdm(test_ds, disable=disable_progress_bar):
+#         assign, rt, dist = eval_savings_(
+#             instance=instance,
+#             min_k=min_k,
+#             savings_function=savings_func
+#         )
+#         # sols.append({
+#         #     "instance": instance,
+#         #     "assignment": assign,
+#         #     "run_time": rt,
+#         # })
+#         solutions.append(assign)
+#         times.append(rt)
+#         objs.append(cost(assign, dist))
+#
+#     return [
+#         RPSolution(
+#             cost=obj,
+#             solution=sol,
+#             run_time=time,
+#             instance=inst,
+#             problem="CVRP"
+#         )
+#         for obj, sol, time, inst in zip(objs, solutions, times, test_ds)
+#     ]
+
+
+def cost(routes, D, problem_size=100):
     """calculate the cost of a solution"""
     cost = 0
+    if len(routes) == problem_size:
+        # check for TSP sol
+        routes = [routes]
     for route in routes:
         cost += sum([D[route[i], route[i + 1]] for i in range(len(route) - 1)])
     return cost

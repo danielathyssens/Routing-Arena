@@ -10,6 +10,7 @@ model: "AM"
 model_cfg:
   model_type: "Attention"
   model_args:
+    embedding_dim: 128
     hidden_dim: 128
     num_layers: 3
     tanh_clipping: 10.0

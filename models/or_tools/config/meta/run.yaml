@@ -7,6 +7,7 @@ number_runs: 1
 debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
 global_seed: 1234
 cuda: False
+save_as_base: False
 # DELL Machine (Intel® Core™ i7-10850H - 12 Threads): 11980
 # DELL Machine (Intel® Core™ i7-10850H - 1 Threads): 2714
 CPU_Mark_single: 2714
@@ -17,8 +18,8 @@ number_cpus: 6
 test_cfg:
   eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi', ['pi', 'wrap']
   time_limit: 10
-  save_solutions: False   # either save solution in log dir of run output dir
-  save_for_analysis: True # or save solutions for further analysis in saved results folder
+  save_solutions: True   # either save solution in log dir of run output dir
+  save_for_analysis: False # or save solutions for further analysis in saved results folder
   saved_res_dir: outputs/saved_results # where results for analysis should be saved
   out_name: ${out_name}
   save_trajectory: True   # will always be saved in log dir of run output dir
@@ -26,6 +27,7 @@ test_cfg:
   data_file_path: ${data_file_path}
   fixed_dataset: True
   dataset_size:  # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
+  dataset_range: # solve range of dataset , e.g. [10, 20]
   batch_size: 8  # number of workers for parallel search
   search_workers: 1   # only possible to parallelize search if cp_sat solver is enabled in GORT LS
 

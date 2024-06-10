@@ -7,9 +7,16 @@ import sys
 import pickle
 import logging
 import math
+
+from numpy import ndarray, dtype, floating
+# from numpy.typing import _32Bit
 from scipy.linalg import block_diag
+from scipy.spatial import distance
+import scipy.stats as stats
 from data.data_utils import sample_triangular
 from omegaconf import OmegaConf, DictConfig, ListConfig
+
+# from formats import ObjectiveDict
 
 # Uchoa instances:
 GRID_SIZE = 1000
@@ -20,6 +27,11 @@ CAPACITIES = {
     20: 30.,
     50: 40.,
     100: 50.,
+    125: 55.0,
+    150: 60.0,
+    200: 70.0,
+    500: 100.0,
+    1000: 150.0,
 }
 # vehicle capacities for instances with TW (from Solomon)
 TW_CAPACITIES = {
@@ -37,6 +49,11 @@ STD_K = {
 }
 
 logger = logging.getLogger(__name__)
+
+# Solomon instance naming components
+GROUPS = ["r", "c", "rc"]
+TYPES = ["1", "2"]
+TW_FRACS = [0.25, 0.5, 0.75, 1.0]
 
 
 def parse_from_cfg(x):
@@ -56,9 +73,14 @@ class DataSampler:
                  n_dims: int = 2,
                  coords_sampling_dist: str = "uniform",
                  weights_sampling_dist: str = "random_int",
-                 depot_type: str = "R",
-                 customer_type: str = "R",
-                 demand_type: int = 0,
+                 twindow_sampling_dist: str = None,
+                 solomon_tw_cfg: Dict = None,
+                 depot_type: str = None,
+                 customer_type: str = None,
+                 demand_type: int = None,
+                 normalize_demands: bool = None,
+                 normalize_tws: bool = True,
+                 single_large_instance: str = None,
                  # uchoa_distrib_type: str = "uchoa_depotc",
                  covariance_type: str = "diag",
                  mus: Optional[np.ndarray] = None,
@@ -78,7 +100,7 @@ class DataSampler:
         Args:
             n_components: number of mixture components
             n_dims: dimension of sampled features, e.g. 2 for Euclidean coordinates
-            coords_sampling_dist: type of distribution to sample coordinates, one of ["uniform"]
+            coords_sampling_dist: type of distribution to sample coordinates, one of ["uniform", "gm", "gm_unif_mixed"]
             covariance_type: type of covariance matrix, one of ['diag', 'full']
             mus: user provided mean values for mixture components
             sigmas: user provided covariance values for mixture components
@@ -87,7 +109,8 @@ class DataSampler:
             sigma_sampling_dist: type of distribution to sample initial sigmas, one of ['uniform', 'normal']
             sigma_sampling_params: parameters for sigma sampling distribution
             weights_sampling_dist: type of distribution to sample weights,
-                                    one of ['random_int', 'uniform', 'gamma']
+                                    one of ['random_int', 'uniform', 'gamma', 'uchoa']
+            normalize_demands: whether to normalize demands by capacity
             weights_sampling_params: parameters for weight sampling distribution
             uniform_fraction: fraction of coordinates to be sampled uniformly for mixed instances
                               or parameter tuple to sample this per instance from a beta distribution
@@ -98,9 +121,13 @@ class DataSampler:
         self.nc = n_components
         self.f = n_dims
         self.coords_sampling_dist = coords_sampling_dist.lower()
+        self.twindow_sampling_dist = twindow_sampling_dist.lower() if twindow_sampling_dist is not None else None
         self.depot_type = depot_type  # uchoa
         self.customer_type = customer_type  # uchoa
         self.demand_type = demand_type  # uchoa
+        print('self.depot_type', self.depot_type)
+        print('self.customer_type', self.customer_type)
+        print('self.demand_type', self.demand_type)
         self.covariance_type = covariance_type
         self.mu_sampling_dist = mu_sampling_dist.lower()
         self.mu_sampling_params = mu_sampling_params
@@ -111,6 +138,10 @@ class DataSampler:
         self.uniform_fraction = uniform_fraction
         self.try_ensure_feasibility = try_ensure_feasibility
         self.verbose = verbose
+        self.normalize_demands = normalize_demands
+        self.normalize_tws = normalize_tws
+        # self.tw_frac = solomon_tw_fraction
+        print('self.normalize_demands', self.normalize_demands)
         self.normalizers = []
 
         # set random generator
@@ -121,11 +152,7 @@ class DataSampler:
 
         self._sample_nc, self._nc_params = False, None
         if not isinstance(n_components, int):
-            print('n_components', n_components)
-            print('type n_components', type(n_components))
             n_components = parse_from_cfg(n_components)
-            print('n_components', n_components)
-            print('type n_components', type(n_components))
             assert isinstance(n_components, (tuple, list))
             self._sample_nc = True
             self._nc_params = n_components
@@ -138,6 +165,7 @@ class DataSampler:
             self._unf_frac_params = uniform_fraction
             self.uniform_fraction = None
 
+        ### COORDS
         if self.coords_sampling_dist in ["gm", "gaussian_mixture", "gm_unif_mixed"]:
             # sample initial mu and sigma if not provided
             if mus is not None:
@@ -166,6 +194,53 @@ class DataSampler:
             if self.coords_sampling_dist not in ["uniform", "uchoa"]:
                 raise ValueError(f"unknown coords_sampling_dist: '{self.coords_sampling_dist}'")
 
+        ### TWs
+        # self.twindow_sampling_dist is not None and
+        if self.twindow_sampling_dist == "solomon":
+            # get cfg_params
+            # SAMPLE_CFG = {"groups": GROUPS, "types": TYPES, "tw_fracs": TW_FRACS}
+            # load estimated stats:
+            LPATH = os.path.abspath(solomon_tw_cfg["stats_path"])
+            with open(LPATH, 'rb') as f:
+                dset_cfg_stats = pickle.load(f)
+            cfg_stats = dset_cfg_stats[solomon_tw_cfg["group"]][
+                solomon_tw_cfg["group"] + str(solomon_tw_cfg["type"])][f"tw_frac={solomon_tw_cfg['tw_frac']}"]
+
+            # set key-value pairs from Solomon instance stats
+            # as InstanceSampler instance attributes
+            print('cfg_stats[0]', cfg_stats[0])
+            print('cfg_stats[1]', cfg_stats[1])
+            for k, v in cfg_stats[0].items():
+                setattr(self, k, v)
+
+            # TW start sampler
+            ### e.g.
+            # 'tw_start': {'dist': 'KDE', 'params': <scipy.stats.kde.gaussian_kde object at 0x7ff5fe8c72e0>,
+            # 'tw_start': {'dist': 'normal', 'params': (0.34984000000000004, 0.23766332152858588)}
+            if self.tw_start['dist'] == "gamma":
+                self.tw_start_sampler = stats.gamma(*self.tw_start['params'])
+            elif self.tw_start['dist'] == "normal":
+                self.tw_start_sampler = stats.norm(*self.tw_start['params'])
+            elif self.tw_start['dist'] == "KDE":
+                self.tw_start_sampler = self.tw_start['params']  # assigns fitted KDE model
+            else:
+                raise ValueError(f"unknown tw_start_sampler cfg: {self.tw_start}.")
+
+            # TW len sampler
+            if self.tw_len['dist'] == "const":
+                self.tw_len_sampler = self.tw_len['params']  # this is the normalized len, there is also self.org_tw_len
+            elif self.tw_len['dist'] == "gamma":
+                self.tw_len_sampler = stats.gamma(*self.tw_len['params'])
+            elif self.tw_len['dist'] == "normal":
+                self.tw_len_sampler = stats.norm(*self.tw_len['params'])
+            elif self.tw_len['dist'] == "KDE":
+                self.tw_len_sampler = self.tw_len['params']  # assigns fitted KDE model
+            else:
+                raise ValueError(f"unknown tw_len_sampler cfg: {self.tw_len}.")
+
+            # service time in Solomon data is constant for each instance, so mean == exact value
+            self.service_time = self.norm_summary.loc['mean', 'service_time']
+
     def seed(self, seed: Optional[int] = None):
         if seed is not None:
             self.rnd = np.random.default_rng(seed)
@@ -184,44 +259,267 @@ class DataSampler:
             self.covariance_type
         )
 
-    def sample(self,
-               n: int,
-               k: int,
-               cap: Optional[float] = None,
-               max_cap_factor: Optional[float] = None,
-               resample_mixture_components: bool = True,
-               **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+    def sample_tsp(self,
+                   n: int,
+                   resample_mixture_components: bool = True,
+                   **kwargs):
         """
         Args:
-            n: number of samples to draw
+            n: number of samples to draw (coordinates)
+            resample_mixture_components: flag to resample mu and sigma of all mixture components for each instance
+        Returns:
+            coords: (n, n_dims)
+        """
+        coords, c_types, _ = self.sample_coords(n=n, resample_mixture_components=resample_mixture_components, **kwargs)
+
+        return coords
+
+    def sample_cvrp(self,
+                    sample_size: int,
+                    graph_size: int,
+                    k: int,
+                    cap: Optional[float] = None,
+                    max_cap_factor: Optional[float] = None,
+                    n_depots: int = 1,
+                    resample_mixture_components: bool = True,
+                    feasibility_insurance: bool = None,
+                    **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int, int, int, int]:
+        """
+        Args:
+            sample_size: number of cvrp instances (to be ignored here)
+            graph_size: number of samples to draw (coordinates)
             k: number of vehicles
             cap: capacity per vehicle
             max_cap_factor: factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+            n_depots: how many depots
+            normalize_demands: whether to normalize demands with capa
             resample_mixture_components: flag to resample mu and sigma of all mixture components for each instance
+            feasibility_insurance: overwriting feasibility check property in sample_weights
 
         Returns:
             coords: (n, n_dims)
             weights: (n, )
         """
-        coords = self.sample_coords(n=n, resample_mixture_components=resample_mixture_components, **kwargs)
-        weights = self.sample_weights(n=n, k=k, cap=cap, max_cap_factor=max_cap_factor)
 
-        return coords, weights
+        n = graph_size
+        if max_cap_factor is None and self.weights_sampling_dist in ["gamma", "uniform"]:
+            warn(f"No 'max_cap_factor' specified for ['gamma','uniform'] weight distributions."
+                 f" Setting 'max_cap_factor' to default of 1.5")
+            max_cap_factor = 1.5
+
+        print('kwargs in sample_cvrp', kwargs)
+        coords, c_types, d_types = self.sample_coords(n=n + n_depots,
+                                                      resample_mixture_components=resample_mixture_components, **kwargs)
+        c_probs = np.ones_like(coords)
+
+        if self.coords_sampling_dist == "uchoa":
+            c_type, d_type = c_types[0], d_types[0]
+        else:
+            c_type, d_type = c_types, d_types
+        print('feasibility_insurance in samplecvrp', feasibility_insurance)
+        weights, original_capa, q_type = self.sample_weights(n=n + n_depots, k=k, cap=cap,
+                                                             max_cap_factor=max_cap_factor,
+                                                             coords=coords,
+                                                             demand_type=self.demand_type,
+                                                             normalize=self.normalize_demands,
+                                                             feasibility_insurance=feasibility_insurance)
+
+        weights = weights[..., np.newaxis]
+
+        return coords, c_probs, weights, original_capa, q_type, c_type, d_type
+
+    def sample_cvrptw(self,
+                     sample_size: int,
+                     graph_size: int,
+                     k: int,
+                     cap: Optional[float] = None,
+                     max_cap_factor: Optional[float] = None,
+                     n_depots: int = 1,
+                     resample_mixture_components: bool = True,
+                     service_window=1000,
+                     service_duration=10,
+                     time_factor=100.0,
+                     tw_expansion=3.0,
+                     solomon_tw_cfg: Dict = None,
+                     early_tw_soft=False,
+                     late_tw_soft=False,
+                     early_tw_penalty=0.1,
+                     late_tw_penalty=0.5,
+                     org_service_horizon: int = 100,
+                     **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int]:
+        """
+        Args:
+            sample_size: number of cvrptw instances (to be ignored here)
+            graph_size: number of samples to draw (graph_size)
+            k: number of vehicles
+            cap: capacity per vehicle
+            max_cap_factor: factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+            n_depots: how many depots
+            resample_mixture_components: flag to resample mu and sigma of all mixture components for each instance
+            # For generic CVRPTW instance:
+                service_window (int): gives maximum of time units
+                service_duration (int): duration of service
+                time_factor (float): value to map from distances in [0, 1] to time units (transit times)
+                tw_expansion (float): expansion factor of TW w.r.t. service duration
+                early_tw_soft (bool): soft TW for early arrival (can arrive early - but incur penalty)
+                late_tw_soft (bool): soft TW for late departure (can depart late - but incur penalty)
+                early_tw_penalty (float): amount of penalty for early arrival
+                late_tw_penalty (float): amount of penalty for late departure
+            # For Solomon-type Instance:
+                org_service_horizon (int): gives normalizing value for time windows btw. 0-1
+                solomon_cfg (Dict): config for solomon data sampling (tw_frac, group, type)
+
+
+        Returns:
+            coords: (n, n_dims)
+            weights: (n, )
+            tw: (n, n_dims)
+        """
+
+        if max_cap_factor is None and self.weights_sampling_dist in ["gamma", "uniform"]:
+            warn(f"No 'max_cap_factor' specified for ['gamma','uniform'] weight distributions."
+                 f" Setting 'max_cap_factor' to default of 1.5")
+            max_cap_factor = 1.5
+
+        # coords = self.sample_coords(n=n + n_depots, resample_mixture_components=resample_mixture_components, **kwargs)
+        # weights = self.sample_weights(n=n + n_depots, k=k, cap=cap, max_cap_factor=max_cap_factor)
+        # time_w = self.sample_tw()
+        i = 0
+        tw = None
+        time_to_depot = None
+        service_time = None
+        feasible = False
+        while not feasible:
+            if i > 100:
+                raise RuntimeError(f"Encountered many infeasible instances during sampling. "
+                                   f"Try to adapt sampling parameters.")
+            try:
+                coords, c_types, d_types = self.sample_coords(n=graph_size + n_depots,
+                                                              resample_mixture_components=resample_mixture_components,
+                                                              **kwargs)
+                coords = np.expand_dims(coords, axis=0)
+
+                weights, capacity_original, q_type = self.sample_weights(n=graph_size + n_depots, k=k, cap=cap,
+                                                                         max_cap_factor=max_cap_factor, coords=coords)
+                weights = np.expand_dims(weights, axis=0)
+                if self.twindow_sampling_dist != "solomon":
+                    # default to generic tw sampling
+                    # if not early_tw_soft and not late_tw_soft:
+                    #     cost_function_params = ObjectiveDict(type="edge_cost_1d")
+                    # else:
+                    #     cost_function_params = ObjectiveDict(type="edge_cost_1d", params={})
+                    # calculate edge weights as l2 distance * time_factor
+                    edges = self._create_edges(coords * time_factor)
+
+                    vehicles = [
+                        [0, 3 * STD_K[graph_size], TW_CAPACITIES[graph_size]]
+                    ]  # (type, num vehicles, vehicle capacity)
+                    tw_start, tw_end = self._sample_tw(size=1,
+                                                       graph_size=graph_size,
+                                                       edges=edges,
+                                                       service_duration=service_duration,
+                                                       service_window=service_window,
+                                                       time_factor=time_factor,
+                                                       tw_expansion=tw_expansion,
+                                                       normalize_tw=self.normalize_tws,
+                                                       n_depots=1)
+                    service_durations = np.broadcast_to(np.array([0] + [service_duration] * graph_size),
+                                                        (graph_size + 1))
+
+                    print('tw_start', tw_start)
+                    print('tw_end', tw_end)
+                    print('service_durations', service_durations)
+                    print('tw_start.shape', tw_start.shape)
+                    print('tw_end.shape', tw_end.shape)
+                    print('service_durations.shape', service_durations.shape)
+                    # node_features --> created in generator
+                    # nodes = self._create_nodes(size, graph_size, features=[coords, demands, a, b, service_durations])
+
+                    # early_tw_constraint = start_tw_constraint_soft if early_tw_soft else start_tw_constraint_hard
+                    # late_tw_constraint = end_tw_constraint_soft if late_tw_soft else end_tw_constraint_hard
+
+                    # NOTE: separate TW at depot is modeled with >1 different depot nodes
+                    #  stochastic / time dependent travel times can be done with edge transform
+                    # tw = np.concatenate((tw_start, tw_end), axis=1)
+                    # tw = (np.concatenate((
+                    #     np.array([[0, 1]]),  # add depot tw start 0 and end 1
+                    #     np.concatenate((tw_start[:, None], tw_end[:, None]), axis=-1)
+                    # ), axis=0))
+                    tw = np.expand_dims(np.concatenate((tw_start, tw_end)).transpose(), axis=0)
+
+                    if self.normalize_tws:
+                        tw = tw / service_window
+                        # if solomon data then service duration is constant --> just have an array of shape n
+                        service_durations = 0. # np.zeros(graph_size, dtype=np.float32)
+
+                    print('tw', tw)
+                    print('tw.shape', tw.shape)
+
+                else:
+                    coords, c_types, d_types = self.sample_coords(n=graph_size + n_depots,
+                                                                  resample_mixture_components=resample_mixture_components,
+                                                                  **kwargs)
+                    # Euclidean distance
+                    dist_to_depot = dimacs_challenge_dist_fn_np(coords[1:], coords[0]) # self.get_dist_to_depot(coords[1:], coords[0])
+                    print('dist_to_depot', dist_to_depot)
+                    # distance.euclidean(coords[1:], coords[0])
+                    time_to_depot = dist_to_depot / org_service_horizon
+                    print('time_to_depot', time_to_depot)
+                    # cfg_stats
+                    tw_start, tw_mask, num_tws = self._sample_tw_start(graph_size + n_depots, time_to_depot,
+                                                                       org_service_horizon)
+                    tw = self._sample_tw_end(
+                        size=graph_size + n_depots,
+                        tw_start=tw_start,
+                        time_to_depot=time_to_depot,
+                        tw_mask=tw_mask,
+                        num_tws=num_tws,
+                    )
+            except AssertionError as ae:
+                logger.debug(f"error while sampling. retrying... \n {ae}")
+                i += 1
+                continue
+            feasible = True
+
+        # print(time_to_depot)
+        # print(tw[:, 1])
+        # if np.any((tw[1:, 1] + time_to_depot + self.service_time) > 1.0):
+        #     print("stop")
+        assert not np.any((tw[1:, 1] + time_to_depot + service_time) > 1.0)
+
+        return coords, weights, tw, service_durations, service_window
 
     def sample_coords(self,
                       n: int,
+                      num_samples: Optional[int] = None,
                       resample_mixture_components: bool = True,
-                      **kwargs) -> np.ndarray:
+                      depot_type: Optional[str] = None,
+                      customer_type: Optional[str] = None,
+                      **kwargs) -> Tuple[np.ndarray, List, List]:
         """
         Args:
-            n: number of samples to draw
+            n: number of samples to draw (graph-size)
+            num_samples: number of instance samples to draw
             resample_mixture_components: flag to resample mu and sigma of all mixture components for each instance
-
+            depot_type: Depot Position (uchoa only): C = central (500, 500), E = eccentric (0, 0), R = random
+            customer_type: Customer Position (uchoa only): C = Clustered, RC = Random-Clustered (half half), R = Random
         Returns:
             coords: (n, n_dims)
         """
         if self.coords_sampling_dist == "uniform":
             coords = self._sample_unf_coords(n, **kwargs)
+            c_types, d_types = ["uniform"] * 2
+        elif self.coords_sampling_dist == "uchoa":
+            # d_types --> {'C': 0, 'E': 1, 'R': 2}
+            # c_types --> {'R': 0, 'C': 1, 'RC': 2}
+            print('customer_type', customer_type)
+            customer_type = customer_type if customer_type is not None else self.customer_type
+            depot_type = depot_type if depot_type is not None else self.depot_type
+            coords, c_types, d_types, grid_s = self.sample_coords_uchoa(n - 1, num_samples=num_samples,
+                                                                        depot_type=depot_type,
+                                                                        customer_type=customer_type)
+            coords = coords.squeeze() if num_samples is None else coords
+            coords = coords / grid_s
         else:
             if self._sample_nc:
                 self.nc = self.sample_rnd_int(*self._nc_params)
@@ -230,9 +528,6 @@ class DataSampler:
                 self.resample_gm()
 
             if self.coords_sampling_dist == "gm_unif_mixed":
-                print('self.coords_sampling_dist', self.coords_sampling_dist)
-                print('self._sample_unf_frac', self._sample_unf_frac)
-                print('self.uniform_fraction', self.uniform_fraction)
                 if self._sample_unf_frac:
                     # if specified, sample the fraction value from a beta distribution
                     v = self._sample_beta(1, *self._unf_frac_params)
@@ -246,32 +541,44 @@ class DataSampler:
                 n_per_c = math.ceil(n_gm / self.nc)
                 gm_coords = self._sample_gm_coords(n_per_c, n_gm, **kwargs)
                 coords = np.vstack((unf_coords, gm_coords))
-                print('coords.shape', coords.shape)
+                c_types = ["gm_unif"]
             else:
+                # Sampling only gm coordinates
                 n_per_c = math.ceil(n / self.nc)
                 coords = self._sample_gm_coords(n_per_c, n, **kwargs)
+                c_types = ["gm"]
             # depot stays uniform!
             coords[0] = self._sample_unf_coords(1, **kwargs)
-
-        return coords.astype(np.float32)
+            d_types = ["uniform"]
+        return coords.astype(np.float32), c_types, d_types
 
     def sample_weights(self,
                        n: int,
                        k: int,
-                       cap: Optional[float] = None,
+                       cap: Union[float, int],
                        max_cap_factor: Optional[float] = None,
-                       ) -> np.ndarray:
+                       coords: Optional[np.ndarray] = None,
+                       demand_type: Optional[int] = None,
+                       normalize: Optional[bool] = None,
+                       feasibility_insurance: Optional[bool] = None
+                       ) -> Tuple[ndarray, Union[float, int, ndarray], Union[str, int]]:
         """
         Args:
             n: number of samples to draw
             k: number of vehicles
             cap: capacity per vehicle
             max_cap_factor: factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
-
+            coords: prev. sampled coordinates (needed for Uchoa type demands)
+            demand_type: for uchoa data, which type of demand [0 (unitary) - 6 (many small, few large)]
+            normalize: whether to normalize demands by capacity
+            feasibility_insurance: overwrite self.try_ensure_feasibility (needed for large instance generation)
         Returns:
             weights: (n, )
         """
         n_wo_depot = n - 1
+        try_ensure_feasibility_ = feasibility_insurance if feasibility_insurance is not None\
+            else self.try_ensure_feasibility
+        print('try_ensure_feasibility_', try_ensure_feasibility_)
         # sample a weight for each point
         if self.weights_sampling_dist in ["random_int", "random_k_variant"]:
             assert cap is not None, \
@@ -279,12 +586,22 @@ class DataSampler:
 
             if self.weights_sampling_dist == "random_int":
                 # standard integer sampling adapted from Nazari et al. and Kool et al.
+                # print('self.rnd', self.rnd)
+                # random_
                 weights = self.rnd.integers(1, 10, size=(n_wo_depot,))
-                normalizer = cap + 1
-                if self.try_ensure_feasibility:
+                print('weight raw', weights)
+                normalizer = cap # + 1
+                print('normalizer', normalizer)
+                if try_ensure_feasibility_:
                     need_k = int(np.ceil(weights.sum() / cap))
+                    print('need_k', need_k)
                     normalizer *= ((need_k / k) + 0.1)
+                if not normalize:
+                    normalizer = 1
+
+                type_w = "random_int"
             else:
+                # weights = self.rnd.random_integers(1, (cap - 1) // 2, size=(n_wo_depot,))
                 weights = self.rnd.integers(1, (cap - 1) // 2, size=(n_wo_depot,))
                 # normalize weights by total max capacity of vehicles
                 _div = max(2, self.sample_rnd_int(k // 4, k))
@@ -292,13 +609,17 @@ class DataSampler:
                     normalizer = np.ceil((weights.sum(axis=-1)) * max_cap_factor) / _div
                 else:
                     normalizer = np.ceil((weights.sum(axis=-1)) * 1.08) / _div
+                type_w = "random_k_variant"
         elif self.weights_sampling_dist in ["uniform", "gamma"]:
+            print('self.weights_sampling_dist', self.weights_sampling_dist)
             assert max_cap_factor is not None, \
                 f"weight sampling dists 'uniform' and 'gamma' require <max_cap_factor> to be specified"
             if self.weights_sampling_dist == "uniform":
                 weights = self._sample_uniform(n_wo_depot, *self.weights_sampling_params)
+                type_w = "uniform"
             elif self.weights_sampling_dist == "gamma":
                 weights = self._sample_gamma(n_wo_depot, *self.weights_sampling_params)
+                type_w = "gamma"
             else:
                 raise ValueError
             weights = weights.reshape(-1)
@@ -309,29 +630,73 @@ class DataSampler:
             # using ceiling adds a slight variability in the total sum of weights,
             # such that not all instances are exactly limited to the max_cap_factor
             normalizer = np.ceil((weights.sum(axis=-1)) * max_cap_factor) / k
+        elif self.weights_sampling_dist == "uchoa":
+            # sample uchoa type weights
+            print('uchoa coords in sampler', coords[:2])
+            print('demand_type', demand_type)
+            demand_type = demand_type if demand_type is not None else self.demand_type
+            weights_sc, capacity_orig, type_w = self.sample_weights_uchoa(coordinates=coords * GRID_SIZE,
+                                                                          demand_type=demand_type,
+                                                                          n=n_wo_depot)
+            print('weights_sc[:5]', weights_sc[:5])
+            weights = np.squeeze(weights_sc)
+            print('weights.shape', weights.shape)
+            print('weights[:5]', weights[:5])
+            cap = capacity_orig[0]
+            type_w = type_w[0]
+            print('cap', cap)
+            print('type_w', type_w)
+            normalizer = cap
         else:
             raise ValueError(f"unknown weight sampling distribution: {self.weights_sampling_dist}")
 
-        weights = weights / normalizer
+        print('normalize', normalize)
+        print('normalizer', normalizer)
+        if normalize:
+            weights = weights / normalizer
+            # print(np.clip(weights, None, 1.000000))
+            # print('weights.any() > 1.0000000', weights.any() > 1.0000000)
+            if try_ensure_feasibility_:
+                # print(f"Make sure customer demands are not larger than vehicle capacity! Clipping demands to 1.0.")
+                weights = np.clip(weights, None, 1.000000000)
 
-        if np.sum(weights) > k:
+        print(f"np.sum(weights): {np.sum(weights)}")
+        print('k', k)
+        # only bigger than k here because demands are normalized and cap then set to 1.0
+        if np.sum(weights) > k and np.sum(weights) > k*cap:
             if self.verbose:
-                warn(f"generated instance is infeasible just by demands vs. "
-                     f"total available capacity of specified number of vehicles.")
-            if self.try_ensure_feasibility:
+                warn(f"generated instance is infeasible just by demands (sum(demands)={np.sum(weights)}) vs. "
+                     f"total available vehicle capacity (k*cap={k*cap}) of specified number of vehicles.")
+            if try_ensure_feasibility_:
+                logger.info(f"generated instance is infeasible just by demands (sum(demands)={np.sum(weights)}) vs. "
+                     f"total available vehicle capacity (k*cap={k*cap}) of specified number of vehicles.")
                 raise RuntimeError
 
         weights = np.concatenate((np.array([0]), weights), axis=-1)  # add 0 weight for depot
-        return weights.astype(np.float32)
+        if normalize:
+            weights = weights.astype(np.float32)
+        elif self.weights_sampling_dist == "random_int" and not normalize:
+            weights = weights.astype(np.int32)
+        else:
+            pass
+        print('cap', cap)
+
+        return weights, cap, type_w
+
+    # def sample_tw(self,
+    #               n: int,
+    #               resample_mixture_components: bool = True,
+    #               **kwargs) -> np.ndarray:
 
     def sample_rnd_int(self, lower: int, upper: int) -> int:
         """Sample a single random integer between lower (inc) and upper (excl)."""
+        # return self.rnd.random_integers(lower, upper, 1)[0]
         return self.rnd.integers(lower, upper, 1)[0]
 
     # from DPDP (Kool et al. 2020)
     def sample_coords_uchoa(self,
                             n: int,
-                            num_samples: int,
+                            num_samples: int = None,
                             depot_type: [str] = None,
                             customer_type: [str] = None,
                             int_locs: bool = True,
@@ -344,12 +709,16 @@ class DataSampler:
             num_samples: number of instances to sample --> batch size
             depot_type: which type of depot centrality (central, eccentric, random)
             customer_type: node distribution
+            int_locs: whether coordindates should be integers
             min_seeds: min nr. of seeds to be sampled
             max_seeds: max nr. of seeds to be sampled
 
         Returns:
             coords: (n, n_dims)
         """
+
+        if num_samples is None:
+            num_samples = 1
 
         if depot_type is None and self.verbose:
             logger.info(f"Sampling uchoa-type data with mixed depot types (central, eccentric, random)")
@@ -366,21 +735,26 @@ class DataSampler:
 
         # Depot Position
         # 0 = central (500, 500), 1 = eccentric (0, 0), 2 = random
-        depot_types = (np.random.rand(num_samples) * 3).astype(int)
+        # depot_types = (np.random.rand(num_samples) * 3).astype(int)
+        depot_types = (self.rnd.random(num_samples) * 3).astype(int)
         # (torch.rand(batch_size, device=device) * 3).int()
         if depot_type is not None:  # else mix
             # Central, Eccentric, Random
             codes = {'C': 0, 'E': 1, 'R': 2}
             depot_types[:] = codes[depot_type.upper()]
 
-        depot_locations = np.random.rand(num_samples, 2) * GRID_SIZE
+        # depot_locations = np.random.rand(num_samples, 2) * GRID_SIZE
+        depot_locations = self.rnd.random((num_samples, 2)) * GRID_SIZE
         depot_locations[depot_types == 0] = GRID_SIZE / 2
         depot_locations[depot_types == 1] = 0
 
         # Customer position
         # 0 = random, 1 = clustered, 2 = random clustered 50/50
         # We always do this so we always pull the same number of random numbers
-        customer_types = (np.random.rand(num_samples) * 3).astype(int)
+        # customer_types = (np.random.rand(num_samples) * 3).astype(int)
+        # use random state for sampler:
+        customer_types = (self.rnd.random(num_samples) * 3).astype(int)
+        print('customer_types', customer_types)
 
         if customer_type is not None:  # else Mix
             # Random, Clustered, Random-Clustered (half half)
@@ -394,11 +768,15 @@ class DataSampler:
                 logger.info(f"Sampling uchoa-type data with customer type: {customer_type}")
 
         # Sample number of seeds uniform (inclusive)
-        num_seeds = (np.random.rand(num_samples) * ((max_seeds - min_seeds) + 1)).astype(int) + min_seeds
+        # num_seeds = (np.random.rand(num_samples) * ((max_seeds - min_seeds) + 1)).astype(int) + min_seeds
+        # use random state for sampler:
+        num_seeds = (self.rnd.random(num_samples) * ((max_seeds - min_seeds) + 1)).astype(int) + min_seeds
 
         # We sample random and clustered coordinates for all instances, this way, the instances in the 'mix' case
         # Will be exactly the same as the instances in one of the tree 'not mixed' cases and we can reuse evaluations
-        rand_coords = np.random.rand(num_samples, n, 2) * GRID_SIZE
+        # rand_coords = np.random.rand(num_samples, n, 2) * GRID_SIZE
+        # use random state for sampler:
+        rand_coords = self.rnd.random((num_samples, n, 2)) * GRID_SIZE
         clustered_coords = self.generate_clustered_uchoa(num_seeds, n, max_seeds=max_seeds)
 
         # Clustered
@@ -409,15 +787,23 @@ class DataSampler:
         # stack depot coord and customer coords
         coords = np.stack([np.vstack((depot_locations[i].reshape(1, 2), rand_coords[i])) for i in range(num_samples)])
         coords = coords.astype(int) if int_locs else coords
-        return coords, customer_types, depot_types, GRID_SIZE
+        return coords, customer_types.tolist(), depot_types.tolist(), GRID_SIZE
 
     # from DPDP (Kol et al. 2020)
     # @staticmethod
     def sample_weights_uchoa(self,
                              coordinates: np.ndarray,
-                             demand_type: int = None) -> Tuple[np.ndarray, np.ndarray, List]:
+                             demand_type: int = None,
+                             n: int = None) -> Tuple[np.ndarray, np.ndarray, List]:
 
-        batch_size, graph_size, _ = coordinates.shape
+        demand_type = int(demand_type) if demand_type is not None else demand_type
+        try:
+            batch_size, graph_size, _ = coordinates.shape
+        except ValueError:
+            graph_size, _ = coordinates.shape
+            batch_size = 1
+        if n is not None:
+            graph_size = n
         # Demand distribution
         # 0 = unitary (1)
         # 1 = small values, large variance (1-10)
@@ -426,12 +812,13 @@ class DataSampler:
         # 4 = large values, large variance (50-100)
         # 5 = depending on quadrant top left and bottom right (even quadrants) (1-50), others (51-100) so add 50
         # 6 = many small, few large most (70 to 95 %, unclear so take uniform) from (1-10), rest from (50-100)
-        lb = torch.tensor([1, 1, 5, 1, 50, 1, 1], dtype=torch.long)
-        ub = torch.tensor([1, 10, 10, 100, 100, 50, 10], dtype=torch.long)
+        lb = torch.tensor([1, 1, 5, 1, 50, 1, 1], dtype=torch.long, device="cpu")
+        ub = torch.tensor([1, 10, 10, 100, 100, 50, 10], dtype=torch.long, device="cpu")
         if demand_type is not None:
             customer_positions = (torch.ones(batch_size, device="cpu") * demand_type).long()
         else:
-            customer_positions = (torch.rand(batch_size, device="cpu") * 7).long()
+            # customer_positions = (torch.rand(batch_size, device="cpu") * 7).long()
+            customer_positions = (torch.from_numpy(self.rnd.random(batch_size)) * 7).long()
         # customer_positions = (torch.ones(batch_size)*2).long()
         # for i in range(len(customer_positions)):
         #    # print(dem_type[i])
@@ -444,9 +831,9 @@ class DataSampler:
         lb_ = lb[customer_positions, None]
         ub_ = ub[customer_positions, None]
         # Make sure we always sample the same number of random numbers
-        rand_1 = torch.rand(batch_size, graph_size)
-        rand_2 = torch.rand(batch_size, graph_size)
-        rand_3 = torch.rand(batch_size)
+        rand_1 = torch.from_numpy(self.rnd.random((batch_size, graph_size)))
+        rand_2 = torch.from_numpy(self.rnd.random((batch_size, graph_size)))
+        rand_3 = torch.from_numpy(self.rnd.random(batch_size))
         demands = (rand_1 * (ub_ - lb_ + 1).float()).long() + lb_
         # either both smaller than grid_size // 2 results in 2 inequalities satisfied, or both larger 0
         # in all cases it is 1 (odd quadrant) and we should add 50
@@ -463,32 +850,43 @@ class DataSampler:
             demands_small,
             (rand_1[customer_positions == 6] * (100 - 50 + 1)).long() + 50
         )
-        r = sample_triangular(batch_size, 3, 6, 25)
+        print("batchsize", batch_size)
+        print('self.rnd', self.rnd)
+        r = sample_triangular(batch_size, 3, 6, 25, rnd_state=self.rnd, device="cpu")
         capacity = torch.ceil(r * demands.float().mean(-1)).long()
         # It can happen that demand is larger than capacity, so cap demand
         demand = torch.min(demands, capacity[:, None])
 
+        print('customer_positions.cpu().tolist()', customer_positions.cpu().tolist())
+        print('demand.cpu().numpy()', demand.cpu().numpy())
+
         return demand.cpu().numpy(), capacity.cpu().numpy(), customer_positions.cpu().tolist()
 
     # from DPDP (Kol et al. 2020)
-    @staticmethod
-    def generate_clustered_uchoa(num_seeds, graph_size, max_seeds=None):
+    # @staticmethod
+    def generate_clustered_uchoa(self, num_seeds, graph_size, max_seeds=None):
         if max_seeds is None:
             max_seeds = num_seeds.max()
             # .item()
         num_samples = num_seeds.shape[0]
-        batch_rng = torch.arange(num_samples, dtype=torch.long)
+        batch_rng = torch.arange(num_samples, dtype=torch.long, device="cpu")
         # batch_rng = np.arange(num_samples, dtype=int)
-        seed_coords = (torch.rand(num_samples, max_seeds, 2) * GRID_SIZE)
+        seed_coords = (torch.from_numpy(self.rnd.random((num_samples, max_seeds, 2)) * GRID_SIZE))
+        print('seed_coords', seed_coords)
         # We make a little extra since some may fall off the grid
         n_try = graph_size * 2
         while True:
-            loc_seed_ind = (torch.rand(num_samples, n_try, device="cpu") * num_seeds[:, None].astype(float)).long()
+            # (torch.from_numpy(rnd.random((num_samples, n_try
+            loc_seed_ind = (torch.from_numpy(self.rnd.random((num_samples, n_try)))
+                            * num_seeds[:, None].astype(float)).long()
             # loc_seed_ind = (np.random.rand(num_samples, n_try) * num_seeds[:, None].astype(float)).astype(int)
+            print('batch_rng', batch_rng)
+            print('loc_seed_ind', loc_seed_ind)
             loc_seeds = seed_coords[batch_rng[:, None], loc_seed_ind]
-            alpha = torch.rand(num_samples, n_try) * 2 * math.pi
-            # alpha = np.random.rand(num_samples, n_try) * 2 * math.pi
-            d = -40 * torch.rand(num_samples, n_try).log()
+            # alpha = torch.rand(num_samples, n_try) * 2 * math.pi
+            alpha = torch.from_numpy(self.rnd.random((num_samples, n_try))) * 2 * math.pi
+            # d = -40 * torch.rand(num_samples, n_try).log()
+            d = -40 * torch.from_numpy(self.rnd.random((num_samples, n_try))).log()
             # d = -40 * np.log(np.random.rand(num_samples, n_try))
             coords = torch.stack((torch.sin(alpha), torch.cos(alpha)), -1) * d[:, :, None] + loc_seeds
             coords.size()
@@ -539,6 +937,8 @@ class DataSampler:
                         size: Union[int, Tuple[int, ...]],
                         low: Union[int, np.ndarray] = 0.0,
                         high: Union[int, np.ndarray] = 1.0):
+        print('low,', low)
+        print('high,', high)
         return self.rnd.uniform(size=size, low=low, high=high)
 
     def _sample_normal(self,
@@ -616,31 +1016,46 @@ class DataSampler:
     @staticmethod
     def _create_edges(coords: np.ndarray, l_norm: Union[int, float] = 2):
         """Calculate distance matrix with specified norm. Default is l2 = Euclidean distance."""
+        print('coords.shape in create_edges', coords.shape)
+        print('coords in create_edges', coords)
         return np.linalg.norm(coords[:, :, None] - coords[:, None, :], ord=l_norm, axis=-1)[:, :, :, None]
 
+    # from JAMPR v2.0 repo - generic time window sampler
     def _sample_tw(self,
                    size: int,
                    graph_size: int,
                    edges: np.ndarray,
                    service_duration: Union[int, float, np.ndarray],
-                   service_window, time_factor, tw_expansion,
+                   service_window,
+                   time_factor,
+                   tw_expansion,
+                   normalize_tw,
                    n_depots: int = 1):
         """Sample feasible time windows."""
+        print('service_duration', service_duration)
+        print('service_window', service_window)
+        print('time_factor', time_factor)
+        print('tw_expansion', tw_expansion)
         # TW start needs to be feasibly reachable directly from depot
         min_t = np.ceil(edges[:, 0,
                         1:] - service_duration + 1)  # TODO: adapt to multiple vehcs with different start depots --> n_start_depots & n_end_depots?
         # TW end needs to be early enough to perform service and return to depot until end of service window
         max_t = service_window - np.ceil(edges[:, 0, 1:] + 1)
+        print('max_t', max_t)
         # horizon allows for the feasibility of reaching nodes /
         # returning from nodes within the global tw (service window)
         horizon = np.concatenate((min_t, max_t), axis=-1)
-        epsilon = np.maximum(np.abs(self._rnds.standard_normal([size, graph_size])), 1 / time_factor)
+        print('horizon', horizon)
+        epsilon = np.maximum(np.abs(self.rnd.standard_normal([size, graph_size])), 1 / time_factor)
 
         # sample earliest start times a
-        a = self._rnds.randint(horizon[:, :, 0], horizon[:, :, 1])
+        # a = self.rnd.randint(horizon[:, :, 0], horizon[:, :, 1])
+        a = self.rnd.integers(horizon[:, :, 0], horizon[:, :, 1])
+        print('earliest start times a', a)
         # calculate latest start times b, which is
         # = a + service_time_expansion x normal random noise, all limited by the horizon
         b = np.minimum(a + tw_expansion * time_factor * epsilon, horizon[:, :, -1]).astype(int)
+        print('latest start times b', b)
 
         # add depot TWs and return
         return (
@@ -652,5 +1067,194 @@ class DataSampler:
             ), axis=-1),
         )
 
+    # for solomon type CVRPTW instances
+    # from DIMACS_JAMPR repo
+    def _sample_tw_start(self, size: int, time_to_depot: float, org_service_horizon: int,
+                         ) -> Tuple[np.ndarray, np.ndarray, int]:
+        """sample start time of TW according to Solomon cfg specifications."""
+
+
+        # get fraction of TW
+        if self.tw_frac < 1.0:
+            num_tws = int(np.ceil((size-1) * self.tw_frac))
+            tw_mask = np.zeros((size-1), dtype=np.bool)
+            tw_mask[self.rnd.choice(np.arange((size-1)), size=num_tws, replace=False)] = 1
+        else:
+            num_tws = size-1
+            tw_mask = np.ones(size-1, dtype=np.bool)
+
+        # rejection sampling
+        mean_tw_len = self.norm_summary.loc['mean', 'tw_len']
+        # mean_tw_len = solomon_stats[0]["norm_summary"].loc['mean', 'tw_len']
+        eps = 1. / org_service_horizon
+        m = 10
+        infeasible = True
+        n = num_tws
+        out = np.empty_like(time_to_depot)
+        smp_idx = tw_mask.nonzero()[0]
+        print('tw_mask', tw_mask)
+        print('tw_mask.shape', tw_mask.shape)
+        print('smp_idx', smp_idx)
+        print('time_to_depot.shape', time_to_depot.shape)
+
+        while infeasible:
+            print('m', m)
+            max_tw_start = 1. - np.repeat(time_to_depot[smp_idx] + self.service_time, m, axis=-1) - mean_tw_len / 2
+            assert np.all(max_tw_start > 0)
+
+            # if self.tw_start['dist'] == "gamma":
+            if self.tw_start['dist'] == "gamma":
+                smp = self.tw_start_sampler.rvs(size=m * n, random_state=self.rnd)
+            elif self.tw_start['dist'] == "normal":
+                smp = self.tw_start_sampler.rvs(size=m * n, random_state=self.rnd)
+            elif self.tw_start['dist'] == "KDE":
+                smp = self.tw_start_sampler.resample(size=m * n, seed=self.rnd)
+            else:
+                raise RuntimeError
+
+            smp = smp.reshape(-1, m) + eps
+            feasible = (smp > 0.0) & (smp <= max_tw_start.reshape(-1, m))
+            has_feasible_val = np.any(feasible, axis=-1)
+            # argmax returns idx of first True value if there is any, otherwise 0.
+            first_feasible_idx = feasible[has_feasible_val].argmax(axis=-1)
+            out[smp_idx[has_feasible_val]] = smp[has_feasible_val, first_feasible_idx]
+
+            if np.all(has_feasible_val):
+                infeasible = False
+            else:
+                no_feasible_val = ~has_feasible_val
+                smp_idx = smp_idx[no_feasible_val]
+                n = no_feasible_val.sum()
+                m *= 2
+            if m >= 320:  # 5
+                # fall back to uniform sampling from valid interval
+                s = eps
+                print('s', s)
+                e = max_tw_start
+                print('e', e)
+                print('n', n)
+                # [:, None]
+                out[smp_idx] = self.rnd.uniform(s, e, size=n)
+                infeasible = False
+
+        # set tw_start to 0 for nodes without TW
+        out[~tw_mask] = 0
+
+        return out, tw_mask, num_tws
+
+
+    @staticmethod
+    def get_dist_to_depot(i: Union[np.ndarray, float],
+                          j: Union[np.ndarray, float],
+                          scale: int = 100
+                          ) -> np.ndarray:
+        print('i', i)
+        return np.floor(10 * np.sqrt(((scale * (i - j)) ** 2).sum(axis=-1))) / 10
+
+    # from DIMACS_JAMPR repo
+    def _sample_tw_end(self,
+                       size: int,
+                       tw_start: np.ndarray,
+                       time_to_depot: float,
+                       tw_mask: np.ndarray,
+                       num_tws: int,
+                       ) -> np.ndarray:
+        """sample end time of TW according to cfg specifications."""
+        # make sure sampled end is feasible by checking if
+        # service time + time to return to depot is smaller than total service horizon
+        eps = 1. / self.org_service_horizon
+        t_delta = time_to_depot[tw_mask]
+        inc_time = t_delta + self.service_time + eps
+        smp_idx = tw_mask.nonzero()[0]
+        out = np.empty_like(time_to_depot)
+
+        if self.tw_len['dist'] == "const":
+            assert np.all(inc_time + t_delta + self.tw_len_sampler < 1.0), \
+                f"infeasible coordinates encountered"
+            smp = self.tw_len_sampler  # all same constant value
+            return_time = tw_start[tw_mask] + smp + inc_time
+            infeasible = return_time >= 1.0
+            if np.any(infeasible):
+                inf_idx = smp_idx[infeasible]
+                tw_start[inf_idx] = tw_start[inf_idx] - (return_time[infeasible] - 1 + eps)
+                assert np.all(tw_start >= 0)
+
+            out[tw_mask] = np.maximum(tw_start[tw_mask] + smp, t_delta + eps)
+
+        else:
+            # rejection sampling
+            assert np.all(inc_time + t_delta < 1.0)
+            m = 10
+            infeasible = True
+            n = num_tws
+
+            while infeasible:
+                if self.tw_len['dist'] == "gamma":
+                    smp = self.tw_len_sampler.rvs(size=m * n, random_state=self.rnd)
+                elif self.tw_len['dist'] == "normal":
+                    smp = self.tw_len_sampler.rvs(size=m * n, random_state=self.rnd)
+                elif self.tw_len['dist'] == "KDE":
+                    smp = self.tw_len_sampler.resample(size=m * n, seed=self.rnd)
+                else:
+                    raise RuntimeError
+
+                smp = smp.reshape(-1, m)
+                # check feasibility
+                # tw should be between tw_start + earliest possible arrival time from depot and
+                # end of service horizon - time required to return to depot
+                _tws = np.repeat(tw_start[smp_idx], m, axis=-1).reshape(-1, m)
+                feasible = (
+                        (_tws + np.repeat(t_delta, m, axis=-1).reshape(-1, m) < smp)
+                        &
+                        (_tws + np.repeat(inc_time, m, axis=-1).reshape(-1, m) + smp < 1.0)
+                )
+                has_feasible_val = np.any(feasible, axis=-1)
+                # argmax returns idx of first True value if there is any, otherwise 0.
+                first_feasible_idx = feasible[has_feasible_val].argmax(axis=-1)
+                out[smp_idx[has_feasible_val]] = smp[has_feasible_val, first_feasible_idx]
+
+                if np.all(has_feasible_val):
+                    infeasible = False
+                else:
+                    no_feasible_val = ~has_feasible_val
+                    smp_idx = smp_idx[no_feasible_val]
+                    n = no_feasible_val.sum()
+                    t_delta = t_delta[no_feasible_val]
+                    inc_time = inc_time[no_feasible_val]
+                    m *= 2
+                if m >= 320:  # 5
+                    # fall back to uniform sampling from valid interval
+                    _tws = tw_start[smp_idx]
+                    s = np.maximum(_tws, t_delta) + eps
+                    e = 1. - inc_time
+
+                    out[smp_idx] = self.rnd.uniform(s, e)
+                    infeasible = False
+
+        # add TW end as latest possible arrival time for all nodes without TW constraint
+        out[~tw_mask] = 1.0 - time_to_depot[~tw_mask] - self.service_time - eps
+
+        # assert np.all(out + time_to_depot + self.service_time < 1.0)
+        return np.concatenate((
+            np.array([[0, 1]]),  # add depot tw start 0 and end 1
+            np.concatenate((tw_start[:, None], out[:, None]), axis=-1)
+        ), axis=0)
+
     def get_normalizers(self) -> List:
         return self.normalizers
+
+
+def dimacs_challenge_dist_fn_np(i: Union[np.ndarray, float],
+                                j: Union[np.ndarray, float],
+                                scale: int = 100,
+                                ) -> np.ndarray:
+    """
+    times/distances are obtained from the location coordinates,
+    by computing the Euclidean distances truncated to one
+    decimal place:
+    $d_{ij} = \frac{\floor{10e_{ij}}}{10}$
+    where $e_{ij}$ is the Euclidean distance between locations i and j
+
+    coords*100 since they were normalized to [0, 1]
+    """
+    return np.floor(10*np.sqrt(((scale*(i - j))**2).sum(axis=-1)))/10

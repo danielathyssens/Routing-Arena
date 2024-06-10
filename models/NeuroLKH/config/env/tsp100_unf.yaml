@@ -6,6 +6,7 @@ graph_size: 100
 coords_dist: uniform
 out_name: ${problem}_${graph_size}_${coords_dist}
 data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/test_seed1234.pkl
+checkpoint_load_path: models/NeuroLKH/NeuroLKH/pretrained/neurolkh.pt
 normalize_data: True
 
 # RP Env cfg

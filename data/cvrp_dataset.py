@@ -1,4 +1,5 @@
 from data.base_dataset import BaseDataset
+from data.dataset_utils import CVRP_DEFAULTS, CVRPLIB_LINKS, SCALE_FACTORS_CVRP, XE_UCHOA_TYPES, EPS
 from typing import Optional, Tuple, List, Dict, Union, NamedTuple, Any, Callable
 from omegaconf import DictConfig, ListConfig
 import warnings
@@ -16,63 +17,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-EPS = 0.01  # 0.002 changed in cluster b/c of NLNS # np.finfo(np.float32).eps
-
-CVRPLIB_LINKS = {
-    # "D": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-D.zip", "D"],
-    "X": ["vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-X.zip", "X"],
-    # "Li": ["vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-Li.zip", "Li"],
-    "Golden": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-Golden.zip", "Golden"],
-    "XML100": ["http://vrp.galgos.inf.puc-rio.br/media/com_vrp/instances/Vrp-Set-XML100.zip", "XML100"]
-}
-
-SCALE_FACTORS = {
-    "uchoa": 1000,
-    "XE": 1000,
-    "XML100": 1000,
-    "subsampled": 1000,
-    "dimacs": 1000,
-    "Li": 1000,
-    "Golden": 1000
-}
-
-CVRP_DEFAULTS = {  # num vehicles and integer capacity per problem size
-    20: [8, 30],
-    50: [16, 40],
-    100: [32, 50],
-    200: [48, 50],
-    500: [64, 50],
-}
-
-XE_UCHOA_TYPES = {  # depot type and customer distribution type
-    'XE_1': ['R', 'RC', "1-100"],
-    'XE_2': ['R', 'C', "Q"],
-    'XE_3': ['E', 'RC', "1-10"],
-    'XE_4': ['C', 'RC', '50-100'],
-    'XE_5': ['R', 'C', 'U'],
-    'XE_6': ['R', 'R', '50-100'],
-    'XE_7': ['R', 'C', 'Q'],
-    'XE_8': ['C', 'RC', '50-100'],
-    'XE_9': ['C', 'C', '1-100'],
-    'XE_10': ['E', 'R', 'U'],
-    'XE_11': ['E', 'R', 'U'],
-    'XE_12': ['E', 'R', '1-10'],
-    'XE_13': ['C', 'RC', '50-100'],
-    'XE_14': ['R', 'C', 'U'],
-    'XE_15': ['E', 'R', 'SL'],
-    'XE_16': ['C', 'R', '1-100'],
-    'XE_17': ['R', 'R', '1-100'],
-}
-
-
-# XE 10    218 E R     U       3
-# XE 11    236 E R     U       18
-# XE 12    241 E R     1-10    28
-# XE 13    269 C RC(5) 50-100  585
-# XE 14    274 R C(3)  U       10
-# XE 15    279 E R     SL      192
-# XE 16    293 C R     1-100   285
-# XE 17    297 R R     1-100   55
 
 class CVRPDataset(BaseDataset):
     """Creates VRP data samples to use for training or evaluating benchmark models"""
@@ -81,6 +25,7 @@ class CVRPDataset(BaseDataset):
                  is_train: bool = False,
                  store_path: str = None,
                  dataset_size: int = None,
+                 dataset_range: list = None,
                  seed: int = None,
                  num_samples: int = 100,
                  normalize: bool = True,
@@ -125,11 +70,14 @@ class CVRPDataset(BaseDataset):
         self.normalize = normalize
         self.offset = offset
         self.dataset_size = dataset_size
+        self.dataset_range = dataset_range
         self.distribution = distribution
         self.generator_args = generator_args
         self.sampling_args = sampling_args
         self.graph_size = graph_size
-        self.grid_size = grid_size if self.distribution != "uchoa" else 1000
+        print('self.distribution', self.distribution)
+        self.grid_size = grid_size if self.distribution in ["uchoa", "XML"] else 1000
+        print('self.grid_size', self.grid_size)
         self.num_vehicles = num_vehicles
         self.capacity = capacity
         self.time_limit = TimeLimit
@@ -151,19 +99,23 @@ class CVRPDataset(BaseDataset):
             assert self.data is not None, f"No data loaded! Please initiate class with valid data path"
             if self.dataset_size is not None and self.dataset_size < len(self.data):
                 self.data = self.data[:self.dataset_size]
-            if self.graph_size is not None:
-                logger.info(f"{len(self.data)} CVRP Test/Validation Instances for {self.problem} with {self.graph_size} "
-                            f"{self.distribution}-distributed customers loaded.")
-            else:
-                if self.graph_size is not None:
-                    logger.info(f"{len(self.data)} CVRP Test/Validation Instances for {self.problem} with mixed-size "
-                                f"{self.distribution}-distributed customers loaded.")
+            elif self.dataset_range is not None:
+                self.data = self.data[self.dataset_range[0]:self.dataset_range[1]]
+            logger.info(f"{len(self.data)} CVRP Test/Validation Instances for {self.problem} with {self.graph_size} "
+                        f"{self.distribution}-distributed customers loaded.")
             # Transform loaded data to CVRPInstance format IF NOT already is in format
+            # print('self.normalize', self.normalize)
+            # print('self.generator_args.normalize_demands', self.generator_args.normalize_demands)
             if not isinstance(self.data[0], CVRPInstance):
                 self.data = self._make_CVRPInstance()
             if not self.normalize and not self.is_denormed:
                 self.data = self._denormalize()
+            elif self.normalize and self.generator_args is not None:
+                if not self.generator_args.normalize_demands:
+                    self.data = self._denormalize(grid_size=1.0)
             if self.bks is not None:
+                self.data = self._instance_bks_updates()
+            if self.time_limit is not None:
                 self.data = self._instance_bks_updates()
             if self.transform_func is not None:  # transform_func needs to return list
                 self.data_transformed = self.transform_func(self.data)
@@ -178,6 +130,8 @@ class CVRPDataset(BaseDataset):
                             graph_size=self.graph_size,
                             distribution=self.distribution,
                             log_info=True)
+                if not self.normalize and not self.is_denormed:
+                    self.is_denormed = True
             else:
                 logger.info(f"Data configuration not specified in env config, "
                             f"defaulting to 100 uniformly distributed VRP20 instances")
@@ -185,6 +139,8 @@ class CVRPDataset(BaseDataset):
                             graph_size=20,
                             distribution="uniform",
                             log_info=True)
+                if not self.normalize and not self.is_denormed:
+                    self.is_denormed = True
             self.size = len(self.data)
         else:  # no data to load - but initiated CVRPDataset for sampling in training loop
             logger.info(f"No data loaded - initiated CVRPDataset with env config for sampling in training...")
@@ -196,7 +152,6 @@ class CVRPDataset(BaseDataset):
         url = None
         # default: extract to existing self.store_path
         extract_to = os.path.dirname(self.store_path)
-        print('extract_to', extract_to)
         if from_platform == 'CVRPLIB':
             url = CVRPLIB_LINKS[os.path.basename(self.store_path)][0]
         http_response = urlopen(url)
@@ -212,11 +167,9 @@ class CVRPDataset(BaseDataset):
         try:
             shutil.move(original, extract_to)
         except FileNotFoundError:
-            print('original BEF', original)
             original = extract_to + "/Vrp-Set-" + os.path.basename(self.store_path) + "/" \
                        + os.path.basename(self.store_path)
-            print('original AFT', original)
-            #os.makedirs(extract_to)
+            # os.makedirs(extract_to)
             shutil.move(original, extract_to)
         # remove empty Vrp-Set-" " directories
         shutil.rmtree(extract_to + "/Vrp-Set-" + os.path.basename(self.store_path))
@@ -262,10 +215,12 @@ class CVRPDataset(BaseDataset):
                 for i in range(len(self.data))
             ]
 
-    def _denormalize(self):
+    def _denormalize(self, grid_size=None):
         # default is normalized demands and 0-1-normed coordinates for generated data
         # --> denormalize for self.normalize = False and update bks registry in meantime (if given)
-        logger.info(f'DE-NORMALIZING data ...')
+        self.grid_size = self.grid_size if grid_size is None else grid_size
+        logger.info(f'DE-NORMALIZING data with grid-size {self.grid_size} '
+                    f'and capacity {self.data[0].original_capacity}...')
         demands = []
         coords = []
         for i, instance in enumerate(self.data):
@@ -277,6 +232,7 @@ class CVRPDataset(BaseDataset):
             coords.append(coords_denorm)
         coords = np.stack(coords)
         demands = np.stack(demands)
+
 
         self.graph_size = coords.shape[1]  # make sure for loaded data that graph_size matches coords shape
 
@@ -293,7 +249,8 @@ class CVRPDataset(BaseDataset):
                 original_capacity=instance.original_capacity if instance.original_capacity is not None else
                 CVRP_DEFAULTS[instance.graph_size - 1][1],
                 time_limit=self.time_limit,
-                BKS=self.bks[str(i)][0] if self.bks is not None else None,
+                BKS=self.bks[str(instance.instance_id if instance.instance_id is not None else i)][0]
+                if self.bks is not None else None,
                 instance_id=instance.instance_id if instance.instance_id is not None else i,
                 coords_dist=instance.coords_dist,
                 depot_type=instance.depot_type,
@@ -328,11 +285,11 @@ class CVRPDataset(BaseDataset):
             for i, instance in enumerate(self.data)
         ]
 
-    def _get_costs(self, sol: RPSolution) -> Tuple[float, int, bool, List[list]]:
-        # perform problem-specific feasibility check while getting routing costs
-        cost, k, solution_upd = self.feasibility_check(sol.instance, sol.solution)
-        is_feasible = True if cost != float("inf") else False
-        return cost, k, is_feasible, solution_upd
+    # def _get_costs(self, sol: RPSolution) -> Tuple[float, int, bool, List[list]]:
+    #     # perform problem-specific feasibility check while getting routing costs
+    #     cost, k, solution_upd = self.feasibility_check(sol.instance, sol.solution)
+    #     is_feasible = True if cost != float("inf") else False
+    #     return cost, k, is_feasible, solution_upd
 
     # @staticmethod
     # def return_infeasible_sol(mode, instance, solution, cost, nr_vs):
@@ -355,103 +312,18 @@ class CVRPDataset(BaseDataset):
     #                              run_times_orig=orig_r_times,
     #                              eval_type=mode)
 
-    def eval_solution(self,
-                      model_name: str,
-                      solution: RPSolution,
-                      eval_mode: Union[str, list] = 'simple',
-                      save_trajectory: bool = False,
-                      save_trajectory_for: Union[int, List] = None,
-                      place_holder_final_sol: bool = False):
-
-        # init scores
-        pi_score, wrap_score = None, None
-        # get instance
-        instance = solution.instance
-        # get cost + feasibility check
-        cost, nr_v, is_feasible, solution_updated = self._get_costs(solution)
-        # print('solution_updated', solution_updated)
-        solution = solution.update(solution=solution_updated)
-        print('self.scale_factor', self.scale_factor)
-        if self.scale_factor is not None:
-            cost = cost * self.scale_factor
-        if self.is_denormed and os.path.basename(self.store_path) in NORMED_BENCHMARKS:
-            print('IS_DENORMED AND STOREPATH IN NORMED_BENCHMARKS --> RENORMALIZE COSTS FOR EVAL')
-            # (re-)normalize costs for evaluation for dataset that is originally normalized
-            cost = cost / self.grid_size
-        # directly return infeasible solution
-        if not is_feasible:
-            self.return_infeasible_sol(eval_mode, instance, solution, cost, nr_v)
-
-        # default to simple evaluation if no BKS loaded or incorrect ID order
-        eval_mode = self.check_eval_mode(eval_mode, solution)
-
-        verified_values, running_times = self.get_running_values(
-            instance,
-            solution.running_sols,
-            solution.running_costs,
-            solution.running_times,
-            solution.run_time,
-            cost,
-            self.scale_factor,
-            self.grid_size,
-            self.is_denormed,
-            place_holder_final_sol
-        )
-
-        v_costs, v_times, v_sols, v_costs_full, v_times_full, v_sols_full = verified_values
-
-        if isinstance(eval_mode, ListConfig) or isinstance(eval_mode, list):
-            for mode in eval_mode:
-                if mode == "pi":
-                    pi_score = self.eval_costs("pi", instance, v_costs, v_times, running_times,
-                                               model_name)
-                elif mode == "wrap":
-                    if self.metric.base_sol_results is None:
-                        warnings.warn(f"Defaulting to simple evaluation - "
-                                      f"no base solver results loaded for WRAP Evaluation.")
-                    else:
-                        wrap_score = self.eval_costs("wrap", instance, v_costs, v_times,
-                                                     running_times, model_name)
-                else:
-                    assert mode == "simple", f"Unknown eval type in list eval_mode. Must be in ['simple', 'pi', 'wrap']"
-                    # simple eval already done in self._get_costs()
-        elif eval_mode == "pi":
-            pi_score = self.eval_costs("pi", instance, v_costs, v_times, running_times, model_name)
-        elif eval_mode == "wrap":
-            if self.metric.base_sol_results is None:
-                warnings.warn(f"Defaulting to simple evaluation - "
-                              f"no base solver results loaded for WRAP Evaluation.")
-            else:
-                wrap_score = self.eval_costs("wrap", instance, v_costs, v_times, running_times,
-                                             model_name)
-        else:
-            assert eval_mode == "simple", f"Unknown eval type. Must be in ['simple', 'pi', 'wrap']"
-            # simple eval already done in self._get_costs()
-
-        # update global BKS
-        new_best = self.update_BKS(instance, cost) if instance.BKS is not None and cost < instance.BKS else None
-
-        # save sol-trajectories
-        if save_trajectory and v_costs:
-            self.save_trajectory(str(instance.instance_id), v_costs_full, v_times_full, model_name,
-                                 save_trajectory_for, instance)
-
-        return solution.update(cost=cost,
-                               num_vehicles=nr_v,
-                               running_costs=v_costs if v_costs and v_costs is not None else None,
-                               running_times=v_times if v_times and v_times is not None else None,
-                               running_sols=v_sols if v_sols and any(v_sols) else None,
-                               run_time=solution.run_time,  # self.adjusted_time_limit),
-                               pi_score=pi_score,
-                               wrap_score=wrap_score), None, new_best
-
-    def feasibility_check(self, instance: CVRPInstance, solution: List[List], is_running: bool = False):
+    def feasibility_check(self, instance: CVRPInstance, rp_solution: RPSolution, is_running: bool = False):
+        solution = rp_solution.solution if isinstance(rp_solution, RPSolution) else rp_solution
+        # print('solution in cvrp_dataset-feasibility_check: ', solution)
         depot = instance.depot_idx[0]
         coords = instance.coords.astype(int) if self.is_denormed and isinstance(instance.coords[0][0], np.int64) \
             else instance.coords
+        # print('coords', coords)
         # if self.scale_factor is None else (instance.coords * self.scale_factor).astype(int)
         demands = instance.node_features[:, instance.constraint_idx[0]] if self.is_denormed \
             else instance.node_features[:, instance.constraint_idx[0]]
+        # print('self.is_denormed', self.is_denormed)
+        # print('demands in cvrp_dataset-feasibility_check: ', demands)
         # demands = np.round(instance.node_features[:, instance.constraint_idx[0]] * instance.original_capacity)
         # print('demands[:10]', demands[:10])
         # * instance.original_capacity).astype(int)
@@ -459,8 +331,10 @@ class CVRPDataset(BaseDataset):
         routes = solution if solution else None  # check if solution list is not empty - if empty set to None
         # capacity = instance.original_capacity
         capacity = instance.original_capacity if self.is_denormed else instance.vehicle_capacity
-        # print('capacity', capacity)
+        # print('capacity in cvrp_dataset-feasibility_check: ', capacity)
         routes_ = []
+        visited_nodes = [0]
+        # print('routes in cvrp_dataset', routes)
         if routes is not None:  # or len(solution) == 0:
             k, cost = 0, 0  # .0
             for r in routes:
@@ -476,22 +350,39 @@ class CVRPDataset(BaseDataset):
                         transit += np.linalg.norm(coords[source] - coords[target], ord=2)
                         cum_d += demands[target]
                         source = target
+                    # print('cum_d', cum_d)
+                    # print('transit', transit)
                     if cum_d > capacity + EPS:
                         if is_running:
                             warnings.warn(f"One of the solutions in the trajectory for instance {instance.instance_id} "
                                           f"is infeasible: {cum_d}>{capacity + EPS}. Setting cost and k to 'inf'.")
 
                         else:
-                            warnings.warn(f"Final CVRP solution {solution} is infeasible for instance "
-                                          f"with ID {instance.instance_id}. Setting cost and k to 'inf'.")
                             warnings.warn(f"cumulative demand {cum_d} surpasses (normalized) capacity "
                                           f"{capacity} for instance with ID {instance.instance_id}.")
+                            warnings.warn(f"Final CVRP solution {solution} is infeasible for instance "
+                                          f"with ID {instance.instance_id}. Setting cost and k to 'inf'.")
                         cost = float("inf")
                         k = float("inf")
                         break
                     cost += transit
                     k += 1
                     routes_.append(r)
+                # print('r', r)
+                visited_nodes.extend(r[1:-1])
+            # print('visited_nodes', visited_nodes)
+            visited_nodes.sort()
+            # print('visited_nodes (sorted)', visited_nodes)
+            if visited_nodes != list(np.arange(len(demands))):
+                warnings.warn(f"Not all nodes covered:  "
+                              f"\n list of node IDs={list(np.arange(len(demands)))} - "
+                              f"\n visit_nodes.sort={visited_nodes} for instance with ID {instance.instance_id}."
+                              f"\n Missing nodes are: {list(set(list(np.arange(len(demands)))) - set(visited_nodes))}")
+                warnings.warn(f"Final CVRP solution {solution} is infeasible for instance "
+                              f"with ID {instance.instance_id}. Setting cost and k to 'inf'.")
+                cost = float("inf")
+                k = float("inf")
+                routes_ = None
         else:
             warnings.warn(f"No CVRP solution specified (None). setting cost and k to 'inf'")
             cost = float("inf")
@@ -514,8 +405,9 @@ class CVRPDataset(BaseDataset):
         overall_inst_type = self.store_path.split(os.sep)[-2] if self.store_path.split(os.sep)[-2] != "cvrp" \
             else self.store_path.split(os.sep)[-1]
         # print('overall_inst_type', overall_inst_type)
-        self.scale_factor = SCALE_FACTORS[overall_inst_type] if overall_inst_type in SCALE_FACTORS.keys() else 1
+        self.scale_factor = SCALE_FACTORS_CVRP[overall_inst_type] if overall_inst_type in SCALE_FACTORS_CVRP.keys() else 1
         # print('self.scale_factor', self.scale_factor)
+        # print('os.path.dirname(filepath).split(os.sep)', os.path.dirname(filepath).split(os.sep))
         while i < len(lines):
             line = lines[i]
             if line.startswith("NAME"):
@@ -523,8 +415,9 @@ class CVRPDataset(BaseDataset):
                 if os.path.dirname(filepath).split(os.sep)[-2] == "XE":
                     X_inst_type = os.path.dirname(filepath).split(os.sep)[-1]
                     inst_id = name.split('_')[-1]
-                # elif os.path.dirname(filepath).split(os.sep)[-2] == "X":
-                #     X_inst_type = 'X'
+                elif os.path.dirname(filepath).split(os.sep)[-1] == "X":
+                    X_inst_type = 'X'
+                    inst_id = name
                 else:
                     inst_id = name
                 if "k" in name.split("-")[-1]:
@@ -546,7 +439,7 @@ class CVRPDataset(BaseDataset):
                 i = i + dimension
 
             i += 1
-
+        # print('X_inst_type', X_inst_type)
         original_locations = locations[:, 1:]
         # print('self.normalize', self.normalize)
         # normalize coords and demands
@@ -595,9 +488,9 @@ class CVRPDataset(BaseDataset):
             time_limit=self.time_limit if adj_per_inst_tl is None else adj_per_inst_tl,
             original_capacity=capacity,
             original_locations=original_locations,
-            coords_dist=XE_UCHOA_TYPES[X_inst_type][1] if X_inst_type is not None else None,
-            depot_type=XE_UCHOA_TYPES[X_inst_type][0] if X_inst_type is not None else None,
-            demands_dist=XE_UCHOA_TYPES[X_inst_type][2] if X_inst_type is not None else None,
+            coords_dist=XE_UCHOA_TYPES[X_inst_type][1] if X_inst_type not in [None, "X"] else None,
+            depot_type=XE_UCHOA_TYPES[X_inst_type][0] if X_inst_type not in [None, "X"] else None,
+            demands_dist=XE_UCHOA_TYPES[X_inst_type][2] if X_inst_type not in [None, "X"] else None,
             instance_id=inst_id,  # int(inst_id)
             type=X_inst_type if X_inst_type is not None else overall_inst_type,
             # demands_dist=None,

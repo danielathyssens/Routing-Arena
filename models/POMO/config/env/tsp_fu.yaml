@@ -1,0 +1,22 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: "uniform_fu"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uniform/fu/tsp${graph_size}_fu.pt
+  # data/test_data/cvrp/sub_uniform/cvrp100/val_seed4321_size128.pt
+# data/test_data/cvrp/uniform/cvrp100/val_seed4321_size512.pkl
+normalize_data: True
+checkpoint_load_path: models/POMO/POMO/tsp/POMO/result/uniform/saved_tsp100_model/checkpoint-2000.pt
+# models/POMO/POMO/${problem}/POMO/result/saved_CVRP100_model/${coords_dist}/checkpoint-30500.pt
+# models/POMO/POMO/cvrp/POMO/result/saved_CVRP100_model/uniform_sub/checkpoint-100.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:
+    # sample_size: 1
+    graph_size: ${graph_size}
+

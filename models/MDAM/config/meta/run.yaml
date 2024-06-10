@@ -29,6 +29,7 @@ test_cfg:
   fixed_dataset: True
   data_file_path: ${data_file_path} # depends on distribution --> env config
   dataset_size: # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
+  dataset_range: # select range of data to test (e.g. [5,75])
   checkpoint_load_path: ${checkpoint_load_path}
   beam: 1              # 1 = 'greedy', 30 = 30 copies of backtracking, 50 = 50 copies of backtracking
   eval_batch_size: 1

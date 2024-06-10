@@ -1,0 +1,15 @@
+# @package _global_
+# policy config
+
+model: "eas-sampling"
+method: "sampling"
+
+
+model_cfg:
+  EMBEDDING_DIM: 128
+  ENCODER_LAYER_NUM: 6
+  KEY_DIM: 16    # Length of q, k, v of EACH attention head
+  HEAD_NUM: 8
+  LOGIT_CLIPPING: 10  #  (C in the paper)
+  FF_HIDDEN_DIM: 512
+  ACTOR_WEIGHT_DECAY: 1e-6

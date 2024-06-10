@@ -15,6 +15,7 @@ generator_args: {}
 test_cfg:
   data_file_path: # None         # data/test_data/cvrp/uniform/cvrp20_test_seed1234.pkl
   checkpoint_load_path: #None
+  saved_res_dir: #None
 
 train_opts_cfg:
   run_name: 'train_run_uchoa100'       # Name to identify the run

@@ -7,7 +7,8 @@ coords_dist: 'golden'
 out_name: ${problem}_${coords_dist}
 data_file_path: data/test_data/cvrp/Golden
 normalize_data: True
-checkpoint_load_path: models/AM/pretrained/${problem}_100/uniform/epoch-99.pt
+checkpoint_load_path: models/AM/AM/pretrained/${problem}_100/uniform/epoch-99.pt
+trained_model_args_path: models/AM/AM/pretrained/${problem}_100/uniform/args.json
 
 # RP Env cfg
 env_kwargs:

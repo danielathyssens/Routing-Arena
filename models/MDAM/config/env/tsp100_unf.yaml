@@ -1,0 +1,20 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: uniform
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/test_seed1234.pkl
+normalize_data: True
+checkpoint_load_path: models/MDAM/MDAM/pretrained/tsp_${graph_size}/${coords_dist}/epoch-99.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance:
+  sampling_args:
+    graph_size: ${graph_size}
+    num_samples: ${val_size}
+    subsample: False

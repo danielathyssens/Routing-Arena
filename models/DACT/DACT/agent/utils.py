@@ -1,6 +1,3 @@
-####
-# This code file is adapted from the original code provided in
-# https://github.com/yining043/VRP-DACT (Ma, Yining, et al. "Learning to iteratively solve routing problems with dual-aspect collaborative transformer." Advances in Neural Information Processing Systems 34 (2021): 11096-11107.)
 import time
 import torch
 import os
@@ -62,7 +59,7 @@ def validate(rank, problem, agent, val_dataset, tb_logger, distributed = False, 
     
     for batch_id, batch in enumerate(val_dataloader):
         assert batch_id < 1
-        bv, cost_hist, best_hist, r, rec_history = agent.rollout(problem,
+        bv, cost_hist, best_hist, r, rec_history, _ = agent.rollout(problem,
                                                                  opts.val_m,
                                                                  batch,
                                                                  do_sample = True,

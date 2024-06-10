@@ -4,7 +4,7 @@ from multiprocessing import Pool
 import tqdm
 import numpy as np
 import pickle
-from net.sgcn_model import SparseGCNModel
+from models.NeuroLKH.NeuroLKH.net.sgcn_model import SparseGCNModel
 import torch
 from torch.autograd import Variable
 from tqdm import trange
@@ -13,6 +13,10 @@ import time
 import tempfile
 
 def write_instance(instance, instance_name, instance_filename):
+    # instance_ = instance[0]
+    # print('instance', instance)
+    # print('len(instance_', len(instance_))
+    # print('len(instance) in write instance', len(instance))
     with open(instance_filename, "w") as f:
         f.write("NAME : " + instance_name + "\n")
         f.write("COMMENT : blank\n")
@@ -20,8 +24,11 @@ def write_instance(instance, instance_name, instance_filename):
         f.write("DIMENSION : " + str(len(instance)) + "\n")
         f.write("EDGE_WEIGHT_TYPE : EUC_2D\n")
         f.write("NODE_COORD_SECTION\n")
-        s = 1000000
+        s = 1 # 000000
+        # print('len(instance)', len(instance))
         for i in range(len(instance)):
+            # print('i', i)
+            # print(" " + str(i + 1) + " " + str(instance[i][0] * s)[:10] + " " + str(instance[i][1] * s)[:10] + "\n")
             f.write(" " + str(i + 1) + " " + str(instance[i][0] * s)[:10] + " " + str(instance[i][1] * s)[:10] + "\n")
         f.write("EOF\n")
 

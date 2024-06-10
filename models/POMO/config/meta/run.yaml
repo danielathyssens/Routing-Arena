@@ -18,21 +18,24 @@ number_threads: 12
 number_cpus: 6
 
 test_cfg:
-  eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi', ['pi', 'wrap']
+  save_testset: # True
+  eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi', ['pi', 'wrap']  # , 'wrap'
   time_limit: 10
-  save_solutions: False   # either save solution in log dir of run output dir
-  save_for_analysis: True # or save solutions for further analysis in saved results folder
+  save_solutions: True   # either save solution in log dir of run output dir
+  save_for_analysis: False  # or save solutions for further analysis in saved results folder
   saved_res_dir: outputs/saved_results # where results for analysis should be saved
   out_name: ${out_name}
   save_trajectory: True   # will always be saved in log dir of run output dir
   save_traj_for:  # IDs of Instances to plot in list - if None, first instance in dataset is plotted
   fixed_dataset: True
   data_file_path: ${data_file_path}
-  dataset_size:  # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
-  add_ls: True  # boolean to add local search (spec in 'ls_policy_cfg') after construction
+  checkpoint_load_path: ${checkpoint_load_path}
+  dataset_size: # 28 # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
+  dataset_range: # solve range of dataset , e.g. [10, 20]
+  add_ls: False # True  # boolean to add local search (spec in 'ls_policy_cfg') after construction
   ls_policy: sa
   ls_policy_cfg:
-    local_search_strategy: 'SIMULATED_ANNEALING' #'GUIDED_LOCAL_SEARCH'
+    local_search_strategy: 'SIMULATED_ANNEALING' #'SIMULATED_ANNEALING' #'GUIDED_LOCAL_SEARCH'
     solution_limit: #None
     verbose: False
     log_search: False
@@ -48,6 +51,14 @@ tester_cfg:
   aug_factor: 8
   pomo_size: ${graph_size} # or 1 (single trajectory)
   aug_batch_size: 400  # note: needs to be divisble by number of test instances -> 400 only for 10000
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}
 
 # global paths and logging
 log_lvl: INFO

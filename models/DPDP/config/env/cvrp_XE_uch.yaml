@@ -18,4 +18,5 @@ heatmap_load_path: models/DPDP/DPDP/results/${problem}/${problem}_${coords_dist}
 # RP Env cfg
 env_kwargs:
   generator_args:
+    normalize_demands: False  # if None or False - demands will remain un-normalized (not between 0-1)
   sampling_args:

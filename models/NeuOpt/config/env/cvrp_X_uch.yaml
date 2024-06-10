@@ -1,0 +1,22 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+out_name: ${problem}_X_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/X
+normalize_data: True
+checkpoint_load_path: models/NeuOpt/NeuOpt/pretrained/cvrp100.pt  # NOTE: for N=100
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    normalize_demands: True
+  sampling_args:
+
+
+# model specific env features
+wo_feature1: false # remove VI features
+wo_feature3: false # remove ES features

@@ -1,0 +1,20 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'golden'
+out_name: ${problem}_${coords_dist}
+data_file_path: data/test_data/cvrp/Golden
+normalize_data: True
+checkpoint_load_path: models/GLOP/GLOP/pretrained/Reviser-stage2 # /reviser_{reviser_size}/epoch-299.pt'
+ckpt_path_partitioner: models/GLOP/GLOP/pretrained/Partitioner/cvrp/cvrp-2000-cvrplib.pt
+problem_type: 'cvrplib'
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    normalize_demands: False  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance:
+  sampling_args:
+    subsample: False

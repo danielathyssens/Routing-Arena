@@ -6,9 +6,9 @@ graph_size: 100
 coords_dist: uniform
 out_name: ${problem}_${graph_size}_${coords_dist}
 data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/test_seed1234.pkl
-normalize_data: False
-checkpoint_load_path: models/DPDP/DPDP/logs/${problem}_${coords_dist}100/best_val_loss_checkpoint.tar
-heatmap_load_path: models/DPDP/DPDP/results/${problem}/${problem}_${coords_dist}100_val_seed4321/heatmaps/heatmaps_${problem}_${coords_dist}100.pkl
+normalize_data: True
+checkpoint_load_path: models/DPDP/DPDP/logs/${problem}_${coords_dist}100/best_val_checkpoint.tar
+heatmap_load_path: models/DPDP/DPDP/results/${problem}/${problem}_${coords_dist}100_test_seed1234/heatmaps/heatmaps_${problem}_${coords_dist}100.pkl
 
 # RP Env cfg
 env_kwargs:

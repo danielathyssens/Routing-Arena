@@ -13,4 +13,5 @@ checkpoint_load_path: models/DACT/DACT/pretrained/cvrp100-epoch-198.pt  # NOTE: 
 # RP Env cfg
 env_kwargs:
   generator_args:
+    normalize_demands: True
   sampling_args:

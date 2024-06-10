@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from abc import abstractmethod
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 from typing import Union, Tuple, List, Callable
 import warnings
 import os
@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 from torch.utils.data import Dataset
-from formats import TSPInstance, CVRPInstance, RPSolution
+from formats import TSPInstance, CVRPInstance, CVRPTWInstance, RPSolution
 from data.generator import RPGenerator
 from data.data_utils import format_ds_save_path
 from metrics.metrics import Metrics
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 DATA_KEYWORDS = {
     'uniform': 'uniform',
+    'uniform_fu': 'uniform_fu',
     'nazari': 'uniform',
     'rej': 'rejection_sampled',
     'uchoa': 'uchoa_distributed',
@@ -33,15 +34,23 @@ DATA_KEYWORDS = {
     'S': 'S'
 }
 
-TEST_SETS_BKS = ['cvrp20_test_seed1234.pkl',
+TEST_SETS_BKS = ['tsp100_fu.pt',
+                 'tsp200_fu.pt',
+                 'tsp500_fu.pt',
+                 'tsp1000_fu.pt',
+                 'tsp10000_fu.pt',
+                 'cvrp20_test_seed1234.pkl',
                  'cvrp50_test_seed1234.pkl',
                  'cvrp100_test_seed1234.pkl',
                  'val_seed123_size512.pt',
                  'val_seed123_size512.pkl',
                  'val_seed4321_size512.pkl',
                  'val_seed1234_size128.pkl',
+                 'val_seed1234_size128.pt',
                  'E_R_6_seed123_size512.pt',
-                 'test_seed1234.pkl',
+                 'val_seed4321_size128.pt',
+                 'val_cvrptw_40.pkl',
+                 'val_cvrptw_200.pkl',
                  'XE',
                  'X',
                  'XML100',
@@ -64,14 +73,17 @@ class BaseDataset(Dataset):
                  num_samples: int = 100,
                  graph_size: int = 20,
                  distribution: str = None,
-                 generator_args: dict = None,
-                 sampling_args: dict = None,
+                 generator_args: Union[dict, DictConfig] = None,
+                 sampling_args: Union[dict, DictConfig] = None,
                  float_prec: np.dtype = np.float32,
                  transform_func: Callable = None,
                  transform_args: DictConfig = None,
                  seed: int = None,
                  verbose: bool = False,
                  normalize: bool = True,
+                 grid_size: int = None,
+                 scale_factor=None,
+                 is_denormed=False,
                  TimeLimit: Union[list, int, float] = None,
                  load_bks: bool = True,
                  load_base_sol: bool = True,
@@ -79,7 +91,7 @@ class BaseDataset(Dataset):
         super(BaseDataset, self).__init__()
 
         if store_path is not None:
-            logger.info(f"Test Data provided, No new samples are generated.")
+            logger.info(f"Test Data provided: {store_path}, No new samples are generated.")
 
         self.verbose = verbose
         self.problem = problem
@@ -90,6 +102,9 @@ class BaseDataset(Dataset):
         self.generator_args = generator_args
         self.sampling_args = sampling_args
         self.normalize = normalize
+        self.scale_factor = scale_factor
+        self.grid_size = grid_size
+        self.is_denormed = is_denormed
         # self.passmark = pass_mark
         # self.passmark_cpu = pass_mark_cpu
         # self.single_thread = single_thread
@@ -100,6 +115,10 @@ class BaseDataset(Dataset):
         self.save_traj_flag = True
         if self.store_path is None:
             logger.info(f"Initiating RPGenerator with {self.generator_args}")
+            print('seed', seed)
+            if seed is None:
+                seed = 1234
+                logger.info(f"Set default seed for RPGenerator with {seed}")
             self.gen = RPGenerator(seed, self.verbose, float_prec, self.generator_args)
         self.size = None
         self.data = None
@@ -108,9 +127,11 @@ class BaseDataset(Dataset):
         self.bks_path = None
         self.base_sol_path = None
         self.bks, self.BaseSol = None, None
-        if load_bks:
+        self.load_bks = load_bks
+        self.load_base_sol = load_base_sol
+        if self.load_bks:
             self.bks = self.load_BKS_BaseSol("BKS") if self.store_path is not None else None
-        if load_base_sol:
+        if self.load_base_sol:
             self.BaseSol = self.load_BKS_BaseSol("BaseSol") if self.store_path is not None else None
         if self.bks is not None:
             logger.info(f'Loaded {len(self.bks)} BKS for the test (val) set.')
@@ -122,20 +143,34 @@ class BaseDataset(Dataset):
     def seed(self, seed: int):
         self.gen.seed(seed)
 
-    def sample(self, sample_size: int, graph_size: int = None, distribution=None, log_info=True):
+    def sample(self, sample_size: int, graph_size: int = None, distribution=None, log_info=True, sub_samples=False):
         if distribution is None:
             distribution = self.distribution if self.distribution is not None else None
         if graph_size is None:
             graph_size = self.graph_size if self.graph_size is not None else None
         if log_info:
             logger.info(f"Sampling {sample_size} {distribution}-distributed problems with graph size {graph_size}")
-        self.data = self.gen.generate(problem=self.problem,
-                                      sample_size=sample_size,
-                                      graph_size=graph_size,
-                                      distribution=distribution,
-                                      normalize=self.normalize,
-                                      sampling_args=self.sampling_args,
-                                      generator_args=self.generator_args)
+        # print('sub_samples', sub_samples)
+        sub_samples = self.sampling_args.subsample
+        # print('sub_samples', sub_samples)
+        if not sub_samples:
+            self.data, demands_normalized = self.gen.generate(problem=self.problem,
+                                                              sample_size=sample_size,
+                                                              graph_size=graph_size,
+                                                              # distribution=distribution,
+                                                              normalize=self.normalize,
+                                                              # generator_args=self.generator_args
+                                                              sampling_args=self.sampling_args)
+            if demands_normalized is not None:
+                self.is_denormed = not demands_normalized
+        else:
+            self.data = self.gen.generate_subsamples(problem=self.problem,
+                                                     sample_size=sample_size,
+                                                     graph_size=graph_size,
+                                                     distribution=distribution,
+                                                     normalize=self.normalize,
+                                                     # generator_args=self.generator_args
+                                                     sampling_args=self.sampling_args)
         if self.time_limit is not None:
             self.data = [instance.update(time_limit=self.time_limit) for instance in self.data]
         # if not self.normalize:
@@ -149,6 +184,23 @@ class BaseDataset(Dataset):
         self.size = len(self.data)
         return self
 
+    def _get_costs(self, sol: RPSolution,
+                   is_runn: bool = False) -> Tuple[float, Union[int, None], bool, Union[list, None]]:
+        # perform problem-specific feasibility check while getting routing costs
+        cost, k, solution_list_upd = self.feasibility_check(instance=sol.instance, rp_solution=sol, is_running=is_runn)
+        is_feasible = True if cost != float("inf") else False
+        return cost, k, is_feasible, solution_list_upd
+
+    def eval_costs(self, mode: str, instance: Union[TSPInstance, CVRPInstance], v_costs: list, v_times: list,
+                   orig_r_times: list, model_name: str):
+        return self._eval_metric(model_name=model_name,
+                                 inst_id=str(instance.instance_id),
+                                 instance=instance,
+                                 verified_costs=v_costs,
+                                 verified_times=v_times,
+                                 run_times_orig=orig_r_times,
+                                 eval_type=mode)
+
     # @staticmethod
     def verify_costs_times(self, costs, times, sols, time_limit=None):
         verified_costs, verified_times, verified_sols = [], [], []
@@ -156,7 +208,7 @@ class BaseDataset(Dataset):
         prev_cost = float('inf')
         time_limit = self.adjusted_time_limit if self.adjusted_time_limit is not None else times[-1]  # if 'simple' eval
         # and time <= adjusted_time_limit
-        sols = [None]*len(costs) if sols is None else sols
+        sols = [None] * len(costs) if sols is None else sols
         if times != [None]:
             for cost, time, sol in zip(costs, times, sols):
                 if time <= time_limit:
@@ -178,15 +230,106 @@ class BaseDataset(Dataset):
         return verified_costs, verified_times, verified_sols, \
             verified_costs_full, verified_times_full, verified_sols_full
 
-    def eval_costs(self, mode: str, instance: Union[TSPInstance, CVRPInstance], v_costs: list, v_times: list,
-                   orig_r_times: list, model_name: str):
-        return self._eval_metric(model_name=model_name,
-                                 inst_id=str(instance.instance_id),
-                                 instance=instance,
-                                 verified_costs=v_costs,
-                                 verified_times=v_times,
-                                 run_times_orig=orig_r_times,
-                                 eval_type=mode)
+    def eval_solution(self,
+                      model_name: str,
+                      solution: RPSolution,
+                      eval_mode: Union[str, list] = 'simple',
+                      save_trajectory: bool = False,
+                      save_trajectory_for: Union[int, List] = None,
+                      place_holder_final_sol: bool = False):
+
+        # init scores
+        pi_score, wrap_score = None, None
+        # get instance
+        instance = solution.instance
+        # get cost + feasibility check
+        cost, nr_v, is_feasible, solution_updated = self._get_costs(solution)
+        # directly return infeasible solution
+        if not is_feasible:
+            self.return_infeasible_sol(eval_mode, instance, solution, cost, nr_v)
+        # print('solution_updated', solution_updated)
+        solution = solution.update(solution=solution_updated)
+        print('self.scale_factor', self.scale_factor)
+        if self.scale_factor is not None:
+            cost = cost * self.scale_factor
+        if self.is_denormed and self.store_path is None:
+            pass
+        elif self.is_denormed and os.path.basename(self.store_path) in NORMED_BENCHMARKS:
+            if self.verbose:
+                logger.info(f'Dataset is de-normalized for run '
+                            f'--> Re-Normalize costs for benchmark evaluation with grid-size {self.grid_size}')
+            # (re-)normalize costs for evaluation for dataset that is originally normalized
+            cost = cost / self.grid_size
+
+        # default to simple evaluation if no BKS loaded or incorrect ID order
+        eval_mode = self.check_eval_mode(eval_mode, solution)
+
+        # get and verify running values
+        # if self.verbose:
+        #     if solution.running_sols is not None:
+        #         print('Len(running_sols) before VERIFY', len(solution.running_sols))
+        #     if solution.running_costs is not None:
+        #         print('Len(running_costs) before VERIFY', len(solution.running_costs))
+        #         print('Len(running_times) before VERIFY', len(solution.running_times))
+        verified_values, running_times = self.get_running_values(
+            instance,
+            solution.running_sols,
+            solution.running_costs,
+            solution.running_times,
+            solution.run_time,
+            cost,
+            self.scale_factor,
+            self.grid_size,
+            self.is_denormed,
+            place_holder_final_sol
+        )
+
+        v_costs, v_times, v_sols, v_costs_full, v_times_full, v_sols_full = verified_values
+
+        if isinstance(eval_mode, ListConfig) or isinstance(eval_mode, list):
+            for mode in eval_mode:
+                if mode == "pi":
+                    pi_score = self.eval_costs("pi", instance, v_costs, v_times, running_times,
+                                               model_name)
+                elif mode == "wrap":
+                    if self.metric.base_sol_results is None:
+                        warnings.warn(f"Defaulting to simple evaluation - "
+                                      f"no base solver results loaded for WRAP Evaluation.")
+                    else:
+                        wrap_score = self.eval_costs("wrap", instance, v_costs, v_times,
+                                                     running_times, model_name)
+                else:
+                    assert mode == "simple", f"Unknown eval type in list eval_mode. Must be in ['simple', 'pi', 'wrap']"
+                    # simple eval already done in self._get_costs()
+        elif eval_mode == "pi":
+            pi_score = self.eval_costs("pi", instance, v_costs, v_times, running_times, model_name)
+        elif eval_mode == "wrap":
+            if self.metric.base_sol_results is None:
+                warnings.warn(f"Defaulting to simple evaluation - "
+                              f"no base solver results loaded for WRAP Evaluation.")
+            else:
+                wrap_score = self.eval_costs("wrap", instance, v_costs, v_times, running_times,
+                                             model_name)
+        else:
+            assert eval_mode == "simple", f"Unknown eval type. Must be in ['simple', 'pi', 'wrap']"
+            # simple eval already done in self._get_costs()
+
+        # update global BKS
+        new_best = self.update_BKS(instance, cost) if instance.BKS is not None and cost < instance.BKS else None
+
+        # save sol-trajectories
+        if save_trajectory and v_costs:
+            self.save_trajectory(str(instance.instance_id), v_costs_full, v_times_full, model_name,
+                                 save_trajectory_for, instance)
+
+        return solution.update(cost=cost,
+                               num_vehicles=nr_v,
+                               running_costs=v_costs if v_costs and v_costs is not None else None,
+                               running_times=v_times if v_times and v_times is not None else None,
+                               running_sols=v_sols if v_sols and any(v_sols) else None,
+                               run_time=solution.run_time,  # self.adjusted_time_limit),
+                               pi_score=pi_score,
+                               wrap_score=wrap_score), None, new_best
 
     def _eval_metric(self,
                      model_name: str,
@@ -254,7 +397,7 @@ class BaseDataset(Dataset):
             elif len(os.listdir(self.store_path)) > 1:
                 logger.info("Loading instance files...")
                 if self.problem.lower() == "cvrp":
-                    data = [self.read_vrp_instance(self.store_path+"/"+file) for file in os.listdir(self.store_path)
+                    data = [self.read_vrp_instance(self.store_path + "/" + file) for file in os.listdir(self.store_path)
                             if (file[:3] != 'BKS' and file[-3:] == 'vrp')]
                 else:
                     data = [self.read_tsp_instance(self.store_path + "/" + file) for file in os.listdir(self.store_path)
@@ -287,8 +430,13 @@ class BaseDataset(Dataset):
                            place_holder_final_sol: bool = False,
                            update_runn_sols: bool = True):
         runn_costs_upd, runn_sols = None, None
+        # print('running_sol', running_sol)
+        # print('running_costs', running_costs)
+        print('scale_factor', scale_factor)
+        print('grid_size', grid_size)
         if running_sol is not None and running_t is not None:
-            runn_costs = [self.feasibility_check(instance, sol, is_running=True)[0] for sol in running_sol]
+            runn_costs = [self.feasibility_check(instance=instance, rp_solution=sol, is_running=True)[0]
+                          for sol in running_sol]
             if update_runn_sols and (len(runn_costs) != len(running_t)):
                 assert len(runn_costs) == len(running_sol), f"Cannot update running sols - not same length with costs"
                 prev_cost = float('inf')
@@ -309,7 +457,8 @@ class BaseDataset(Dataset):
             if scale_factor is not None:
                 # print('scaling running COSTS with self.scale_factor', self.scale_factor)
                 runn_costs = [c * scale_factor for c in runn_costs]
-            elif is_denormed and os.path.basename(self.store_path) in NORMED_BENCHMARKS:
+            elif is_denormed and self.store_path is not None and \
+                    os.path.basename(self.store_path) in NORMED_BENCHMARKS:
                 runn_costs = [c / grid_size for c in runn_costs]
             else:
                 runn_costs = runn_costs
@@ -326,6 +475,8 @@ class BaseDataset(Dataset):
             # print('FINAL COST:', final_cost)
             # print("final_cost == float('inf')", final_cost == float('inf'))
             if final_cost is not None and runn_costs:
+                # print('np.round(final_cost, 1)', np.round(final_cost, 1))
+                # print('np.round(runn_costs[-1], 1)', np.round(runn_costs[-1], 1))
                 if np.round(final_cost, 2) != np.round(runn_costs[-1], 2):
                     if final_cost != float('inf') and final_cost > runn_costs[-1]:
                         # np.round(
@@ -338,13 +489,21 @@ class BaseDataset(Dataset):
                                 runn_costs.append(r_cost)
                                 runn_times.append(r_time)
                             elif r_cost < final_cost:
+                                # print('np.round(r_cost)', np.round(r_cost))
+                                # print('np.round(final_cost)', np.round(final_cost))
                                 runn_costs.append(final_cost)
                                 runn_times.append(r_time)
                                 break
+                        # print('runn_costs', runn_costs)
+                        # print('runn_times', runn_times)
+                        # print('final_cost', final_cost)
+                        # print('final_runtime', final_runtime)
                     elif final_cost == float('inf'):
                         if place_holder_final_sol:
                             print(f"Is placeholder final solution in Re-evaluation...")
                     else:
+                        # print('np.round(final_cost, 1)', np.round(final_cost, 1))
+                        # print('np.round(runn_costs[-1], 1)', np.round(runn_costs[-1], 1))
                         if np.round(final_cost, 1) < np.round(runn_costs[-1], 1):
                             warnings.warn(f"Last running cost {runn_costs[-1]} is larger than calculated final"
                                           f" cost {final_cost}. Adding final costs to running costs.")
@@ -362,6 +521,7 @@ class BaseDataset(Dataset):
             else:
                 runn_costs = [final_cost]
             runn_times = [final_runtime]
+        # print('runn_costs[:3]', runn_costs[:3])
         # runn_costs = runn_costs_upd if runn_costs_upd is not None else runn_costs
         runn_sols = runn_sols if runn_sols is not None else running_sol
 
@@ -416,6 +576,7 @@ class BaseDataset(Dataset):
         # check if dataset has a BKS/BaseSol store file
         if self.store_path is not None:
             _path = None
+            print('os.path.basename(self.store_path)', os.path.basename(self.store_path))
             if os.path.basename(self.store_path) in TEST_SETS_BKS \
                     or os.path.basename(self.store_path)[:2] in TEST_SETS_BKS \
                     or self.store_path.split("/")[-2] in TEST_SETS_BKS:
@@ -426,7 +587,8 @@ class BaseDataset(Dataset):
                 elif os.path.basename(self.store_path)[:3] == "val":
                     # load BKS for val data
                     _path = os.path.join(os.path.dirname(self.store_path), item_to_load + "_val.pkl")
-                elif Path(os.path.join(self.store_path, item_to_load + "_" + self.store_path.split("/")[-3] + ".pkl")).exists():
+                elif Path(os.path.join(self.store_path,
+                                       item_to_load + "_" + self.store_path.split("/")[-3] + ".pkl")).exists():
                     load_name = item_to_load + "_" + self.store_path.split("/")[-3] + ".pkl"
                     # print('os.path.join(self.store_path, load_name)', os.path.join(self.store_path, load_name))
                     _path = os.path.join(self.store_path, load_name)
@@ -434,6 +596,11 @@ class BaseDataset(Dataset):
                                        item_to_load + "_" + os.path.basename(self.store_path)[:5] + ".pkl")).exists():
                     # load BKS for val data
                     load_name = item_to_load + "_" + os.path.basename(self.store_path)[:5] + ".pkl"
+                    _path = os.path.join(os.path.dirname(self.store_path), load_name)
+                elif Path(os.path.join(os.path.dirname(self.store_path),
+                                       item_to_load + "_" + os.path.basename(self.store_path)[:-3] + ".pkl")).exists():
+                    # load BKS for val data
+                    load_name = item_to_load + "_" + os.path.basename(self.store_path)[:-3] + ".pkl"
                     _path = os.path.join(os.path.dirname(self.store_path), load_name)
                 elif Path(os.path.join(self.store_path,
                                        item_to_load + "_" + os.path.basename(self.store_path)[:5] + ".pkl")).exists():
@@ -450,6 +617,10 @@ class BaseDataset(Dataset):
                     # load BKS for val data
                     load_name = item_to_load + "_" + os.path.basename(self.store_path) + ".pkl"
                     _path = os.path.join(self.store_path, load_name)
+                elif Path(os.path.join(os.path.dirname(self.store_path),
+                                       item_to_load + "_" + os.path.basename(self.store_path))):
+                    load_name = item_to_load + "_" + os.path.basename(self.store_path)
+                    _path = os.path.join(os.path.dirname(self.store_path), load_name)
                 else:
                     logger.info(
                         f"Couldn't load {item_to_load} file - make sure it exists in directory {self.store_path} ")
@@ -461,7 +632,14 @@ class BaseDataset(Dataset):
                 else:
                     self.base_sol_path = _path
                     logger.info(f'Loading Base Solver Results (for WRAP eval.) from {self.base_sol_path}')
-                    return torch.load(self.base_sol_path)
+                    try:
+                        base_sols = torch.load(self.base_sol_path)
+                    except FileNotFoundError:
+                        base_sols = None
+                    if base_sols is None:
+                        logger.info(f'Tried to load Base Solutions, but do not exists... No WRAP eval. possible.')
+                        self.load_base_sol = False
+                    return base_sols
             else:
                 logger.info(f"No {item_to_load} stored for this Test Data - Setting {item_to_load} to None")
         else:
@@ -509,7 +687,7 @@ class BaseDataset(Dataset):
                 save_name = "_instance_" + instance_id + "_c_dist_" + str(instance.coords_dist) + "_d_dist_" \
                             + str(instance.demands_dist) \
                             + "_depot_type_" + str(instance.depot_type)
-            # elif self.problem == "vrptw":
+            # elif self.problem == "cvrptw":
             else:
                 save_name = "_instance_" + instance_id + "_c_dist_" + str(instance.coords_dist) + "_depot_type_" \
                             + str(instance.depot_type)
@@ -546,6 +724,10 @@ class BaseDataset(Dataset):
 
     @abstractmethod
     def read_vrp_instance(self, path: str):
+        raise NotImplementedError
+    
+    @abstractmethod
+    def read_tsp_instance(self, path: str):
         raise NotImplementedError
 
     @abstractmethod

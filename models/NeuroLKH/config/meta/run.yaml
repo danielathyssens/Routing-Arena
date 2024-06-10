@@ -6,7 +6,7 @@ run_type: "val"
 number_runs: 1
 debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
 global_seed: 1234
-cuda: True
+# cuda: ---> set in policy config (b/c dependent on policy)
 # eGPU GeForce RTX 3060 (G3DMark Mark: 17177, G2DMark: 975)
 G3DMark: 17177
 G2DMark: 975
@@ -29,6 +29,7 @@ test_cfg:
   fixed_dataset: True
   data_file_path: ${data_file_path}
   dataset_size:  # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
+  dataset_range: # solve range of dataset , e.g. [10, 20]
 
 # global paths and logging
 log_lvl: INFO

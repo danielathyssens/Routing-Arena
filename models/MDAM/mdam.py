@@ -204,6 +204,7 @@ def make_RPSolution(problem, sols, costs, times, instances) -> List[RPSolution]:
         RPSolution(
             solution=sol_list[i],
             cost=costs[i].item() if sol_list[i] is not None else None,
+            method_internal_cost=costs[i].item() if sol_list[i] is not None else None,
             num_vehicles=len(sol_list[i]) if sol_list[i] is not None else None,
             run_time=times[i] if sol_list[i] is not None else 0,
             problem=problem,

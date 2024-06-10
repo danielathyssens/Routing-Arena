@@ -1,0 +1,33 @@
+name: l2o
+channels:
+  - defaults
+dependencies:
+  - certifi==2021.5.30=py38h06a4308_0
+  - ncurses==6.2=he6710b0_1
+  - pip==21.2.4=py38h06a4308_0
+  - readline==8.1=h27cfd23_0
+  - libuv==1.40.0=h7b6447c_0
+  - libgomp==9.3.0=h5101ec6_17
+  - tk==8.6.11=h1ccaba5_0
+  - sqlite==3.36.0=hc218d9a_0
+  - openssl==1.1.1l=h7f8727e_0
+  - cudatoolkit==10.2.89=hfd86e86_1
+  - ninja==1.10.2=hff7bd54_1
+  - intel-openmp==2021.3.0=h06a4308_3350
+  - _openmp_mutex==4.5=1_gnu
+  - xz==5.2.5=h7b6447c_0
+  - wheel==0.37.0=pyhd3eb1b0_1
+  - libgcc-ng==9.3.0=h5101ec6_17
+  - setuptools==58.0.4=py38h06a4308_0
+  - zlib==1.2.11=h7b6447c_3
+  - _libgcc_mutex==0.1=main
+  - libffi==3.3=he6710b0_2
+  - libstdcxx-ng==9.3.0=hd4cf53a_17
+  - python==3.8.11=h12debd9_0_cpython
+  - ld_impl_linux-64==2.35.1=h7274673_9
+  - mkl==2021.3.0=h06a4308_520
+  - blas==1.0=mkl
+  - typing_extensions==3.10.0.2=pyh06a4308_0
+  - ca-certificates==2021.9.30=h06a4308_1
+  - pytorch==1.9.1=py3.8_cuda10.2_cudnn7.6.5_0
+prefix: /home/thyssens/anaconda3/envs/l2o

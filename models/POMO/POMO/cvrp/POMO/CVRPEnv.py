@@ -89,7 +89,6 @@ class CVRPEnv:
 
     def use_saved_problems(self, filename, device):
         self.FLAG__use_saved_problems = True
-
         loaded_dict = torch.load(filename, map_location=device)
         self.saved_depot_xy = loaded_dict['depot_xy']
         self.saved_node_xy = loaded_dict['node_xy']
@@ -106,18 +105,18 @@ class CVRPEnv:
 
     # added function to generate new distribution-type data from data.CVRPDataset during training
     def generate_problems(self, batch_size, device=None):
-        device = self.train_dataset.device if device is None else None
+        device = torch.device("cpu") if device is None else device
         self.batch_size = batch_size
         data_instances = self.train_dataset.sample(sample_size=batch_size, graph_size=self.problem_size,
                                                    distribution=self.gen_args.coords_dist, log_info=False)
 
         return make_pomo_instances(data_instances.data, device)
 
-    def load_problems(self, batch_size, generate_problems=False, aug_factor=1):
+    def load_problems(self, batch_size, generate_problems=False, aug_factor=1, device=torch.device('cpu')):
         self.batch_size = batch_size
         # added generate_problems argument to generate problems from different distribution
         if generate_problems:
-            depot_xy, node_xy, node_demand = self.generate_problems(batch_size=batch_size)
+            depot_xy, node_xy, node_demand = self.generate_problems(batch_size=batch_size, device=device)
         elif not self.FLAG__use_saved_problems:
             depot_xy, node_xy, node_demand = get_random_problems(batch_size, self.problem_size)
         else:
@@ -139,12 +138,17 @@ class CVRPEnv:
             else:
                 raise NotImplementedError
 
+        # print('node_demand', node_demand)
+        # print('node_demand size', node_demand.size())
         self.depot_node_xy = torch.cat((depot_xy, node_xy), dim=1)
         # shape: (batch, problem+1, 2)
         depot_demand = torch.zeros(size=(self.batch_size, 1))
         # shape: (batch, 1)
         self.depot_node_demand = torch.cat((depot_demand, node_demand), dim=1)
         # shape: (batch, problem+1)
+
+        # print('self.depot_node_demand', self.depot_node_demand)
+        # print(', self.pomo_size', self.pomo_size)
 
         self.BATCH_IDX = torch.arange(self.batch_size)[:, None].expand(self.batch_size, self.pomo_size)
         self.POMO_IDX = torch.arange(self.pomo_size)[None, :].expand(self.batch_size, self.pomo_size)

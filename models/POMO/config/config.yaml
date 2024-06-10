@@ -3,7 +3,7 @@
 
 defaults:
   - _self_
-  - env: cvrp100_uch # cvrp100_gm_unif_mixed  #cvrp100_unf
+  - env: cvrp100_unf # cvrp100_gm_unif_mixed  #cvrp100_unf
   - model: pomo
   - meta: run
   - override hydra/job_logging: simple

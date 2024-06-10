@@ -1,7 +1,4 @@
-####
-# Some parts of this code are taken from https://github.com/yining043/VRP-DACT
-# (Ma, Yining, et al. "Learning to iteratively solve routing problems with dual-aspect collaborative transformer." Advances in Neural Information Processing Systems 34 (2021): 11096-11107.)
-# such as calling the ppo agent class and calling the train procedure.
+#
 import os
 import json
 import logging
@@ -35,10 +32,10 @@ class DACTDataset(Dataset):
         super(DACTDataset, self).__init__()
 
         if data is not None:
-            assert graph_size == data[0].graph_size - 1
-
-        self.size = int(np.ceil(graph_size * (1 + dummy_rate)))  # the number of real nodes plus dummy nodes in cvrp
-        self.real_size = graph_size  # the number of real nodes in cvrp
+            print('data[0].graph_size', data[0].graph_size)
+            assert graph_size == data[0].graph_size - 1 if isinstance(data[0], CVRPInstance) else data[0].graph_size
+        self.size = int(np.ceil(graph_size * (1 + dummy_rate)))  # the number of real nodes plus dummy nodes in cvrp/tsp
+        self.real_size = graph_size  # the number of real nodes in cvrp /tsp
         self.depot_reps = (self.size - self.real_size)
         self.offset = offset
         if not is_train:
@@ -112,12 +109,21 @@ def parse_solutions(problem, sols):
     s_parsed = None
     if problem.NAME.lower() == "tsp":
         sols = np.concatenate(sols, axis=0)
+        sols_torch = torch.from_numpy(sols)
+        # print('sols', sols_torch)
+        # print('type sols', type(sols_torch))
+        sols = get_real_seq_dact(sols_torch, problem.NAME.lower())   # [0]
+        # print('sols after get_real', sols)
         s_parsed = sols.tolist()
 
     if problem.NAME.lower() == "cvrp":
         num_dep = problem.dummy_size
         sols = np.concatenate(sols, axis=0)
         s_parsed = []
+        # sols_torch = torch.from_numpy(sols)
+        # print('sols', sols_torch)
+        # print('type sols', type(sols_torch))
+        # sols = get_real_seq_dact(sols_torch, problem.NAME.lower())  # [0]
         for sol_ in sols:
             src = 0
             tour_lst, lst = [], []
@@ -134,6 +140,30 @@ def parse_solutions(problem, sols):
 
     return s_parsed
 
+
+def get_real_seq_dact(solutions: Union[torch.Tensor], problem: str) -> torch.Tensor:
+    # print('solutions', solutions)
+    # print(solutions.shape)
+    batch_size, seq_length = solutions.size()
+    # if problem.lower() == "tsp":
+
+    visited_time = torch.zeros((batch_size, seq_length)).to(solutions.device)
+    pre = torch.zeros((batch_size), device=solutions.device).long()
+    for i in range(seq_length):
+        visited_time[torch.arange(batch_size), solutions[torch.arange(batch_size), pre]] = i + 1
+        pre = solutions[torch.arange(batch_size), pre]
+
+    visited_time = visited_time % seq_length
+    return visited_time.argsort()
+    # else:
+    #     visited_time = torch.zeros((batch_size, seq_length)).to(solutions.device)
+    #     pre = torch.zeros((batch_size), device=solutions.device).long()
+    #     for i in range(seq_length):
+    #         visited_time[torch.arange(batch_size), solutions[torch.arange(batch_size), pre]] = i + 1
+    #         pre = solutions[torch.arange(batch_size), pre]
+    #
+    #     visited_time = visited_time % seq_length
+    #     return visited_time.argsort()
 
 def train_prep(opts, agent):
     # Optionally configure tensorboard
@@ -211,8 +241,7 @@ def eval_model(data: Union[List[TSPInstance], List[CVRPInstance]],
                                 num_workers=0,
                                 pin_memory=True)
 
-    sols, running_costs, times, sol_time_trajs = [], [], [], []
-    print('len(val_dataloader)', len(val_dataloader))
+    sols, final_internal_costs, times, sol_time_trajs = [], [], [], []
     for i, batch in enumerate(val_dataloader):
         t_start = time.time()
         res = agent.rollout(
@@ -225,14 +254,17 @@ def eval_model(data: Union[List[TSPInstance], List[CVRPInstance]],
             show_bar=True,
             t_start_=t_start
         )
+        # print('res[0]', res[0])
         t = time.time() - t_start
         t_per_inst = t / batch_size
         sols.append(res[-1].cpu().detach().numpy())
-        # running_costs.append()
+        final_internal_costs.append(res[0].cpu().detach().numpy()[0])
         sol_time_trajs.append(res[-2])
         times.append([t_per_inst] * batch_size)
 
     final_s_parsed = parse_solutions(problem, sols)
+    # final_s_parsed = final_s_parsed[0] if problem == "TSP" else final_s_parsed
+    # print('len(final_s_parsed)', len(final_s_parsed))
     running_ts, running_sols = [], []
     for traj in sol_time_trajs:
         t, sols_ = zip(*traj)
@@ -241,11 +273,13 @@ def eval_model(data: Union[List[TSPInstance], List[CVRPInstance]],
         running_sols.append(sols_parsed)
 
     times = list(it.chain.from_iterable(times))
-
+    # print('final_s_parsed', final_s_parsed)
+    # print('sol_to_list(final_s_parsed[0])', sol_to_list(final_s_parsed[0]))
     solutions = [
         RPSolution(
-            solution=sol if opts.problem.upper() == 'CVRP' else sol_to_list(sol),
+            solution=sol,   # if opts.problem.upper() == 'CVRP' else sol_to_list(sol),
             # cost=c.tolist(),
+            method_internal_cost=c,
             num_vehicles=len(sol) if opts.problem == 'CVRP' else len([sol]),
             run_time=t,
             running_sols=r_sol,
@@ -253,7 +287,7 @@ def eval_model(data: Union[List[TSPInstance], List[CVRPInstance]],
             problem=opts.problem,
             instance=inst
         )
-        for sol, t, r_sol, r_t, inst in zip(final_s_parsed, times, running_sols, running_ts, data)
+        for sol, c, t, r_sol, r_t, inst in zip(final_s_parsed, final_internal_costs, times, running_sols, running_ts, data)
     ]
 
     return {}, solutions

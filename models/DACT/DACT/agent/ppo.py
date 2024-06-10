@@ -1,7 +1,3 @@
-####
-# This code file is adapted from the original code provided in
-# https://github.com/yining043/VRP-DACT (Ma, Yining, et al. "Learning to iteratively solve routing problems with dual-aspect collaborative transformer." Advances in Neural Information Processing Systems 34 (2021): 11096-11107.)
-
 import os
 import warnings
 import torch
@@ -38,7 +34,7 @@ class Memory:
 def lr_sd(epoch, opts):
     return opts.lr_decay ** epoch
 
-# original PPO code from DACT (https://github.com/yining043/VRP-DACT) changed for training data input.
+# original PPO code from DACT ammended for training data input.
 class PPO:
     def __init__(self, problem_name, size, opts):
 
@@ -142,7 +138,7 @@ class PPO:
 
         # get instances and do data augments
         import time
-        time_start = t_start_  # time.time()
+        time_start = t_start_ if t_start_ is not None else time.time()
 
         assert val_m <= 8
         batch = move_to(batch, self.opts.device)
@@ -176,6 +172,9 @@ class PPO:
 
         # get initial solutions
         solutions = move_to(problem.get_initial_solutions(batch), self.opts.device).long()
+
+        solution_history = [solutions.clone()]
+        best_solution = solutions.clone()
 
         sol_times_traj = [(time.time() - time_start, solutions.clone().cpu().detach().numpy())]  # added
         # get initial cost
@@ -219,6 +218,14 @@ class PPO:
                                                                        obj,
                                                                        solving_state,
                                                                        best_solution=best_solution)
+
+            # record informations ( newly added by authors)
+            # best_solution[rewards > 0] = solutions[rewards > 0]
+            # reward.append(rewards)
+            # obj_history.append(obj)
+            # if record: solution_history.append(solutions.clone())
+
+
             r_t = time.time() - time_start
             if r_t >= Time_Budget:
                 print(f'DACT RUNTIME {r_t} REACHED TIME LIMIT {Time_Budget} --> BREAK')
@@ -227,6 +234,7 @@ class PPO:
                 best_obj, best_idx = torch.stack(obj_history, 1)[:, :, 0].view(bs, -1).min(-1)
                 # best_sol = torch.stack(solution_history,1).view(bs, -1, gs)[torch.arange(bs), best_idx]
                 best_sol = torch.stack(sol_history, 1).view(bs, -1, gs)[torch.arange(bs), best_idx]
+                # print('best_sol', best_sol)
                 # print(f"best objective value mean: {best_obj.mean()}")
                 # print(f"best objective value: {best_obj}")
 
@@ -237,6 +245,7 @@ class PPO:
                        # None if not record else torch.stack(solution_history,1)
                        sol_times_traj,
                        best_sol
+                       # best_solution
                        )
                 return out
 
@@ -332,7 +341,9 @@ def train(rank, problem, agent, val_dataset, train_dataset_RA, tb_logger):
         # change train_dataset/train_dataloader to be able to train different distributions
         # training_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.epoch_size,
         # DUMMY_RATE = opts.dummy_rate)
-        training_dataset = train_dataset_RA.sample(sample_size=opts.epoch_size)
+        training_dataset = train_dataset_RA.sample(sample_size=opts.epoch_size).data_transformed
+        # print('training_dataset[0]', training_dataset[0])
+        # print('training_dataset.transoform_func', training_dataset.transform_func)
         if opts.distributed:
             train_sampler = torch.utils.data.distributed.DistributedSampler(training_dataset, shuffle=False)
             training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size // opts.world_size,
@@ -351,6 +362,7 @@ def train(rank, problem, agent, val_dataset, train_dataset_RA, tb_logger):
                     disable=opts.no_progress_bar or rank != 0, desc='training',
                     bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}')
         for batch_id, batch in enumerate(training_dataloader):
+            # print('batch', batch)
             train_batch(rank,
                         problem,
                         agent,
@@ -438,7 +450,7 @@ def train_batch(
                                  do_sample=True)[0]
 
             # state transient	
-            solution, rewards, obj, solving_state = problem.step(batch, solution, action, obj, solving_state)
+            solution, rewards, obj, solving_state, sol = problem.step(batch, solution, action, obj, solving_state)
 
             if opts.best_cl:
                 index = obj[:, 0] == obj[:, 1]

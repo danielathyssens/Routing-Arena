@@ -1,0 +1,29 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+XE_type: XE_1
+# data/test_data/cvrp/uchoa/XE/XE_1 --> size 101
+# data/test_data/cvrp/uchoa/XE/XE_2 --> size 125
+# ...
+out_name: ${problem}_${XE_type}_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
+normalize_data: False
+checkpoint_load_path: models/BQ/bq_nco/pretrained_models/cvrp.best
+
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    normalize_demands: False  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: # data/train_data/${problem}/${coords_dist}/single_large_instance.pt
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: False
+    num_samples: ${val_size}
+    distribution: ${coords_dist}

@@ -20,15 +20,15 @@ from formats import TSPInstance, CVRPInstance, RPSolution
 
 from models.POMO.POMO.utils.utils import create_logger, copy_all_src
 
-from models.POMO.POMO.TSP.POMO.TSPEnv import TSPEnv
-from models.POMO.POMO.TSP.POMO.TSPModel import TSPModel
+from models.POMO.POMO.tsp.POMO.TSPEnv import TSPEnv
+from models.POMO.POMO.tsp.POMO.TSPModel import TSPModel
 from models.POMO.POMO.cvrp.POMO.CVRPEnv import CVRPEnv
 from models.POMO.POMO.cvrp.POMO.CVRPModel import CVRPModel
 
 from models.POMO.POMO.cvrp.POMO.CVRPTrainer import CVRPTrainer
-from models.POMO.POMO.TSP.POMO.TSPTrainer import TSPTrainer
+from models.POMO.POMO.tsp.POMO.TSPTrainer import TSPTrainer
 from models.POMO.POMO.cvrp.POMO.CVRPTester import CVRPTester
-from models.POMO.POMO.TSP.POMO.TSPTester import TSPTester
+from models.POMO.POMO.tsp.POMO.TSPTester import TSPTester
 
 logger = logging.getLogger(__name__)
 
@@ -89,19 +89,23 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester]],
     if len(set([inst.graph_size for inst in data])) == 1:
         # all instances in test set are the same size (n):
         tester_cfg['test_episodes'] = len(data)
+        # sols, runtimes, costs, costs_aug
         sols, runtimes, costs, costs_aug = tester.run(data=data)
     else:
         # Test Instances (mixed size):
         tester_cfg['test_episodes'] = 1  # adapt test_episodes to 1 for each of the instances in single run
         sols, runtimes, costs, costs_aug = [], [], [], []
         for instance in data:
+            # sols, runtimes, costs, costs_aug
             sol, runtime, cost, cost_aug = tester.run(data=[instance])
             sols.append(sol[0])
             runtimes.extend(runtime)
             costs.extend(cost)
             costs_aug.extend(cost_aug)
 
+    # print('sols[:2]', sols[:2])
     s_parsed = _get_sep_tours(problem, sols)
+    # print('s_parsed[:2]', s_parsed[:2])
     solutions = make_RPSolution(problem, costs_aug, runtimes, s_parsed, data)
     res = {}
     #     "reward_mean": np.mean(rews),
@@ -113,11 +117,11 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester]],
 def _get_sep_tours(problem: str, sols: torch.Tensor) -> List[List]:
     """get solution (res) as List[List]"""
     # parse solution
-
+    # print('problem', problem)
     if problem.lower() == 'tsp':
-        # if problem is TSP - only have single tour
-        for sol_ in sols:
-            return sol_.tolist()
+        # if problem is tsp - only have single tour
+        # for sol_ in sols:
+        return [sol_.tolist() for sol_ in sols]
 
     elif problem.lower() == 'cvrp':
         sols_ = []
@@ -155,19 +159,36 @@ def make_RPSolution(problem, rews, times, s_parsed, data) -> List[RPSolution]:
     # transform solution torch.Tensor -> List[List]
     # sol_list = [_get_sep_tours(problem, sol_) for sol_ in sols]
 
-    return [
-        RPSolution(
-            solution=sol,
-            cost=r,
-            num_vehicles=len(sol) if problem.upper() == 'CVRP' else len([sol]),
-            run_time=t,  # float(t[:-1]),
-            problem=problem,
-            instance=inst,
-            method_internal_cost=r
-        )
-        for sol, r, t, inst in zip(s_parsed, rews, times, data)
-    ]
+    rp_sols = []
+    for sol, r, t, inst in zip(s_parsed, rews, times, data):
+        # print('sol in pomo.py', sol)
+        # print('cost in pomo.py (should always be cost_aug)', r)
 
+
+        s = RPSolution(
+                solution=sol,
+                cost=r,
+                num_vehicles=len(sol) if problem.upper() == 'CVRP' else len([sol]),
+                run_time=t,  # float(t[:-1]),
+                problem=problem,
+                instance=inst,
+                method_internal_cost=r
+            )
+        rp_sols.append(s)
+    return rp_sols
+
+    # return [
+    #     RPSolution(
+    #         solution=sol,
+    #         cost=r,
+    #         num_vehicles=len(sol) if problem.upper() == 'CVRP' else len([sol]),
+    #         run_time=t,  # float(t[:-1]),
+    #         problem=problem,
+    #         instance=inst,
+    #         method_internal_cost=r
+    #     )
+    #     for sol, r, t, inst in zip(s_parsed, rews, times, data)
+    # ]
 
 def make_cvrp_instance(instance: CVRPInstance):
     depot = torch.tensor(instance.coords[0])
@@ -187,7 +208,7 @@ def prep_data(problem: str, dat: Union[List[TSPInstance], List[CVRPInstance]], o
 
 
 # state and env from POMO adapted to work without imported problem parameters
-################# TSP #######################
+################# tsp #######################
 
 class TSP_GROUP_STATE:
     def __init__(self, group_size, data, PROBLEM_SIZE, device):

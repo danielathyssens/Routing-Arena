@@ -9,13 +9,21 @@ seed: 1234
 cuda: True
 
 eval_only: False
-val_size: 10 # 1000                 # Number of instances used for reporting validation performance
+
+train_cfg:
+  get_val_set: True
+
+val_size: 1000                 # Number of instances used for reporting validation performance
 val_m: 1                       # number of data augments (<=8)
 val_dataset: # None            # Dataset file to use for validation
-batch_size: 64
+batch_size: 600
 epoch_end: 200   # help='maximum training epoch'
-epoch_size: 100  # 12000   # help='number of instances per epoch during training'
-checkpoint_epochs: 1
+# T_train: 200
+epoch_size: 5000  # 12000   # help='number of instances per epoch during training'
+checkpoint_epochs: 50
+T_max: 1500
+no_DDP: # False
+
 
 # resume and load models
 load_path:                        # path to model params and optimizer
@@ -25,6 +33,7 @@ epoch_start: 0                    # start at epoch
 test_cfg:
   data_file_path: # None         # data/test_data/cvrp/uniform/cvrp20_test_seed1234.pkl
   checkpoint_load_path: #None
+  saved_res_dir: #
 
 # global paths and logging
 log_lvl: INFO

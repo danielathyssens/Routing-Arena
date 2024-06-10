@@ -80,10 +80,25 @@ int main(int argc, char *argv[])
         RecordBestTour();
         CurrentPenalty = PLUS_INFINITY;
         BestPenalty = CurrentPenalty = Penalty ? Penalty() : 0;
+        printff("*** Penalty %s ", Penalty);
+        printf ("\n");
+        printff("*** WRITING TOUR TO  %s ", TourFileName);
+        printf ("\n");
+        printff("*** WRITING TOUR TO OutputTourFileName %s ", OutputTourFileName);
+        printf ("\n");
+        printff("*** BestTour *** %s ", BestTour);
         WriteTour(OutputTourFileName, BestTour, BestCost);
         WriteTour(TourFileName, BestTour, BestCost);
         Runs = 0;
     }
+
+    printff("*** Penalty %s ", Penalty);
+    printf ("\n");
+    printff("*** WRITING TOUR TO %s ", TourFileName);
+    printf ("\n");
+    printff("*** WRITING TOUR TO OutputTourFileName %s ", OutputTourFileName);
+    printf ("\n");
+    printff("*** BestTour %s ", BestTour);
 
     /* Find a specified number (Runs) of local optima */
 
@@ -92,6 +107,9 @@ int main(int argc, char *argv[])
         if (LastTime - StartTime >= TimeLimit) {
             if (TraceLevel >= 1)
                 printff("*** Time limit exceeded ***\n");
+                printf ("\n");
+                printff("*** WRITING TOUR TO %s ", TourFileName);
+                WriteTour(TourFileName, BestTour, BestCost);
             break;
         }
         Cost = FindTour();      /* using the Lin-Kernighan heuristic */
@@ -167,6 +185,9 @@ int main(int argc, char *argv[])
         UpdateStatistics(Cost, Time);
         if (TraceLevel >= 1 && Cost != PLUS_INFINITY) {
             printff("Run %d: ", Run);
+            printff("*** In TraceLevel>=1 WRITING TOUR TO %s", TourFileName);
+            printff("\n");
+            WriteTour(TourFileName, BestTour, BestCost);
             StatusReport(Cost, LastTime, "");
             printff("\n");
         }
@@ -257,5 +278,16 @@ int main(int argc, char *argv[])
 	printf ("%d ", BestTour[i]);
     }
     printf ("\n");
+    for (i = 0; i <= DimensionSaved; i++) {
+	printf ("%d ", BestTour[i]);
+    }
+    printf ("\n");
+    printff("*** FINAL WRITING TOUR TO %s ***", TourFileName);
+    printf ("\n");
+    printff("*** WRITING TOUR TO OutputTourFileName  %s ***", OutputTourFileName);
+    printf ("\n");
+    printff("*** FINAL BestTour *** %d", BestTour);
+    printf ("\n");
+    WriteTour(TourFileName, BestTour, BestCost);
     return EXIT_SUCCESS;
 }

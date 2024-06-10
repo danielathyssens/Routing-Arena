@@ -1,0 +1,29 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size:
+coords_dist: 'uchoa'
+weights_dist: 'uchoa'
+out_name: ${problem}_X_${coords_dist}
+data_file_path: data/test_data/cvrp/uchoa/X
+normalize_data: True
+checkpoint_load_path: models/EAS/EAS/trained_models/XE_1/ACTOR_state_dic.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: uchoa # 0  # if None demand will be a mixture of above demand distributions
+    # if None in the following two args, then all are mixed
+    depot_type:  # Depot Position (uchoa only): C = central (500, 500), E = eccentric (0, 0), R = random
+    customer_type:  # Customer Position (uchoa only): C = Clustered, RC = Random-Clustered (half half), R = Random
+    demand_type:   # if None demand will be a mixture of above demand distributions
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
+  sampling_args:
+    sample_size: 64  # ${val_size}
+    graph_size: # needs to be specified
+    k: 16
+    cap: 50
+    max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+    n_depots: 1 #number of depots (default = 1)

@@ -7,12 +7,12 @@ from torch import nn
 from torch.nn import DataParallel
 from torch.utils.checkpoint import checkpoint
 from torch.utils.data import DataLoader
-from tensorboard_logger import Logger as TbLogger
+# from tensorboard_logger import Logger as TbLogger
 from tqdm import tqdm
 from typing import Optional, Tuple, List, Dict, Union, NamedTuple, Any
 from data.tsp_dataset import TSPDataset
 from data.cvrp_dataset import CVRPDataset
-# from data.vrptw_dataset import VRPTWDataset
+from data.cvrptw_dataset import CVRPTWDataset
 from formats import RPSolution
 
 
@@ -22,7 +22,7 @@ class BaseModel(nn.Module):
 
         Args:
         model: model to train or evaluate - given is either the model class to train or the model checkpoint arguments
-        problem: String value of the problem the model should solve ('TSP', 'VRP, ...)
+        problem: String value of the problem the model should solve ('tsp', 'VRP, ...)
         train: Boolean value to indicate whether the model is evaluated (if False) or trained (if True)
         data_path: String value giving the path to the train or evaluation data respectively
     """
@@ -73,8 +73,8 @@ class BaseModel(nn.Module):
             self.dataset_class = TSPDataset
         elif problem == "cvrp":
             self.dataset_class = CVRPDataset
-        # elif problem == "vrptw":
-        #     self.dataset_class = VRPTWDataset
+        elif problem == "cvrptw":
+            self.dataset_class = CVRPTWDataset
         else:
             print("There exists no dataset class yet for this problem!")
             self.dataset_class = None
@@ -160,8 +160,11 @@ class BaseModel(nn.Module):
         save_dir = os.path.join(self.model_dir, 'outputs', "{}_{}".format(self.problem, self.graph_size), run_name)
 
         # Optionally configure tensorboard
-        tb_logger = TbLogger(os.path.join(self.model_dir, 'logs', "{}_{}".format(self.problem, self.graph_size),
-                                          run_name)) if tb_log else None
+        try:
+            tb_logger = TbLogger(os.path.join(self.model_dir, 'logs', "{}_{}".format(self.problem, self.graph_size),
+                                              run_name)) if tb_log else None
+        except:
+            tb_logger = None
 
         # Figure out what's the problem
         # problem = load_problem(self.problem)
@@ -231,7 +234,8 @@ class BaseModel(nn.Module):
             # lr_scheduler should be called at end of epoch
             lr_scheduler.step()
 
-    def _eval(self, data_=None, eval_batch_size=1, eval_all=False, no_progress_bar=False) -> List[RPSolution]:
+    def _eval(self, data_=None, eval_batch_size=1,
+              eval_all=False, no_progress_bar=False) -> Tuple[Dict, List[RPSolution]]:
         # , no_progress_bar=
         """call evaluation process of method"""
         if self.dataset_class is not None and data_ is not None:
@@ -265,4 +269,4 @@ class BaseModel(nn.Module):
                     costs.append(cost.item())
                     sols.append(sol)
                 solutions = self._make_RPSolution(sols, costs, times, data_rp)
-                return solutions
+                return {}, solutions

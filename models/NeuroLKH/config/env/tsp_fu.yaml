@@ -1,0 +1,17 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: "uniform_fu"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uniform/fu/tsp${graph_size}_fu.pt
+normalize_data: True
+checkpoint_load_path: models/NeuroLKH/NeuroLKH/pretrained/neurolkh.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:
+    # sample_size: 1
+    graph_size: ${graph_size}

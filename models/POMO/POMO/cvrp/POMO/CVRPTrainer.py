@@ -42,12 +42,21 @@ class CVRPTrainer:
         # USE_CUDA = self.trainer_params['use_cuda']
         if USE_CUDA:
             cuda_device_num = self.trainer_params['cuda_device_num']
-            torch.cuda.set_device(cuda_device_num)
-            device = torch.device('cuda', cuda_device_num)
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            print('cuda_device_num', cuda_device_num)
+            try:
+                torch.cuda.set_device(cuda_device_num)
+                self.device = torch.device('cuda', cuda_device_num)
+                torch.set_default_tensor_type('torch.cuda.FloatTensor')  # deprecated
+                # torch.set_default_dtype(torch.cuda.FloatTensor)
+            except AttributeError:
+                if torch.backends.mps.is_available():
+                    self.device = torch.device('mps')
+                    torch.set_default_device("mps")
+                    torch.set_default_dtype(torch.float32)
         else:
-            device = torch.device('cpu')
-            torch.set_default_tensor_type('torch.FloatTensor')
+            self.device = torch.device('cpu')
+            torch.set_default_tensor_type('torch.FloatTensor')  # deprecated
+            # torch.set_default_dtype(torch.FloatTensor)
 
         # Main Components
         # self.model = Model(**self.model_params)
@@ -55,7 +64,7 @@ class CVRPTrainer:
         # self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
         # self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
         self.env = env
-        self.model = model.to(device=device)
+        self.model = model.to(device=self.device)
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.generate_problems = generate_problems
@@ -68,7 +77,7 @@ class CVRPTrainer:
         model_load = trainer_params['model_load']
         if model_load['enable']:
             checkpoint_fullname = '{path}/checkpoint-{epoch}.pt'.format(**model_load)
-            checkpoint = torch.load(checkpoint_fullname, map_location=device)
+            checkpoint = torch.load(checkpoint_fullname, map_location=self.device)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.start_epoch = 1 + model_load['epoch']
             self.result_log.set_raw_data(checkpoint['result_log'])
@@ -84,8 +93,8 @@ class CVRPTrainer:
         for epoch in range(self.start_epoch, self.trainer_params['epochs']+1):
             self.logger.info('=================================================================')
 
-            # LR Decay
-            self.scheduler.step()
+            # LR Decay # moved after optimizer.step() -- deprecation
+            # self.scheduler.step()
 
             # Train
             train_score, train_loss = self._train_one_epoch(epoch)
@@ -176,7 +185,7 @@ class CVRPTrainer:
         ###############################################
         self.model.train()
         # new boolean argument "generate_problems" to generate different distributions of data
-        self.env.load_problems(batch_size, generate_problems=self.generate_problems)
+        self.env.load_problems(batch_size, generate_problems=self.generate_problems, device=self.device)
         reset_state, _, _ = self.env.reset()
         self.model.pre_forward(reset_state)
 
@@ -213,4 +222,5 @@ class CVRPTrainer:
         self.model.zero_grad()
         loss_mean.backward()
         self.optimizer.step()
+        self.scheduler.step()
         return score_mean.item(), loss_mean.item()

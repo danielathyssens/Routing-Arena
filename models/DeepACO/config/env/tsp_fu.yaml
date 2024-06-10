@@ -1,0 +1,23 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: "uniform_fu"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uniform/fu/tsp${graph_size}_fu.pt
+normalize_data: True
+k_sparse: 20   # note 50 for tsp500
+n_ants: 20    # note 50 for tsp500
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance: # data/train_data/${problem}/${coords_dist}/single_large_instance.pt
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: False
+

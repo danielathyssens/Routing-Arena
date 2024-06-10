@@ -11,7 +11,8 @@ XE_type: XE_1
 out_name: ${problem}_${XE_type}_${coords_dist}
 data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
 normalize_data: True
-checkpoint_load_path: models/AM/pretrained/${problem}_100/${coords_dist}/epoch-99.pt
+checkpoint_load_path: models/AM/AM/pretrained/${problem}_100/${coords_dist}/epoch-99.pt
+trained_model_args_path: models/AM/AM/pretrained/${problem}_100/${coords_dist}/args.json
 
 
 # RP Env cfg

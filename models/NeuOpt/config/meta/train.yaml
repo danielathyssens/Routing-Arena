@@ -1,0 +1,37 @@
+# @package _global_
+
+# tensorboard --host localhost --port 8080 --logdir=./outputs
+
+run_type: "train"
+debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
+global_seed: 1234
+seed: 1234
+cuda: True
+
+eval_only: False
+val_size: 10 # 1000                 # Number of instances used for reporting validation performance
+val_m: 1                       # number of data augments (<=8)
+val_dataset: # None            # Dataset file to use for validation
+batch_size: 64
+epoch_end: 200   # help='maximum training epoch'
+epoch_size: 100  # 12000   # help='number of instances per epoch during training'
+checkpoint_epochs: 1
+
+# resume and load models
+load_path:                        # path to model params and optimizer
+resume:                           # resume from prev. checkpoint file
+epoch_start: 0                    # start at epoch
+
+test_cfg:
+  data_file_path: # None         # data/test_data/cvrp/uniform/cvrp20_test_seed1234.pkl
+  checkpoint_load_path: #None
+
+# global paths and logging
+log_lvl: INFO
+tb_logging: False
+no_tb: True
+tb_log_path: 'logs/tb/'
+log_path: 'logs/'
+checkpoint_save_path: 'checkpoints/'
+save_dir: 'checkpoints/'
+no_saving: False # if True - disabled checkpointing (store-true action! - False will still cound as action)

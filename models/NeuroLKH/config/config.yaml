@@ -3,8 +3,8 @@
 
 defaults:
   - _self_
-  - env: cvrp100_uch
-  - policy: lkh  # neuro_lkh, lkh
+  - env: cvrp100_unf
+  - policy: neuro_lkh  # neuro_lkh, lkh
   - meta: run
   - override hydra/job_logging: simple
 

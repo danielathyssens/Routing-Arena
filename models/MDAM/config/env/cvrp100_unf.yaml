@@ -4,6 +4,7 @@
 problem: "cvrp"
 graph_size: 100
 coords_dist: 'uniform'
+weights_dist: "random_int"
 out_name: ${problem}_${graph_size}_${coords_dist}
 data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed4321_size512.pkl
 normalize_data: True
@@ -13,8 +14,13 @@ checkpoint_load_path: models/MDAM/MDAM/pretrained/vrp_${graph_size}/${coords_dis
 env_kwargs:
   generator_args:
     coords_sampling_dist: ${coords_dist}
-    weights_sampling_dist:
+    weights_sampling_dist: random_int # sampling integers from 1-10
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: #
   sampling_args:
+    sample_size: 64
     graph_size: ${graph_size}
-    num_samples: ${val_size}
-    distribution: ${coords_dist}
+    subsample: False
+    k: 16
+    cap: 50
+    n_depots: 1 #number of depots (default = 1)

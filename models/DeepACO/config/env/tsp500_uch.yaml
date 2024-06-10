@@ -1,0 +1,22 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 500
+coords_dist: uchoa
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uchoa/${problem}${graph_size}/val_seed1234_size128.pt
+normalize_data: True
+# checkpoint_load_path: loaded in model cfg
+k_sparse: 50
+n_ants: 50
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance: # data/train_data/${problem}/${coords_dist}/single_large_instance.pt
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: False

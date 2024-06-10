@@ -3,20 +3,39 @@ from typing import Union, NamedTuple, Optional, Tuple, List, Dict
 import numpy as np
 import logging
 import torch
+import matplotlib.pyplot as plt
 
 from .utils import allign_times_costs
 
 logger = logging.getLogger(__name__)
 ### CPU
+# Quote: Currently, the top single thread CPU mark is 4,202, while mid-range desktop processors have marks around 2,000.
 # https://www.cpubenchmark.net/singleThread.html#laptop-thread
 CPU_BASE_REF_SINGLE = 2000  # equivalent to AMD Ryzen 7 PRO 3700U or Intel Xeon E3-1505M v5 @ 2.80GHz (single thread)
 CPU_BASE_REF_MULTI = 8000  # roughly equivalent to AMD Ryzen 7 PRO 3700U or Intel Xeon E3-1505M v5 @ 2.80GHz 4C 8T
-# CPU_PASSMARK_BASE_SOL = 1612  # 1174 (uniform), 1612 (XML), 1612 (XE_1) --> in BaseSol file
+CPU_PASSMARK_BASE_SOL = 1612  # 1174 (uniform), 1612 (XML), 1612 (XE_1)
 ### GPU
+# high-midrange passmarks of 750-670 (end of high-range GPU passmarks is around 2000)
+# top high range GPU passmarks: 29000
+# mean passmark of highest and low midrange beginning passmark is 15335
 # https://www.videocardbenchmark.net/high_end_gpus.html
-GPU_3D_BASE_REF = 15000  # reasoning: no one is using less than GeForce GTX 1080 (orig. PassMark: 15416)
-GPU_2D_BASE_REF = 896  # reasoning: no one is using less than GeForce GTX 1080
+# GPU_BASE_REF = 5000
+# GPU_BASE_REF = 18000  # reasoning: no one is using less than GeForce GTX 1080 Ti (PassMark: 18399)
+# GPU_BASE_REF = 15000  # reasoning: no one is using less than GeForce GTX 1080 (PassMark: 15416)
+
+######### NEW PASSMARK SETTING ############
+GPU_3D_BASE_REF = 15000  # reasoning: no one is using less than GeForce GTX 1080 (PassMark: 15416)
+GPU_2D_BASE_REF = 896  # reasoning: no one is using less than GeForce GTX 1080 (PassMark: 15416)
 GPU_BASE_REF = round((CPU_BASE_REF_SINGLE + ((0.5 * GPU_3D_BASE_REF) + (0.5*GPU_2D_BASE_REF)))/2)
+# GPU_BASE_REF = round(1 / (((1 / (CPU_BASE_REF_SINGLE * 0.396566187))
+#                            + (1 / (GPU_2D_BASE_REF * 3.178718116)) + (1 / (GPU_3D_BASE_REF * 2.525195879))) / 3))
+
+######## MACHINE PASSMARK SETTING #########
+std_nr_threads = 1
+alpha = 0.5
+std_nr_gpus = 1
+#MACHINE_BASE_REF_v1 = round((std_nr_threads * CPU_BASE_REF_SINGLE) + alpha * (std_nr_gpus * GPU_3D_BASE_REF))
+MACHINE_BASE_REF_v1 = round((CPU_BASE_REF_SINGLE + ((0.5 * GPU_3D_BASE_REF) + (0.5 * GPU_2D_BASE_REF)))/2)
 
 PASSMARK_VERSION = "sep"  # "v1"
 
@@ -53,40 +72,52 @@ class Metrics:
         self.pass_mark_cpu = passMark_cpu
         self.time_limit_ = TimeLimit_
         self.base_sol_results = base_sol_results
+        # self.base_runtimes = [self.base_sol_result[str(inst)]]
+        # self.base_costs = base_costs
         self.verbose = verbose
         self.scale_costs = scale_costs
-        self.base_ref_constr = None
-        # if passmark_v == "v1":
-        #     print(f"MACHINE_BASE_REF_v1: {MACHINE_BASE_REF_v1}")
-        #     self.base_ref = MACHINE_BASE_REF_v1
-        #     if not cpu and is_cpu_search:
-        #         self.base_ref_constr = MACHINE_BASE_REF_v1
-        # else:
-        if cpu and single_thread:
-            self.base_ref = CPU_BASE_REF_SINGLE
-        elif cpu and not single_thread:
-            self.base_ref = CPU_BASE_REF_MULTI
-        elif not cpu and is_cpu_search:
-            # means method constructs with GPU but search always done with CPU
-            self.base_ref = CPU_BASE_REF_MULTI if not single_thread else CPU_BASE_REF_SINGLE
-            self.base_ref_constr = GPU_BASE_REF
+        self.base_ref_construct = None
+        if self.verbose:
+            logger.info(f'self.pass_mark in Metrics: {self.pass_mark}')
+            logger.info(f'self.pass_mark_cpu in Metrics: {self.pass_mark_cpu}')
+        if passmark_v == "v1":
+            print(f"MACHINE_BASE_REF_v1: {MACHINE_BASE_REF_v1}")
+            self.base_ref = MACHINE_BASE_REF_v1
+            if not cpu and is_cpu_search:
+                self.base_ref_construct = MACHINE_BASE_REF_v1
         else:
-            assert cpu is False and is_cpu_search is False
-            self.base_ref = GPU_BASE_REF
-        self.base_pass_mark = None  # self.base_sol_results
+            if cpu and single_thread:
+                self.base_ref = CPU_BASE_REF_SINGLE
+            elif cpu and not single_thread:
+                self.base_ref = CPU_BASE_REF_MULTI
+            elif not cpu and is_cpu_search:
+                # means method constructs with GPU but search always done with CPU
+                self.base_ref = CPU_BASE_REF_MULTI if not single_thread else CPU_BASE_REF_SINGLE
+                self.base_ref_construct = GPU_BASE_REF
+            else:
+                assert cpu is False and is_cpu_search is False
+                self.base_ref = GPU_BASE_REF
+        # self.base_ref_base = CPU_BASE_REF_BASE_SOL
+        self.base_pass_mark = CPU_PASSMARK_BASE_SOL
         self.base_ref_base = CPU_BASE_REF_SINGLE
         logger.info(f'Base Reference for this machine in metrics initialisation set to {self.base_ref}')
-        if self.base_ref_constr is not None:
-            logger.info(f"Base Reference for first GPU constructed method set to {self.base_ref_constr}")
+        if self.base_ref_construct is not None:
+            logger.info(f"Base Reference for first GPU constructed method set to {self.base_ref_construct}")
 
     @staticmethod
     def RPI(c_t: float, c_t_base: float, c_opt: float):
+        # print('c_t', c_t)
+        # print('c_t_base', c_t_base)
+        # print('c_opt', c_opt)
         if c_t is not None:  # only return when first c_t is obtained
+            # print('min(c_t, c_t_base) - c_opt / c_t_base - c_opt ', (min(c_t, c_t_base) - c_opt) / (c_t_base - c_opt))
+            # print('c_t - c_opt / c_t_base - c_opt', (c_t - c_opt) / (c_t_base - c_opt))
             try:
                 return (min(c_t, c_t_base) - c_opt) / (c_t_base - c_opt)
             except ZeroDivisionError:
                 warnings.warn(f"Zero Division in RPI Calculation, Base Solution = BKS for this Instance.")
                 return 1.0
+            # return (c_t - c_opt) / (c_t_base - c_opt)
         else:  # else if c_t is not yet obtained, while c_t_base exists for t return worst RPI score 1
             return 1.0
 
@@ -105,30 +136,46 @@ class Metrics:
         # get base sol runtimes and costs
         base_costs_, base_runtimes_ = self.base_sol_results[instance_id][0], self.base_sol_results[instance_id][1]
         c_opt = self.bks[instance_id][0]
-        self.base_pass_mark = self.base_sol_results[instance_id][3]
-
+        if self.verbose:
+            logger.info(f"First 5 Base-runtimes {base_runtimes_[:5]}")
+            logger.info(f"First 5 raw Model-runtimes {runtimes_[:5]}")
+            logger.info(f"First 5 Base-costs {base_costs_[:5]}")
+            logger.info(f"First 5 raw Model-costs {costs_[:5]}")
         if self.scale_costs is not None:
+            if self.verbose:
+                logger.info(f'SCALING COSTS with Metrics.scale_costs = {self.scale_costs}...')
+                logger.info(f'c_opt (unscaled): {c_opt}')
             # SCALE ALL COST ENTITIES
             base_costs_ = [int(base_cost * 10000) for base_cost in base_costs_]
             costs_ = [int(cost * 10000) for cost in costs_]
             c_opt = int(c_opt * 10000)
+            if self.verbose:
+                logger.info(f'Scaled Base-costs now {base_costs_[:5]}')
+                logger.info(f'Scaled Model-costs now {costs_[:5]}')
+                logger.info(f'c_opt (scaled)', c_opt)
 
         # Normalize and round runtime according to PassMark
         # TimeLimit_normed = np.round(self.time_limit_ / (self.pass_mark / CPU_BASE_REF)) should be given to controller!
         # in order to match t_i (last) <= actual time limit
+        if self.verbose:
+            logger.info(f'Normalize and round runtime according to PassMark for WRAP Evaluation...')
         base_runtimes_normed = [base_runtime_ * (self.base_pass_mark / self.base_ref_base) for base_runtime_ in
                                 base_runtimes_]
         base_runtimes_round = [int((t_i * 1000) + .5) / 1000.0 for t_i in base_runtimes_normed]
-        if self.base_ref_constr is not None:
+        if self.base_ref_construct is not None:
             # first GPU constructed value normalized separately
-            runtimes_normed_first = [runtimes_[0] * (self.pass_mark / self.base_ref_constr)]
+            runtimes_normed_first = [runtimes_[0] * (self.pass_mark / self.base_ref_construct)]
             # rest normalized with CPU pass_mark as GORT default search performed on cpu
             runtimes_normed_other = [runtime * (self.pass_mark_cpu / self.base_ref) for runtime in runtimes_[1:]]
             runtimes_normed = runtimes_normed_first + runtimes_normed_other
         else:
             runtimes_normed = [runtime * (self.pass_mark / self.base_ref) for runtime in runtimes_]
         runtimes_round = [int((t_i * 1000) + .5) / 1000.0 for t_i in runtimes_normed]
-
+        # t_i = runtime * (self.pass_mark / self.base_ref)
+        # t_i = int((t_i * 1000) + .5) / 1000.0
+        if self.verbose:
+            logger.info(f'Normalized-rounded Base-runtimes {base_runtimes_round[:5]}')
+            logger.info(f'Normalized-rounded Model-runtimes {runtimes_round[:5]}')
         c_b_last = float('inf')
         base_runtimes, base_costs = [], []
         # get only the improvement list of sols from base solver (not the constant best sol list for all timepoints
@@ -140,7 +187,6 @@ class Metrics:
                 c_b_last = c_b
         runtimes, costs = [], []
         # To-Assess Solver already has only improving sols list - so only cut at time limit for normalized run times
-        print('self.time_limit_ in Metrics', self.time_limit_)
         last_t = 0.0
         for t, c in zip(runtimes_round, costs_):
             if t <= self.time_limit_:
@@ -149,6 +195,11 @@ class Metrics:
                 runtimes.append(t)
                 costs.append(c)
             last_t = t
+        if self.verbose:
+            logger.info(f"Final 'to-assess' Model-runtimes (first 5) {runtimes[:5]}")
+            logger.info(f"Final Base-runtimes (first 5) {base_runtimes[:5]}")
+            logger.info(f"Final 'to-assess' Model-costs (first 5) {costs[:5]}")
+            logger.info(f"Final Base-costs (first 5) {base_costs[:5]}")
         # check if there's sol found in Time Limit
         if not costs:
             warnings.warn(f"No Solution for instance {instance_id} found in time limit. "
@@ -163,10 +214,15 @@ class Metrics:
             t_merge.extend(base_runtimes)
             t_merge_unique = list(set(t_merge))
             t_merge_unique.sort()  # sorted list of all timepoints in self.base_runtimes and runtimes
+            if self.verbose:
+                logger.info(f'Merged Time list for WRAP evaluation (first 5): {t_merge_unique[:5]}')
             # adjust costs according to merged time scale
             # - if improvement in one cost but not in the other cost for not improving method stays at c_t-1
             c_base_adj, c_adj, t_merge_adj = allign_times_costs(t_merge_unique, runtimes, base_runtimes, costs,
                                                                 base_costs)
+
+            if self.verbose:
+                logger.info(f'Adjusted Model-Costs list acc. to merged times (first 5): {c_adj[:5]}')
             wrap = 0
             t_n_1 = 0
             RPI_t_0 = 1.0
@@ -182,6 +238,7 @@ class Metrics:
                 t_n_1 = t_n
                 solver_c_n_1 = solver_c
                 base_c_n_1 = base_c
+            # calc final RPI(t_n+1) for t_N+1=T:
             RPI_T = self.RPI(solver_c_n_1, base_c_n_1, c_opt)
             wrap += RPI_T * (T_N - t_n_1)
             final_wrap = (1 / self.time_limit_) * wrap
@@ -209,34 +266,43 @@ class Metrics:
             print(f"Normalised Time Limit for Solver based on Passmark of used Machine "
                   f"is {np.round(self.time_limit_ / (self.pass_mark / self.base_ref))}")
 
+        # Normalize Time Limit according to PassMark
+        # TimeLimit_normed = self.time_limit_
+        # TimeLimit_normed = np.round(self.time_limit_ / (self.pass_mark / CPU_BASE_REF)) should be given to controller!
+        # in order to match t_i (last) <= actual time limit !!!!!!!!!!!!!
+
         # set min. threshold for cost to v(0) = BKS * 1.1
         base_cost = bks * 1.1
 
         if self.scale_costs is not None:
             # SCALE ALL COST ENTITIES
+            if self.verbose:
+                logger.info(f'SCALING COSTS with Metrics.scale_costs = {self.scale_costs}...')
+                logger.info(f'BKS (unscaled): {bks}')
             base_cost = int(base_cost * 10000)
             costs = [int(cost * 10000) for cost in costs]
             bks = int(bks * 10000)
+            if self.verbose:
+                logger.info(f'Scaled Base-costs now {base_cost}')
+                logger.info(f'Scaled Model-costs now {costs[:5]}')
+                logger.info(f'BKS (scaled)', bks)
+
 
         # at initial time step t_0 = 0, v_0 = BKS * 1.1, PrimalIntegral = 0 and final flag is False
         cost_last, time_last, primalIntegral, final_primalIntegral = base_cost, 0, 0, 0
         # flag for GPU constructed initial solution
-        is_init_gpu = True if self.base_ref_constr is not None else False
-        passmark_init = self.pass_mark if self.base_ref_constr is not None else None
-        pass_mark = self.pass_mark_cpu if self.base_ref_constr else self.pass_mark
+        is_init_gpu = True if self.base_ref_construct is not None else False
+        passmark_init = self.pass_mark if self.base_ref_construct is not None else None
+        pass_mark = self.pass_mark_cpu if self.base_ref_construct else self.pass_mark
+        if self.verbose:
+            logger.info(f'Calculating PI for time budget {self.time_limit_}...')
         for i, (cost, runtime) in enumerate(zip(costs, runtimes)):
             if self.verbose:
-                print('self.time_limit_', self.time_limit_)
-                print('runtime', runtime)
-                print('base_cost', base_cost)
-                print('cost', cost)
-                print('cost_last', cost_last)
-                print('(base_cost - cost)', base_cost - cost)
-                print('(cost_last - cost)', cost_last - cost)
+                logger.info(f'Current Time: {runtime}, Base-Cost: {base_cost}, Cost: {cost} ')
             # Normalize and round runtime according to PassMark
             # t_i = runtime * (self.pass_mark / CPU_BASE_REF)
             t_i = runtime * (pass_mark / self.base_ref) if not is_init_gpu \
-                else runtime * (passmark_init / self.base_ref_constr)
+                else runtime * (passmark_init / self.base_ref_construct)
             t_i = int((t_i * 1000) + .5) / 1000.0
             # only evaluate PI if found cost is better than base cost in time limit
             if not ((cost_last - cost) < 0.1) and t_i <= self.time_limit_ + eps:
@@ -244,14 +310,7 @@ class Metrics:
                 # t_i = runtime * (self.pass_mark / CPU_BASE_REF)
                 # t_i = int((t_i * 1000) + .5) / 1000.0
                 # cost(i - 1) * (time(i) - time(i - 1)) / BKS * T
-                if self.verbose:
-                    print('t_i', t_i)
-                    print('time_last', time_last)
-                    print('(cost_last * (t_i - time_last) / (self.time_limit_ * bks))',
-                          (cost_last * (t_i - time_last) / (self.time_limit_ * bks)))
-
                 primalIntegral += (cost_last * (t_i - time_last) / (self.time_limit_ * bks))
-
                 # only reset time_last = t_i if evaluated already!!! (else never take into account t_0-t_i time)
                 time_last = t_i
                 # move index
@@ -259,6 +318,7 @@ class Metrics:
 
             elif (base_cost - cost) < 0.1:
                 # move to next cost (without moving time to take into account t_i-0 of first valid found sol (i))
+                # cost_last = cost
                 pass
 
             elif not t_i <= self.time_limit_ + eps:  # if time limit surpassed - take last valid found cost and break
@@ -282,9 +342,6 @@ class Metrics:
             #        # http://dimacs.rutgers.edu/programs/challenge/vrp/cvrp/
             #     // add cost(n)*(T - t(n))/BKS*T
             #     // and normalize: 100 * (PI - 1)
-            if self.verbose:
-                print('(cost_last * (self.time_limit_ - time_last) / (self.time_limit_ * bks)'
-                      , (cost_last * (self.time_limit_ - time_last) / (self.time_limit_ * bks)))
             primalIntegral += (cost_last * (self.time_limit_ - time_last) / (self.time_limit_ * bks))
             if self.verbose:
                 logger.info(f"PrimalIntegral before norm: {primalIntegral}")

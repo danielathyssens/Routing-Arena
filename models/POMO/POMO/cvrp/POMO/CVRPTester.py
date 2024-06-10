@@ -26,18 +26,30 @@ class CVRPTester:
 
         # cuda
         if USE_CUDA:
+            # cuda_device_num = self.tester_params['cuda_device_num']
+            # torch.cuda.set_device(cuda_device_num)
+            # device = torch.device('cuda', cuda_device_num)
+            # torch.set_default_tensor_type('torch.cuda.FloatTensor')
             cuda_device_num = self.tester_params['cuda_device_num']
-            torch.cuda.set_device(cuda_device_num)
-            device = torch.device('cuda', cuda_device_num)
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            # print('cuda_device_num', cuda_device_num)
+            try:
+                torch.cuda.set_device(cuda_device_num)
+                self.device = torch.device('cuda', cuda_device_num)
+                torch.set_default_tensor_type('torch.cuda.FloatTensor')  # deprecated
+                # torch.set_default_dtype(torch.cuda.FloatTensor)
+            except AttributeError:
+                if torch.backends.mps.is_available():
+                    self.device = torch.device('mps')
+                    torch.set_default_device("mps")
+                    torch.set_default_dtype(torch.float32)
         else:
-            device = torch.device('cpu')
+            self.device = torch.device('cpu')
             torch.set_default_tensor_type('torch.FloatTensor')
-        self.device = device
+        # self.device = device
 
         # ENV and MODEL
         self.env = env
-        self.model = model.to(device=device)
+        self.model = model.to(device=self.device)
         # Model(**self.model_params)
 
         # Restore --> already done in runner
@@ -66,12 +78,13 @@ class CVRPTester:
             remaining = test_num_episode - episode
             batch_size = min(self.tester_params['test_batch_size'], remaining)
             start_time = time.time()
-            score, aug_score, sol = self._test_one_batch(batch_size)
+            score, sol, aug_score, sol_aug = self._test_one_batch(batch_size)
             duration = time.time() - start_time
             runtimes.append(duration)
             costs_aug.append(aug_score)
             costs.append(score)
-            sols.append(sol[0])
+            # print('len(sol)', len(sol))
+            sols.append(sol_aug[0] if self.tester_params['augmentation_enable'] else sol[0])
             score_AM.update(score, batch_size)
             aug_score_AM.update(aug_score, batch_size)
 
@@ -117,10 +130,14 @@ class CVRPTester:
         while not done:
             selected, _ = self.model(state)
             # print('selected.size()', selected.size())
+            # print('selected', selected)
             selected_all.append(selected.unsqueeze(2))
             # print('selected_all[-1].size()', selected_all[-1].size())
             # shape: (batch, pomo)
             state, reward, done = self.env.step(selected)
+        # print('selected_all[0]', selected_all[0])
+        # print('selected_all', selected_all)
+        # print('len(selected_all)', len(selected_all))
         # print('selected_all[0]', selected_all[0])
         all_routes = torch.cat(selected_all, dim=-1)
         # print('all_routes[0]', all_routes[0])
@@ -135,16 +152,29 @@ class CVRPTester:
         max_pomo_reward, indices_pomo = aug_reward.max(dim=2)  # get best results from pomo
         # print('aug_reward.max(dim=2)', aug_reward.max(dim=2))
         # print('aug_reward.argmax(dim=2)', aug_reward.argmax(dim=2))
-        best_sol_pomo = all_routes[:, indices_pomo[0], :]
-        # print('best_sol_pomo.size()', best_sol_pomo.size())
+        # print('indices_pomo', indices_pomo)
+        # added
+        indices_pomo_ex = indices_pomo.unsqueeze(2).expand(aug_factor * batch_size,
+                                                           1, self.env.selected_node_list.size()[2])
+        # indices_pomo_ex = indices_pomo.unsqueeze(2).expand_as(self.env.selected_node_list)
+        # best_sols_pomo = all_routes[:, indices_pomo[0], :]
+        # print('indices_pomo_ex.size()', indices_pomo_ex.size())
+        # print('self.env.selected_node_list.size()', self.env.selected_node_list.size())
+        best_sols_pomo = self.env.selected_node_list.gather(1, index=indices_pomo_ex)
+        # print('best_sols_pomo.size()', best_sols_pomo.size())
+        best_sol_pomo = best_sols_pomo[0]
+        # print('best_sol_pomo', best_sol_pomo)
+
         # shape: (augmentation, batch)
         no_aug_score = -max_pomo_reward[0, :].float().mean()  # negative sign to make positive value
 
+        # changed:
         max_aug_pomo_reward, index_augm = max_pomo_reward.max(dim=0)  # get best results from augmentation
         # shape: (batch,)
-        best_sol_pomo_augm = best_sol_pomo[index_augm][0]
+        # print('index_augm', index_augm)
+        best_sol_pomo_augm = best_sols_pomo[index_augm][0]
         # print('best_sol_pomo_augm.size()', best_sol_pomo_augm.size())
         # print('best_sol_pomo_augm', best_sol_pomo_augm)
         aug_score = -max_aug_pomo_reward.float().mean()  # negative sign to make positive value
 
-        return no_aug_score.item(), aug_score.item(), best_sol_pomo_augm
+        return no_aug_score.item(), best_sol_pomo, aug_score.item(), best_sol_pomo_augm

@@ -173,15 +173,15 @@ def _test(problem: str = "cvrp",
           distribution: str = "uchoa",
           graph_size: int = 20
           ):
-    from data import CVRPDataset, TSPDataset, VRPTWDataset
+    from data import CVRPDataset, TSPDataset, CVRPTWDataset
     # RPEnv, GROUPS, TYPES, TW_FRACS
 
     if problem == "cvrp":
         data_class = CVRPDataset
     elif problem == "tsp":
         data_class = TSPDataset
-    elif problem == "vrptw":
-        data_class = VRPTWDataset
+    elif problem == "cvrptw":
+        data_class = CVRPTWDataset
     else:
         raise NotImplementedError
 
@@ -229,15 +229,15 @@ def _test_2(problem: str="cvrp",
           graph_size: int=20
           ):
     from torch.utils.data import DataLoader
-    from data import CVRPDataset, TSPDataset, VRPTWDataset
+    from data import CVRPDataset, TSPDataset, CVRPTWDataset
     # RPEnv, GROUPS, TYPES, TW_FRACS
 
     if problem == "cvrp":
         data_class = CVRPDataset
     elif problem == "tsp":
         data_class = TSPDataset
-    elif problem == "vrptw":
-        data_class = VRPTWDataset
+    elif problem == "cvrptw":
+        data_class = CVRPTWDataset
     else:
         raise NotImplementedError
 

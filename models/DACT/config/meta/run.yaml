@@ -30,7 +30,8 @@ test_cfg:
   data_file_path: ${data_file_path} # depends on distribution --> env config
   checkpoint_load_path: ${checkpoint_load_path}
   fixed_dataset: True
-  dataset_size: # 512  # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
+  dataset_size: # 512  # to overwrite the number of instances to be tested in fixed test set (first x instances)
+  dataset_range: # solve range of dataset , e.g. [10, 20]
   batch_size: 1  # DACT currently only runs with inferencing 1 instance at a time
 
 # important model eval params

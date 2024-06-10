@@ -1,0 +1,77 @@
+# @package _global_
+
+# tensorboard --host localhost --port 8080 --logdir=./outputs
+
+run_type: "val"
+number_runs: 1
+debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
+global_seed: 1234
+cuda: True
+# eGPU GeForce RTX 3060 (G3DMark Mark: 17177, G2DMark: 975)
+G3DMark: 17177
+G2DMark: 975
+# DELL Machine (Intel® Core™ i7-10850H - 12 Threads): 11980
+# DELL Machine (Intel® Core™ i7-10850H - 1 Threads): 2714
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+
+test_cfg:
+  eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi', ['pi', 'wrap']  # , 'wrap'
+  time_limit: 20
+  save_solutions: True   # either save solution in log dir of run output dir
+  save_for_analysis: False  # or save solutions for further analysis in saved results folder
+  saved_res_dir: outputs/saved_results # where results for analysis should be saved
+  out_name: ${out_name}
+  save_trajectory: True   # will always be saved in log dir of run output dir
+  save_traj_for:  # IDs of Instances to plot in list - if None, first instance in dataset is plotted
+  fixed_dataset: True
+  data_file_path: ${data_file_path}
+  checkpoint_load_path: ${checkpoint_load_path}
+  dataset_size: # 28 # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
+  dataset_range: # solve range of dataset , e.g. [10, 20]
+  add_ls: False # True  # boolean to add local search (spec in 'ls_policy_cfg') after construction
+  ls_policy: sa
+  ls_policy_cfg:
+    local_search_strategy: 'SIMULATED_ANNEALING' #'SIMULATED_ANNEALING' #'GUIDED_LOCAL_SEARCH'
+    solution_limit: #None
+    verbose: False
+    log_search: False
+    batch_size: 1
+    search_workers: 1  # only possible to parallelize search if cp_sat solver is enabled in GORT LS
+
+# model-specific test_cfg
+tester_cfg:
+  # tsp
+  width: 1  # 0 for CVRP, at least 1 for TSP --> currently only works for TSP with 1
+  test_batch_size: 1 # 1000
+  tsp_aug: True
+  no_aug: False
+  # cvrp
+  eval_batch_size: 1 # for cvrp needs to be 1 (for tsp currently only implemented for eval_batch_size 1)
+  partitioner: # if None for non-CVRPLib test set - else
+  n_partition: 1
+  # cvrplib
+  ckpt_path_partitioner: ${ckpt_path_partitioner}
+  problem_type: ${problem_type}
+  # all
+  val_size: ${test_cfg.dataset_size}
+  problem_size: ${graph_size}
+  no_progress_bar: False
+  # for reconnect operation
+  reconnect_cfg:
+    revision_lens: ${policy_cfg.revision_lens}
+    revision_iters: ${policy_cfg.revision_iters}
+    no_prune: ${policy_cfg.no_prune}
+    tsp_aug: ${tester_cfg.tsp_aug}
+    no_aug: ${tester_cfg.no_aug}
+    eval_batch_size: ${tester_cfg.eval_batch_size}
+    time_limit: ${test_cfg.time_limit}
+
+# global paths and logging
+log_lvl: INFO
+tb_log_path: 'logs/tb/'
+log_path: 'logs/'
+checkpoint_save_path: 'checkpoints/'
+

@@ -285,9 +285,15 @@ def eval_model(ckpt_pth: str,
         results = _eval_dataset(problem, dataset_dpdp, model, model_config, batch_size, beam_size, opts, device,
                                 no_progress_bar=opts.no_progress_bar)
 
-    costs, durations, tours = print_statistics(results, batch_size, opts)
+    costs, durations, tours, failed_ids = print_statistics(results, batch_size, opts)
     times = durations  # list(itertools.chain.from_iterable(durations))
-    return {}, make_RPSolution(problem_str, tours, costs, times, data_rp)
+    print('len(tours) in dpdp.py', len(tours))
+    print('tours[0] in dpdp.py', tours[0])
+    if failed_ids:
+        summary_f = {'failed_ids': failed_ids}
+    else:
+        summary_f = {}
+    return summary_f, make_RPSolution(problem_str, tours, costs, times, data_rp, failed_ids)
 
 
 def _eval_dataset(problem, dataset, net_model, model_cfg, batch_size, beam_size, opts, device, no_progress_bar=False):
@@ -360,28 +366,71 @@ def prep_data_DPDP(problem: str, dat: Union[List[TSPInstance], List[CVRPInstance
         raise NotImplementedError
 
 
-def make_RPSolution(problem, sols, costs, times, instances) -> List[RPSolution]:
+def make_RPSolution(problem, sols, costs, times, instances, failed_inst_ids) -> List[RPSolution]:
     """Parse model solution back to RPSolution for consistent evaluation"""
     # transform solution torch.Tensor -> List[List]
     sol_list = [_get_sep_tours(problem, sol_) for sol_ in sols]
-    return [
-        RPSolution(
-            solution=sol_list[i],
-            cost=costs[i],
-            num_vehicles=len(sol_list[i]),
-            run_time=times[i],
-            problem=problem,
-            instance=instances[i],
-        )
-        for i in range(len(sols))
-    ]
+    print('failed_inst_ids', failed_inst_ids)
+    solved_inst_ids = list(set(list(np.arange(len(instances))))-set(failed_inst_ids))
+    solved_lst = []
+    for j in range(len(instances)):
+        if j in solved_inst_ids:
+            solved_lst.append(j)
+        else:
+            solved_lst.append(-1)
+    # print('len(solved_lst)', len(solved_lst))
+    # print('len(costs', len(costs))
+    # print('len(times', len(times))
+    # print('solved_lst', solved_lst)
+    if failed_inst_ids:
+        rp_sols = []
+        c = 0
+        for i, idx in enumerate(solved_lst):
+            if idx != -1:
+                rp_sol = RPSolution(
+                    solution=sol_list[c],
+                    cost=costs[c],
+                    method_internal_cost=costs[c],
+                    num_vehicles=len(sol_list[c]),
+                    run_time=times[c],
+                    problem=problem,
+                    instance=instances[idx],
+                )
+                c += 1
+            else:
+                rp_sol = RPSolution(
+                    solution=None,
+                    cost=np.float64("inf"),
+                    method_internal_cost=np.float64("inf"),
+                    num_vehicles=None,
+                    run_time=np.float64("inf"),
+                    problem=problem,
+                    instance=instances[idx],
+                )
+            rp_sols.append(rp_sol)
+        # print('len(rp_sols)', len(rp_sols))
+        return rp_sols
+    else:
+        return [
+            RPSolution(
+                solution=sol_list[i] if i not in failed_inst_ids else None,
+                cost=costs[i] if i not in failed_inst_ids else None,
+                method_internal_cost=costs[i] if i not in failed_inst_ids else None,
+                num_vehicles=len(sol_list[i]) if i not in failed_inst_ids else None,
+                run_time=times[i] if i not in failed_inst_ids else None,
+                problem=problem,
+                instance=instances[i],
+            )
+            for i in range(len(instances))
+        ]
 
 
 def _get_sep_tours(problem: str, tours: torch.Tensor) -> List[List]:
     """get solution (res) as List[List]"""
     if problem.lower() == 'tsp':
         # if problem is TSP - only have single tour
-        return tours.tolist()[0]
+        # print('tours', tours)
+        return tours.tolist()[0] if isinstance(tours, torch.Tensor) else tours
 
     elif problem.lower() == 'cvrp':
         # print(tours)
@@ -509,6 +558,7 @@ def load_cfg_model(problem: str, checkpoint_path: str = None, cfg_path: str = No
         return config
 
     else:  # eval
+        print('checkpoint_path', checkpoint_path)
         assert os.path.isfile(checkpoint_path), "Make sure checkpoint file exists"
         # checkpoint_path = args.checkpoint
         log_dir = os.path.split(checkpoint_path)[0]
@@ -539,7 +589,7 @@ def load_cfg_model(problem: str, checkpoint_path: str = None, cfg_path: str = No
             dtypeLong = torch.LongTensor
             torch.manual_seed(1)
 
-        do_prepwrap = not no_prepwrap
+        do_prepwrap = not no_prepwrap if problem == 'CVRP' else False
 
         # Instantiate the network
         model_class = ResidualGatedGCNModelVRP if problem == 'cvrp' else ResidualGatedGCNModel
@@ -753,6 +803,7 @@ def print_statistics(results, bs, opts):
     num_processes = opts.system_info['used_num_processes']
     device_count = opts.system_info['used_device_count']
     batch_size = bs
+    failed = []
     assert num_processes % device_count == 0
     num_processes_per_device = num_processes // device_count
 
@@ -767,6 +818,7 @@ def print_statistics(results, bs, opts):
         # results = results_stat
     costs, tours, durations = zip(*results_stat)  # Not really costs since they should be negative
     print("Costs (showing max 10): ", costs[:10])
+    # print('tours', tours)
     if len(tours) == 1:
         print("Tour", tours[0])
     print("Average cost: {:.3f} +- {:.3f}".format(np.mean(costs), 2 * np.std(costs) / np.sqrt(len(costs))))
@@ -787,4 +839,4 @@ def print_statistics(results, bs, opts):
     print("Calculated total duration for {} instances with {} processes on 1 device in parallel: {}".format(
         len(durations), num_processes_per_device, total_duration_single_device))
     print("Number of GPUs used:", device_count)
-    return costs, durations, tours
+    return costs, durations, tours, failed

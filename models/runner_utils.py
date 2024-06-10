@@ -15,18 +15,73 @@ from typing import Optional, Dict, Union, List
 import omegaconf
 import shutil
 
+from .general_utils import get_machine_info
+
 logger = logging.getLogger(__name__)
 
 CPU_BASE_REF_SINGLE = 2000  # equivalent to AMD Ryzen 7 PRO 3700U or Intel Xeon E3-1505M v5 @ 2.80GHz (single thread)
 CPU_BASE_REF_MULTI = 8000  # roughly equivalent to AMD Ryzen 7 PRO 3700U or Intel Xeon E3-1505M v5 @ 2.80GHz 4C 8T
+# GPU_BASE_REF = 18000  # reasoning: no one is using less than GeForce GTX 1080 Ti (PassMark: 18399)
 GPU_3D_BASE_REF = 15473  # reasoning: no one is using less than GeForce GTX 1080 (PassMark: 15416)
 GPU_2D_BASE_REF = 896  # reasoning: no one is using less than GeForce GTX 1080 (PassMark: 15416)
+# GPU_BASE_REF = round(1 / (((1 / (CPU_BASE_REF_SINGLE * 0.396566187))
+#                            + (1 / (GPU_2D_BASE_REF * 3.178718116)) + (1 / (GPU_3D_BASE_REF * 2.525195879))) / 3))
 GPU_BASE_REF = round((CPU_BASE_REF_SINGLE + ((0.5 * GPU_3D_BASE_REF) + (0.5 * GPU_2D_BASE_REF))) / 2)
-# PASSMARK_VERSION = "sep"
+
+# round((cpu_performance + ((0.5 * threeD_Mark) + (0.5 * twoD_Mark))) / 2)
+
+
+######## MACHINE PASSMARK SETTING #########
+std_nr_threads = 1
+alpha = 0.5
+std_nr_gpus = 1
+# MACHINE_BASE_REF_v1 = round((std_nr_threads * CPU_BASE_REF_SINGLE) + alpha * (std_nr_gpus * GPU_3D_BASE_REF))
+MACHINE_BASE_REF_v1 = round((CPU_BASE_REF_SINGLE + ((0.5 * GPU_3D_BASE_REF) + (0.5 * GPU_2D_BASE_REF))) / 2)
+
+PASSMARK_VERSION = "sep"
 
 SET_TYPES = ["X", "XE", "XML"]
 
 # DEVICE, NUMBER_THREADS_USED = None, None
+
+GPU_MACHINES = {
+    # "GPU_NAME" = [GPU-Average G3D Mark, GPU-Average G2D Mark]
+    'NVIDIA GeForce GTX 1080': [15473, 896],
+    'NVIDIA GeForce RTX 4090': [39487, 1325],
+    'NVIDIA GeForce RTX 3060': [17177, 979],
+    'NVIDIA GeForce RTX 3060 Ti': [20608, 1002],
+    'NVIDIA A40': [9170, 502],  # 2x on node gpu-110
+    'NVIDIA GeForce RTX 3090': [26962, 1047],  # 2x on node gpu-110 and 2x on gpu-100 and 3x on gpu-101
+    'NVIDIA RTX A4000': [19097, 964],  # 8x on node gpu-120
+    'NVIDIA GeForce GTX 950M': [2600, 217],  # Home old
+    'Apple M2 10-Core GPU': [24880, 1000],  # Home
+    'Apple M1 10-Core GPU': [24880, 1000],  # Wilson
+    'NVIDIA GeForce RTX 2080 Ti': [21893, 939],  # 4x each on node gpu-020 - gpu-023, 3x on node gpu-022 (Prt. GPU)
+    'NVIDIA GeForce GTX 1080 Ti': [18508, 943],  # 1x on gpu-000 - gpu-003 and 2x each on gpu-010 - gpu-019  (Prt. GPU)
+
+}
+
+CPU_MACHINES = {
+    # # "CPU_NAME" = [cpuMark, cpuMark_single_thread, total_cores (as should be), total_threads (as should be)]
+    'Intel(R) Core(TM) i5-6300HQ CPU @ 2.30GHz': [4692, 1790, 4, 4],  # Home
+    'Apple M2': [15383, 3932, 8, 8],  # Home
+    'Apple M1': [15383, 3932, 8, 8],  # Wilson
+    'Intel(R) Core(TM) i7-10850H CPU @ 2.70GHz': [11980, 2714, 6, 12],  # Work-OLD
+    '13th Gen Intel(R) Core(TM) i7-1355U': [15361, 3603, 10, 12],  # Work
+    'AMD EPYC 7402 24-Core Processor': [42245, 1947, 24, 48],  # on node gpu-100, gpu-101
+    'AMD EPYC 7543 32-Core Processor': [56562, 2563, 32, 64],  # on node gpu-110
+    'AMD EPYC 7713P 64-Core Processor': [83439, 2742, 64, 128],  # on node gpu-120
+    'Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz': [9251, 1635, 16, 32],  # on node gpu-020 - gpu-023 (MARKS for 8C,16Th)
+    'Intel(R) Xeon(R) CPU E5-1660 v4 @ 3.20GHz': [13500, 2187, 8, 16],  # on node gpu-010 - gpu-019
+    'Intel(R) Xeon(R) CPU E5-1620 v4 @ 3.50GHz': [7416, 2236, 4, 8],  # on node gpu-000 - gpu-003
+    'Intel(R) Xeon(R) CPU E5620 @ 2.40GHz': [6442, 1077, 8, 16],  # on node node-010, node-011 (Prt. CPU0)
+    'Intel(R) Xeon(R) CPU           E5620  @ 2.40GHz': [6442, 1077, 8, 16],  # on node node-010, node-011 (Prt. CPU0)
+    'Intel(R) Xeon(R) CPU E5645 @ 2.40GHz': [9148, 1174, 12, 24],  # on node node-100 - node-103 (Prt. CPU1)
+    'Intel(R) Xeon(R) CPU           E5645  @ 2.40GHz': [9148, 1174, 12, 24],  # on node node-100 - node-103 (Prt. CPU1)
+    'Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz': [20036, 1612, 20, 40],  # on node node-200 - node-219 (Prt. CPU2)
+    '11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz': [20610, 3131, 8, 16],  # tim laptop
+    'AMD EPYC 9334 32-Core Processor': [64841, 2367, 32, 64]   # node gpu-200
+}
 
 NORMED_BENCHMARKS = ['cvrp20_test_seed1234.pkl',
                      'cvrp50_test_seed1234.pkl',
@@ -42,11 +97,11 @@ XE_DIMS = {'XE_1': 100, 'XE_2': 124, 'XE_3': 128, 'XE_4': 161, 'XE_5': 180, 'XE_
            'XE_8': 203, 'XE_9': 213, 'XE_10': 218, 'XE_11': 236, 'XE_12': 241, 'XE_13': 269, 'XE_14': 274,
            'XE_15': 279, 'XE_16': 293, 'XE_17': 297}
 
-CPU_MACHINES = torch.load("formats/CPU_MACHINES.pkl")
-GPU_MACHINES = torch.load("formats/GPU_MACHINES.pkl")
 
+# X_DIMS =
 
 def get_time_limit(cfg):
+    print('cfg.test_cfg.time_limit', cfg.test_cfg.time_limit)
     if cfg.test_cfg.time_limit is not None and isinstance(cfg.test_cfg.time_limit, int):
         return cfg.test_cfg.time_limit
     else:
@@ -75,6 +130,7 @@ def get_budget_per_size(problem_size: int, round_up: bool = True):
 def eval_inference(run, nr_runs, sols_, ds_class, log_path, acronym, test_cfg, debug):
     results, per_instance_summaries, new_BKS_for, stats = [], [], [], None
     for solution in sols_:
+        # print('solution', solution)
         updated_sol, summary_, new_bks_ = ds_class.eval_solution(solution=solution,
                                                                  model_name=acronym,
                                                                  eval_mode=test_cfg.eval_type,
@@ -159,13 +215,24 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
     if ds_path[-3:] not in [".pt", "pkl"]:
         try:
             BKS_path = os.path.join(ds_path, "BKS_" + ds_path.split("/")[-1] + ".pkl")
-            bks_registry = torch.load(BKS_path)
+            # bks_registry = torch.load(BKS_path)
+            print("BKS_path in 1st try", BKS_path)
         except FileNotFoundError:
             BKS_path = os.path.join(ds_path, "BKS_" + ds_path.split("/")[-2] + ".pkl")
-            bks_registry = torch.load(BKS_path)
+            # bks_registry = torch.load(BKS_path)
+            print("BKS_path in 1st except", BKS_path)
     else:
-        BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" + os.path.basename(ds_path).split('_seed')[0] + ".pkl")
-        bks_registry = torch.load(BKS_path)
+        print('path bks', os.path.join(os.path.dirname(ds_path), "BKS_"
+                                       + os.path.basename(ds_path).split('.')[0] + ".pkl"))
+        if "seed" in os.path.basename(ds_path):
+            BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
+                                    os.path.basename(ds_path).split('_seed')[0] + ".pkl")
+            print("BKS_path in 2nd try", BKS_path)
+        else:
+            BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
+                                    os.path.basename(ds_path).split('.')[0] + ".pkl")
+            print("BKS_path in 2nd except", BKS_path)
+    bks_registry = torch.load(BKS_path)
 
     # update BKS for this test set if there are new best costs
     if new_bks_list:
@@ -216,85 +283,129 @@ def get_cpu_specs():
     return cpu_name, threads_per_cpu, total_cores
 
 
-def get_PassMarks(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
-                  total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
+def get_seperate_PassMarks(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
+                           total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
+    # https://forums.passmark.com/performancetest/4599-formula-cpu-mark-memory-mark-and-disk-mark
+    #  version 10 the updated numbers (2020):
+    # all_ingredients_PassM = 1 / (((1 / (CPU_Mark * 0.396566187)) + (1 / (twoD_Mark * 3.178718116))
+    #                               + (1 / (threeD_Mark * 2.525195879)) + (1 / (Memory_Mark * 1.757085479))
+    #                               + (1 / (Disk_Mark * 1.668158805))) / 5)
+    print('number_threads', number_threads)
     cpu_performance = min(round(number_threads * CPU_Mark_single), CPU_Mark)
+    # cpu_perf = round((number_threads * (CPU_Mark / total_threads)))
+    print('cpu_performance', cpu_performance)
     # reset total cpus to 1, because passmark value incorp all cores already
     if total_gpus != 0:
         GPU_passmark = round((cpu_performance + ((0.5 * threeD_Mark) + (0.5 * twoD_Mark))) / 2)
+        print('GPU_passmark', GPU_passmark)
+        print('GPU_BASE_REF', GPU_BASE_REF)
     else:
         GPU_passmark = None
-    CPU_passmark = cpu_performance
+    # print('CPU_overall_PassMark (not used)', round(1 / (1 / (additional_cpus * (cpu_perf * 0.396566187)))))
+    CPU_passmark = cpu_performance  # round(1 / (1 / (additional_cpus * (cpu_perf * 0.396566187))))
+    print('overall CPU passMark: ', CPU_passmark)
+    print('CPU_BASE_REF', CPU_BASE_REF_SINGLE if number_threads == 1 else CPU_BASE_REF_MULTI)
 
     return GPU_passmark, CPU_passmark
 
 
-def set_passMark(cfg, device, number_threads=1, passmark_version=None):
+def get_overall_PassMark_v1(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
+                            total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
+    print('CPU_Mark_single', CPU_Mark_single)
+    print('threeD_Mark', threeD_Mark)
+    print('number_threads', number_threads)
+    print('total_cpus', total_cpus)
+    print('total_gpus', total_gpus)
+    # compute cpu performance
+    cpu_performance = min(round(number_threads * CPU_Mark_single), CPU_Mark)  # CPU_Mark is Mark for whole processor
+    print('cpu_performance', cpu_performance)
+    if total_gpus == 0:
+        gpu_performance = 0
+    else:
+        gpu_performance = (0.5 * threeD_Mark) + (0.5 * twoD_Mark)
+    print('gpu_performance', gpu_performance)
+    # overall_passmark = round(cpu_performance + (0.5 * (total_gpus * threeD_Mark)))
+    overall_passmark = round((cpu_performance + (total_gpus * gpu_performance)) / 2)
+    print('overall passMark (V1): ', overall_passmark)
+    return overall_passmark
+
+
+def set_passMark(cfg, device, number_threads=1, passmark_version=PASSMARK_VERSION):
     if cfg.run_type in ["val", "test"]:
         global NUMBER_THREADS_USED
         NUMBER_THREADS_USED = number_threads
         # get cpu info
         cpu_name, threads_per_cpu, total_cpus = get_cpu_specs()
-        if cpu_name not in CPU_MACHINES:
-            warnings.warn(f"CPU specs for {cpu_name} unrecognised in 'formats/CPU_MACHINES.pkl'. "
-                          f"Please add you CPU specs for key {cpu_name} to CPU_MACHINES.pkl or specify CPUMark_single, "
-                          f"CPUMark, cpu_cores and total_threads in config/meta/run.yaml. "
-                          f"Defaulting to PassMark values specified in config.")
-            CPUMark_single = cfg.CPU_Mark_single
-            CPUMark = cfg.CPU_Mark
-            total_threads = cfg.cpu_threads
-            cpu_cores = cfg.number_cpus
-        else:
-            CPUMark = CPU_MACHINES[cpu_name][0]
-            CPUMark_single = CPU_MACHINES[cpu_name][1]
-            cpu_cores = CPU_MACHINES[cpu_name][2]
-            total_threads = CPU_MACHINES[cpu_name][3]
+        # cpu_mark, cpu_s_mark, n_cores, n_threads
+        print('cpu_name', cpu_name)
+        CPUMark, CPUMark_single, cpu_cores, total_threads = get_machine_info(which_type="cpu",
+                                                                             machine_name=cpu_name)
+        print(f'CPUMark {CPUMark}, CPUMark_single, {CPUMark_single}, '
+              f'cpu_cores {cpu_cores}, total_cpus {total_cpus}, total_threads {total_threads}')
+        # CPUMark = CPU_MACHINES[cpu_name][0]
+        # CPUMark_single = CPU_MACHINES[cpu_name][1]
+        # cpu_cores = CPU_MACHINES[cpu_name][2]
+        # total_threads = CPU_MACHINES[cpu_name][3]
         assert cpu_cores == total_cpus, f"total amount of cores does not match. Different machine?"
-        assert total_threads == threads_per_cpu * cpu_cores, f"Number of Threads does not match. Different machine?"
+        if total_threads != threads_per_cpu * cpu_cores:
+            warnings.warn(f"Number of Threads does not match. Different machine?")
         if not device == torch.device("cpu"):
-            cuda_device_count = torch.cuda.device_count()
-            cuda_device_name = torch.cuda.get_device_name()
-            logger.info(f"GPU Device Name: {cuda_device_name}")
-            if cuda_device_name not in GPU_MACHINES.keys():
-                warnings.warn(f"GPU specs for {cuda_device_name} unrecognised in 'formats/GPU_MACHINES.pkl'. "
-                              f"Please add you GPU specs for key {cuda_device_name} to GPU_MACHINES.pkl "
-                              f"or specify G3DMark and G2DMark in config/meta/run.yaml. "
-                              f"Defaulting to PassMark values specified in config.")
-                G3DMark = cfg.G3DMark
-                G2DMark = cfg.G2DMark
-            else:
-                G3DMark = GPU_MACHINES[cuda_device_name][0]
-                G2DMark = GPU_MACHINES[cuda_device_name][1]
+            try:
+                print('torch.cuda.device_count()', torch.cuda.device_count())
+                gpu_device_count = torch.cuda.device_count()
+                gpu_device_name = torch.cuda.get_device_name()
+                logger.info(f"GPU Device Name: {gpu_device_name}")
+            except AssertionError:
+                gpu_device_count = 1
+                gpu_device_name = 'Apple M2 10-Core GPU'
+            # if gpu_device_name not in GPU_MACHINES.keys():
+            #     warnings.warn(f"Getting G3DMark and G2DMark from config.")
+            #     G3DMark = cfg.G3DMark
+            #     G2DMark = cfg.G2DMark
+            # else:
+            # G3DMark = GPU_MACHINES[gpu_device_name][0]
+            # G2DMark = GPU_MACHINES[gpu_device_name][1]
+            G3DMark, G2DMark = get_machine_info(which_type="gpu",
+                                                machine_name=gpu_device_name)
         else:
             G3DMark, G2DMark = None, None
-            cuda_device_count = 0
-        # if passmark_version == "v1":
-        #     passMark = get_overall_PassMark_v1(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
-        #                                        total_threads, total_cpus, cuda_device_count)
-        #     cpu_perf = passMark
-        # else:
-        passMark, cpu_perf = get_PassMarks(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
-                                           total_threads, total_cpus, cuda_device_count)
-        if passMark is None:
-            passMark = cpu_perf
+            gpu_device_count = 0
+        if passmark_version == "v1":
+            passMark = get_overall_PassMark_v1(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
+                                               total_threads, total_cpus, gpu_device_count)
+            cpu_perf = passMark
+        else:
+            passMark, cpu_perf = get_seperate_PassMarks(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
+                                                        total_threads, total_cpus, gpu_device_count)
+            if passMark is None:
+                passMark = cpu_perf
     else:
         passMark, cpu_perf = None, None
     return passMark, cpu_perf
 
 
 def set_device(cfg):
-    # logger.info(f"torch.cuda.is_available() {torch.cuda.is_available()}")
-    # logger.info(f"cfg.cuda {cfg.cuda}")
+    logger.info(f"torch.cuda.is_available() {torch.cuda.is_available()}")
+    logger.info(f"cfg.cuda {cfg.cuda}")
     if torch.cuda.is_available() and not cfg.cuda:
         warn(f"Cuda GPU is available but not used! Specify <cuda=True> in config file.")
-    device = torch.device("cuda" if cfg.cuda and torch.cuda.is_available() else "cpu")
+    elif torch.backends.mps.is_available() and not cfg.cuda:
+        warn(f"MPS GPU is available but not used! Specify <cuda=True> in config file.")
+    if torch.cuda.is_available():
+        device = torch.device("cuda" if cfg.cuda else "cpu")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps" if cfg.cuda else "cpu")
+    else:
+        device = torch.device("cpu")
+
     logger.info(f"Running {cfg.run_type}-run on {device}")
 
-    # raise error on strange CUDA warnings which are not caught
-    if (cfg.run_type == "train") and cfg.cuda and not torch.cuda.is_available():
+    # raise error on strange CUDA/MPS warnings which are not caught
+    if (
+            cfg.run_type == "train") and cfg.cuda and not torch.cuda.is_available() and not torch.backends.mps.is_available():
         e = "..."
         try:
-            torch.zeros(10, device=torch.device("cuda"))
+            torch.zeros(10, device=device)
         except Exception as e:
             pass
         raise RuntimeError(f"specified training run on GPU but running on CPU! ({str(e)})")
@@ -306,20 +417,28 @@ def set_device(cfg):
     return device
 
 
-def _adjust_time_limit(original_TL, pass_mark, device, nr_threads=1, passmark_version=None):
-    # print(f' IN ADJUST TIME LIMIT: original Time Limit: {original_TL},'
-    #       f' device: {device}, pass_mark: {pass_mark}, nr_threads: {nr_threads}')
-    if device == torch.device("cuda"):
-        # print(f"GPU_BASE_REF: {GPU_BASE_REF}")
-        return np.round(original_TL / (pass_mark / GPU_BASE_REF))
-        # return np.round(original_TL / (pass_mark / COMBINED_BASE_REF))
-    elif device == torch.device("cpu"):
-        CPU_BASE_REF = CPU_BASE_REF_SINGLE if nr_threads == 1 else CPU_BASE_REF_MULTI
-        # nr_threads*CPU_BASE_REF_SINGLE
-        # print(f"CPU_BASE_REF: {CPU_BASE_REF}")
-        return np.round(original_TL / (pass_mark / CPU_BASE_REF))
+def _adjust_time_limit(original_TL, pass_mark, device, nr_threads=1, passmark_version=PASSMARK_VERSION):
+    # TODO: Tmax = n × 240/100 seconds (used in HGS-CVRP)
+    #  "Therefore, the smallest instance with 100 clients
+    # is run for 4 minutes, whereas the largest instance containing 1000 clients is run for 40 minutes."
+
+    print(f'IN ADJUST TIME LIMIT: device: {device}, pass_mark: {pass_mark}, nr_threads: {nr_threads}, '
+          f'passmark_v: {passmark_version}, ')
+    if passmark_version == "v1":
+        print(f"MACHINE_BASE_REF_v1: {MACHINE_BASE_REF_v1}")
+        return np.round(original_TL / (pass_mark / MACHINE_BASE_REF_v1))
     else:
-        logger.info(f"Device {device} not known - specify 'cuda' or 'cpu' to adjust Time Limit for Evaluation.")
+        if device == torch.device("cuda"):
+            print(f"GPU_BASE_REF: {GPU_BASE_REF}")
+            return np.round(original_TL / (pass_mark / GPU_BASE_REF))
+            # return np.round(original_TL / (pass_mark / COMBINED_BASE_REF))
+        elif device == torch.device("cpu"):
+            CPU_BASE_REF = CPU_BASE_REF_SINGLE if nr_threads == 1 else CPU_BASE_REF_MULTI
+            # nr_threads*CPU_BASE_REF_SINGLE
+            print(f"CPU_BASE_REF: {CPU_BASE_REF}")
+            return np.round(original_TL / (pass_mark / CPU_BASE_REF))
+        else:
+            logger.info(f"Device {device} not known - specify 'cuda' or 'cpu' to adjust Time Limit for Evaluation.")
 
 
 def merge_sols(sols_search, sols_construct):
@@ -329,7 +448,8 @@ def merge_sols(sols_search, sols_construct):
                            t + sols_construct[i].run_time for t in
                            sol.running_times] if sol is not None else sol.running_times,
                        run_time=sols_construct[
-                                    i].run_time + sol.run_time if sol is not None else sol.run_time)
+                                    i].run_time + sol.run_time if sol is not None else sol.run_time,
+                       method_internal_cost=sols_construct[i].method_internal_cost)
             for i, sol in enumerate(sols_search)]
 
 
@@ -359,14 +479,18 @@ def get_stats(sols, logger_, model_name, debug_flag, ranking_updates=None, N_run
     if debug_flag:
         logger_.info(f"First and Last solution; {sols[0]} {sols[-1]}")
 
-    avg_cost, avg_time, avg_total_time, avg_PI, avg_WRAP, not_solved = [], [], [], [], [], []
+    avg_cost, avg_time, avg_total_time, avg_PI, avg_WRAP, not_solved, avg_cost_int = [], [], [], [], [], [], []
     run_avg_cost = 0
+    run_avg_cost_int = 0
     for i, sol_ in enumerate(sols):
         avg_PI.append(sol_.pi_score)
         avg_WRAP.append(sol_.wrap_score)
         if sol_.cost != float('inf'):
             avg_cost.append(sol_.cost)
             run_avg_cost += sol_.cost
+            run_avg_cost_int += sol_.method_internal_cost if sol_.method_internal_cost is not None else 1
+            if sol_.method_internal_cost is not None:
+                avg_cost_int.append(sol_.method_internal_cost)
             avg_total_time.append(sol_.run_time)
             # print('sol_.running_times', sol_.running_times)
             avg_time.append(sol_.running_times[-1] if sol_.running_times is not None else sol_.run_time)
@@ -375,11 +499,13 @@ def get_stats(sols, logger_, model_name, debug_flag, ranking_updates=None, N_run
 
     if not avg_PI.count(10) == 0:
         logger_.info(f"PI = 10 for {avg_PI.count(10)} instances out of {len(sols)}.")
-        logger_.info(f"{model_name} did not solve the following instances: {not_solved}")
+        if not_solved:
+            logger_.info(f"{model_name} did not solve the following instances: {not_solved}")
 
     if not avg_WRAP.count(1) == 0:
         logger_.info(f"WRAP = 1 for {avg_WRAP.count(1)} instances out of {len(sols)}.")
-        logger_.info(f"{model_name} did not solve the following instances: {not_solved}")
+        if not_solved:
+            logger_.info(f"{model_name} did not solve the following instances: {not_solved}")
 
     # if self.debug:
     if run_i is not None and N_runs is not None:
@@ -394,6 +520,7 @@ def get_stats(sols, logger_, model_name, debug_flag, ranking_updates=None, N_run
     for sol in sols[:5]:
         logger_.info(
             f"\nInstance {sol.instance.instance_id} Cost: {sol.cost}, \n"
+            f"Instance {sol.instance.instance_id} Method Internal-Cost: {sol.method_internal_cost}, \n"
             f"Instance {sol.instance.instance_id} PI: {sol.pi_score}, \n"
             f"Instance {sol.instance.instance_id} WRAP: {sol.wrap_score}, \n"
             f"Instance {sol.instance.instance_id} Run Time (best sol found): "
@@ -402,8 +529,21 @@ def get_stats(sols, logger_, model_name, debug_flag, ranking_updates=None, N_run
 
     print(f"Average Stats")
     print(f"--------------")
+    if not len(avg_cost) == 0:
+        avg_cost_print = run_avg_cost / len(avg_cost)
+        std_cost_print = np.std(avg_cost)
+    else:
+        avg_cost_print = float('inf')
+        std_cost_print = None
+    if not len(avg_cost_int) == 0:
+        run_avg_cost_int_print = run_avg_cost_int / len(avg_cost_int)
+        run_std_cost_int_print = np.std(run_avg_cost_int)
+    else:
+        run_avg_cost_int_print = None
+        run_std_cost_int_print = None
     logger_.info(
-        f"\nAverage cost: {run_avg_cost / len(avg_cost)} +/- {np.std(avg_cost)}, \n"
+        f"\nAverage cost  : {avg_cost_print} +/- {std_cost_print}, \n"
+        f"Average cost-intern (Method)  : {run_avg_cost_int_print} +/- {run_std_cost_int_print}, \n"
         f"Average PI: {np.mean(avg_PI) if not avg_PI.count(None) == len(avg_PI) else None} "
         f"+/- {np.std(avg_PI) if not avg_PI.count(None) == len(avg_PI) else None}, \n"
         f"Average WRAP: {np.mean(avg_WRAP) if not avg_WRAP.count(None) == len(avg_WRAP) else None} "
@@ -412,8 +552,8 @@ def get_stats(sols, logger_, model_name, debug_flag, ranking_updates=None, N_run
         f"Average Run Time (total): {np.mean(avg_total_time)} +/- {np.std(avg_total_time)}")
 
     return {
-        "avg_cost": run_avg_cost / len(avg_cost),
-        "std_cost": np.std(avg_cost),
+        "avg_cost": avg_cost_print,
+        "std_cost": std_cost_print,
         "avg_pi": np.mean(avg_PI) if not avg_PI.count(None) == len(avg_PI) else None,
         "std_pi": np.std(avg_PI) if not avg_PI.count(None) == len(avg_PI) else None,
         "avg_wrap": np.mean(avg_WRAP) if not avg_WRAP.count(None) == len(avg_WRAP) else None,
@@ -646,3 +786,81 @@ def subsample_XML(instances_path, subsample_path=None, nr_inst_per_group=1, nr_g
     for file_name in os.listdir(instances_path):
         if file_name[7:-4] in inst_ids_group:
             shutil.copyfile(instances_path + "/" + file_name, subsample_path + "/" + file_name)
+
+
+def update_bks_file(bks_local: dict, bks: dict):
+    assert len(bks_local.keys()) == len(bks.keys()), f"Length mismatch, both bks files do not have the same length."
+    new_bks_dct = {}
+    for inst_id in bks.keys():
+        local_bks = bks_local[inst_id][0]
+        new_bks = bks[inst_id][0]
+        if new_bks < local_bks:
+            new_bks_dct[inst_id] = bks[inst_id]
+        else:
+            new_bks_dct[inst_id] = bks_local[inst_id]
+    assert bks_local.keys() == bks.keys() == new_bks_dct.keys()
+
+    return new_bks_dct
+
+def merging_base_sols(idx_start_actuals, all_base_sol_parts, base_sol_0):
+    # all_base_sol_parts --> list contains all part dct solution files except first
+    # base_sol_0 --> dict of first part of the solutions to be merged
+    # idx_start_actuals = [1000, 2000, 4000, 6000, 8000, 10000]
+    base_sol_merged = base_sol_0.copy()
+    for l_idx, dct in enumerate(all_base_sol_parts):
+        i_actual_start = idx_start_actuals[l_idx]
+        i_actual_end = idx_start_actuals[l_idx + 1]
+        print('i_act_start, i_act_end', i_actual_start, i_actual_end)
+        i_dct = 0 # assume all dict sub files start with instance ID 0
+        for i_act in range(i_actual_start, i_actual_end):
+            base_sol_merged[str(i_act)] = dct[str(i_dct)]
+    return base_sol_merged
+
+# def get_overall_PassMark_v2(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int, number_threads: int,
+#                         total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
+# print('CPU_Mark', CPU_Mark)
+# print('number_threads', number_threads)
+# # cpu_performance = max(round(number_threads * CPU_Mark_single), CPU_Mark)  # CPU_Mark is Mark for whole processor
+# if twoD_Mark is None and threeD_Mark is None:
+#     overall_passmark = round(1 / (1 / (CPU_Mark * 0.396566187)))
+#     # overall_passmark = round(1 / (1 / (CPU_Mark * 1)))  # 11980
+# else:
+#     print('counting GPU')
+#     overall_passmark = round(1 / ((1 / (CPU_Mark * 0.396566187)) +
+#                                   (1 / (twoD_Mark * 3.178718116)) +
+#                                   (1 / (threeD_Mark * 1.525195879)) / 3))
+#
+# print('overall passMark (V2): ', overall_passmark)
+# return overall_passmark
+
+# MACHINE_BASE_REF_v2 = round(1 / (((1 / (CPU_BASE_REF_SINGLE * 0.396566187))
+#                                   + (1 / (GPU_2D_BASE_REF * 3.178718116)) + (
+#                                               1 / (GPU_3D_BASE_REF * 2.525195879))) / 3))
+
+
+# def get_overall_PassMark_v3(CPU_Mark: int, CPU_Mark_single: int, threeD_Mark: int, twoD_Mark: int,
+# number_threads: int, total_threads: int, total_cpus: int = 1, total_gpus: int = 1):
+#     # https://forums.passmark.com/performancetest/4599-formula-cpu-mark-memory-mark-and-disk-mark
+#     #  version 10 the updated numbers (2020):
+#     # all_ingredients_PassM = 1 / (((1 / (CPU_Mark * 0.396566187)) + (1 / (twoD_Mark * 3.178718116))
+#     #                               + (1 / (threeD_Mark * 2.525195879)) + (1 / (Memory_Mark * 1.757085479))
+#     #                               + (1 / (Disk_Mark * 1.668158805))) / 5)
+#     print('CPU_Mark', CPU_Mark)
+#     print('number_threads', number_threads)
+#     # CPU_Mark is Mark for whole processor
+#     cpu_performance = min(round(number_threads * CPU_Mark_single), CPU_Mark)
+#     print('cpu_performance', cpu_performance)
+#     if twoD_Mark is None and threeD_Mark is None:
+#         # overall_passmark = round(1 / (1 / (CPU_Mark * 0.396566187)))
+#         overall_passmark = round(1 / (1 / (cpu_performance * 1)))
+#     else:
+#         overall_passmark = round(1 / (((1 / (cpu_performance * 0.396566187)) +
+#                                        (1 / (total_gpus * (twoD_Mark * 3.178718116))) +
+#                                        (1 / (total_gpus * (threeD_Mark * 1.525195879)))) / 3))
+#
+#     print('overall passMark (V3): ', overall_passmark)
+#     return overall_passmark
+
+# MACHINE_BASE_REF_v3 = round(1 / (((1 / (std_nr_threads * CPU_BASE_REF_SINGLE * 0.396566187))
+#                                   + (1 / (std_nr_gpus * GPU_2D_BASE_REF * 3.178718116))
+#                                   + (1 / (std_nr_gpus * GPU_3D_BASE_REF * 2.525195879))) / 3))

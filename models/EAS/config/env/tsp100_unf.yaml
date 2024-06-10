@@ -1,0 +1,23 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: "uniform"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uniform/tsp100/test_seed1234.pkl
+  # data/test_data/cvrp/sub_uniform/cvrp100/val_seed4321_size128.pt
+# data/test_data/cvrp/uniform/cvrp100/val_seed4321_size512.pkl
+normalize_data: True
+checkpoint_load_path: models/EAS/EAS/trained_models/TSP_100/ACTOR_state_dic.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance: #
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: False
+

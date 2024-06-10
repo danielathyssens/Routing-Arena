@@ -1,0 +1,13 @@
+# @package _global_
+# policy config
+
+model: "GLOP"
+
+
+policy_cfg:
+  revision_lens: [50, 20]     # The sizes of revisers # [20] for 1000
+  revision_iters: [10,]    # Revision iterations (I_n) # [5] for 1000
+  reviser_path: ${checkpoint_load_path}
+  partitioner_path: ${ckpt_path_partitioner}
+  decode_strategy: greedy #  'sampling'
+  no_prune: False

@@ -7,7 +7,8 @@ coords_dist: uniform
 out_name: ${problem}_${graph_size}_${coords_dist}
 data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/test_seed1234.pkl
 normalize_data: True
-checkpoint_load_path: models/AM/pretrained/${problem}_${graph_size}/${coords_dist}/epoch-99.pt
+checkpoint_load_path: models/AM/AM/pretrained/${problem}_${graph_size}/${coords_dist}/epoch-99.pt
+trained_model_args_path: models/AM/AM/pretrained/${problem}_${graph_size}/${coords_dist}/args.json
 
 
 # RP Env cfg
@@ -17,3 +18,4 @@ env_kwargs:
   sampling_args:
     sample_size: 1024
     graph_size: ${graph_size}
+    subsample: False

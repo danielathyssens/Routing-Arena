@@ -4,9 +4,12 @@
 problem: "cvrp"
 graph_size: 100
 coords_dist: 'uchoa'
+weights_dist: 'uchoa'
 out_name: ${problem}_${graph_size}_${coords_dist}
 data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed123_size512.pt
 normalize_data: True
+checkpoint_load_path: 'models/NeuroLKH/NeuroLKH/pretrained/cvrp_neurolkh.pt'
+
 
 # RP Env cfg
 env_kwargs:

@@ -1,0 +1,32 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: uchoa
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uchoa/${problem}${graph_size}/val_seed1234_size128.pt
+checkpoint_load_path: models/NeuroLKH/NeuroLKH/pretrained/neurolkh.pt
+normalize_data: True
+
+
+# depot distribution choices:
+        # types:  Central, Eccentric, Random
+        # codes = {'C': 0, 'E': 1, 'R': 2} --> for plots and file_names
+
+# customer distribution choices:
+        # types: Random, Clustered, Random-Clustered (half half)
+        # codes = {'R': 0, 'C': 1, 'RC': 2} --> for plots and file_names
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance: # data/train_data/${problem}/${coords_dist}/single_large_instance.pt
+    depot_type:  # Depot Position (uchoa only): C = central (500, 500), E = eccentric (0, 0), R = random
+    customer_type:  # Customer Position (uchoa only): C = Clustered, RC = Random-Clustered (half half), R = Random
+  sampling_args:
+    sample_size: 128
+    graph_size: ${graph_size}
+    subsample: False

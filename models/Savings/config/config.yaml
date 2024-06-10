@@ -3,7 +3,7 @@
 
 defaults:
   - _self_
-  - env: cvrp100_uch
+  - env: tsp_fu
   - meta: run
   - method: savings
   - override hydra/job_logging: simple

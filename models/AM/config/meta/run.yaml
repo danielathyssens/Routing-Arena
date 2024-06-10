@@ -21,24 +21,26 @@ test_cfg:
   eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi', ['pi', 'wrap']
   time_limit: 10
   save_solutions: False   # either save solution in log dir of run output dir
-  save_for_analysis: True # or save solutions for further analysis in saved results folder
+  save_for_analysis: False # or save solutions for further analysis in saved results folder
   saved_res_dir: outputs/saved_results # where results for analysis should be saved
   out_name: ${out_name}
   save_trajectory: True   # will always be saved in log dir of run output dir
   save_traj_for:  # IDs of Instances to plot in list - if None, first instance in dataset is plotted
   fixed_dataset: True
   dataset_size:   # to overwrite the number of instances to be tested in fixed test set (first 5 instances)
+  dataset_range:  # list of the dataset range to be tested for e.g. [10, 50]
   data_file_path: ${data_file_path} # depends on distribution --> env config
   checkpoint_load_path: ${checkpoint_load_path}
   batch_size: 1
   decode_type: 'greedy'  # 'sample'
   sample_size: 0         # if select sample as decode strategy, default is 1280 - else disable and set to 0
   eval_batch_size: 1
-  add_ls: True  # boolean to add local search (spec in 'ls_policy_cfg') after construction
+  add_ls: False # True  # boolean to add local search (spec in 'ls_policy_cfg') after construction
   ls_policy_cfg:
     local_search_strategy: 'SIMULATED_ANNEALING' #'SIMULATED_ANNEALING' #'GUIDED_LOCAL_SEARCH'
     solution_limit: #None
     verbose: False
+    advanced_search_operators: True
     log_search: False
     batch_size: 1
     search_workers: 1  # only possible to parallelize search if cp_sat solver is enabled in GORT LS

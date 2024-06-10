@@ -1,0 +1,28 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: 'uniform'
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed4321_size512.pkl
+normalize_data: True
+checkpoint_load_path: models/NeuOpt/NeuOpt/pretrained/cvrp${graph_size}.pt  # NOTE: for N=100
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: random_int # sampling integers from 1-10
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: data/train_data/${problem}_10000/${coords_dist}/single_large_instance.pt
+  sampling_args:
+    sample_size: 1024
+    graph_size: ${graph_size}
+    subsample: False
+    k: 16
+    cap: 50
+
+# model specific env features
+wo_feature1: false # remove VI features
+wo_feature3: false # remove ES features

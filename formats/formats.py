@@ -4,7 +4,14 @@ from torch import Tensor, LongTensor, BoolTensor
 import numpy as np
 import torch
 
-__all__ = ["RPInstance", "TSPInstance", "CVRPInstance", "VRPTWInstance", "RPSolution"]
+__all__ = ["RPInstance", "TSPInstance", "CVRPInstance", "CVRPTWInstance", "RPSolution"]
+
+
+# BASIC TYPING
+class ObjectiveDict(NamedTuple):
+    """typed parameter args."""
+    type: str = "edge_cost_1d"
+    params: dict = {}   # kwargs and evaluator transformations
 
 
 def format_repr(k, v, space: str = ' '):
@@ -21,14 +28,19 @@ def format_repr(k, v, space: str = ' '):
 
 
 class RPInstance(NamedTuple):
-    """Typed Format Routing Problem Instance."""
+    """Typed routing problem instance wrapper."""
     coords: Union[np.ndarray, torch.Tensor]
-    node_features: Union[np.ndarray, torch.Tensor]
+    demands: Union[np.ndarray, torch.Tensor]
+    tw: Union[np.ndarray, torch.Tensor]
+    service_time: Union[np.ndarray, torch.Tensor, float]
     graph_size: int
+    org_service_horizon: Union[float, int]
+    max_num_vehicles: int
+    vehicle_capacity: float = 1.0
+    service_horizon: float = 1.0
     depot_idx: List = [0]
-    time_limit: float = None  # overall time limit for solving this instance (needed to calculate PI)
-
-    # time_windows: Union[np.ndarray, torch.Tensor] = None
+    type: Union[int, str] = ""
+    tw_frac: Union[float, str] = ""
 
     def __repr__(self) -> str:
         cls = self.__class__.__name__
@@ -46,6 +58,16 @@ class RPInstance(NamedTuple):
             return self[key]
         except AttributeError:
             return default_val
+
+# class RPInstance(NamedTuple):
+#     """Typed Format Routing Problem Instance."""
+#     coords: Union[np.ndarray, torch.Tensor]
+#    node_features: Union[np.ndarray, torch.Tensor]
+#     graph_size: int
+#     depot_idx: List = [0]
+#     time_limit: float = None  # overall time limit for solving this instance (needed to calculate PI)
+
+    # time_windows: Union[np.ndarray, torch.Tensor] = None
 
 
 # inheritance in NamedTuple not possible
@@ -80,6 +102,8 @@ class TSPInstance(NamedTuple):
         except AttributeError:
             return default_val
 
+    def update(self, **kwargs):
+        return self._replace(**kwargs)
 
 class CVRPInstance(NamedTuple):
     """Typed Format Routing Problem Instance."""
@@ -100,6 +124,7 @@ class CVRPInstance(NamedTuple):
     demands_dist: Union[int, str] = None  # For uchoa -> integer value, else 'unif' or "random_int", "random_k_variant"
     original_locations: Union[np.ndarray, torch.Tensor] = None  # for NLNS
     type: str = None  # general "distribution" or type of data instance ('uniform', 'uchoa', 'dimacs', ...)
+    sample_prob: float = None
 #     demand: Union[np.ndarray, torch.Tensor] = None # for NLNS
 
 
@@ -124,7 +149,7 @@ class CVRPInstance(NamedTuple):
         return self._replace(**kwargs)
 
 
-class VRPTWInstance(NamedTuple):
+class CVRPTWInstance(NamedTuple):
     """Typed Format Routing Problem Instance."""
     coords: Union[np.ndarray, torch.Tensor]
     demands: Union[np.ndarray, torch.Tensor]
@@ -132,17 +157,24 @@ class VRPTWInstance(NamedTuple):
     tw: Union[np.ndarray, torch.Tensor]
     service_time: Union[np.ndarray, torch.Tensor, float]
     graph_size: int
-    org_service_horizon: Union[float, int]
-    max_vehicle_number: int
-    vehicle_capacity: float = 1.0
+    depot_tw: Union[np.ndarray, torch.Tensor] = None
+    node_tw: Union[np.ndarray, torch.Tensor] = None
+    org_service_horizon: Union[float, int] = None
+    service_horizon: Union[float, int] = None
+    vehicle_capacity: Union[Union[np.ndarray, torch.Tensor], float] = -1
+    original_capacity: Union[int, np.ndarray, torch.Tensor] = None
     max_num_vehicles: int = 16
-    service_horizon: float = 1.0
     depot_idx: List = [0]
+    constraint_idx: List = [-1]
+    time_limit: float = None  # overall time limit for solving this instance (needed to calculate PI)
+    BKS: float = None  # Best Known Solution (for this particular instance so far)
+    instance_id: Optional[int] = None  # Test instances of a particular dataset have an ID - due to BKS registry
+    coords_dist: Union[int, str] = None  # For uchoa data it is an integer value, else 'unif' or 'gauss', 'mixed'
+    depot_type: Union[int, str] = None  # For uchoa data it is an integer value, else 'unif' or 'gauss', 'mixed'
+    demands_dist: Union[int, str] = None  # For uchoa -> integer value, else 'unif' or "random_int", "random_k_variant"
     type: Union[int, str] = ""
     tw_frac: Union[float, str] = ""
-    instance_id: Optional[int] = None
-    time_limit: float = None  # overall time limit for solving this instance (needed to calculate PI)
-    BKS: float = None  # Best Known Solution (for this particular instance so far) #TODO get from global registry?
+
 
     # constraint_idx: List = [-1]
     # vehicle_capacity: float = -1
@@ -168,6 +200,9 @@ class VRPTWInstance(NamedTuple):
         except AttributeError:
             return default_val
 
+    def update(self, **kwargs):
+        return self._replace(**kwargs)
+
 
 class RPSolution(NamedTuple):
     """Typed wrapper for routing problem solutions."""
@@ -178,7 +213,7 @@ class RPSolution(NamedTuple):
     num_vehicles: int = None
     run_time: float = None
     problem: str = None
-    instance: Union[TSPInstance, CVRPInstance, VRPTWInstance] = None
+    instance: Union[TSPInstance, CVRPInstance, CVRPTWInstance] = None
     last_cost: Optional[float] = None  # previous instance cost that was PI-evaluated (for iterative PI computatn)
     last_runtime: Optional[float] = None  # previous instance runtime (for iterative PI computatn)
     running_costs: Optional[List] = None  # for PI and WRAP eval

@@ -1,0 +1,33 @@
+# @package _global_
+# policy config
+
+model: "eas_tab"
+method: "tab"
+
+
+model_cfg:
+  EMBEDDING_DIM: 128
+  ENCODER_LAYER_NUM: 6
+  KEY_DIM: 16    # Length of q, k, v of EACH attention head
+  HEAD_NUM: 8
+  LOGIT_CLIPPING: 10  #  (C in the paper)
+  FF_HIDDEN_DIM: 512
+  ACTOR_WEIGHT_DECAY: 1e-6
+
+
+
+# cvrp50_unf, augment: False, single_trajectory: True -
+# {'cost_mean': 12.429101820003808, 'cost_std': 1.6727718014586077,
+# 'num_vehicles_mean': 8.45703125, 'num_vehicles_std': 0.532268669492614, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 0.001879675779491663, 'run_time_total': 0.9623939990997314, 'num_infeasible': 0}
+
+# cvrp50_unf, augment: False, single_trajectory: False -
+# {'cost_mean': 12.069491538879248, 'cost_std': 1.5295892332851013,
+# 'num_vehicles_mean': 8.23828125, 'num_vehicles_std': 0.43957029687916527, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 0.002122454810887575, 'run_time_total': 1.0866968631744385, 'num_infeasible': 0}
+
+# cvrp50_unf, augment: True, single_trajectory: False -
+# {'cost_mean': 11.875687259361513, 'cost_std': 1.439056501526208,
+# 'num_vehicles_mean': 8.09375, 'num_vehicles_std': 0.2914805954090255, 'num_vehicles_median': 8.0,
+# 'run_time_mean': 0.0009733876213431358, 'run_time_total': 0.49837446212768555, 'num_infeasible': 0}
+

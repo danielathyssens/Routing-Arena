@@ -1,0 +1,46 @@
+# @package _global_
+
+# tensorboard --host localhost --port 8080 --logdir=./outputs
+
+run_type: "val"
+number_runs: 1
+debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
+global_seed: 1234
+cuda: True
+eval_only: True
+# eGPU GeForce RTX 3060 (G3DMark Mark: 17177, G2DMark: 975)
+G3DMark: 17177
+G2DMark: 975
+# DELL Machine (Intel® Core™ i7-10850H - 12 Threads): 11980
+# DELL Machine (Intel® Core™ i7-10850H - 1 Threads): 2714
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+
+test_cfg:
+  eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi'
+  time_limit: 10
+  save_solutions: True   # either save solution in log dir of run output dir
+  save_for_analysis: False # or save solutions for further analysis in saved results folder
+  saved_res_dir: outputs/saved_results # where results for analysis should be saved
+  out_name: ${out_name}
+  save_trajectory: True   # will always be saved in log dir of run output dir
+  save_traj_for:  # IDs of Instances to plot in list - if None, first instance in dataset is plotted
+  data_file_path: ${data_file_path} # depends on distribution --> env config
+  checkpoint_load_path: ${checkpoint_load_path}
+  fixed_dataset: True
+  dataset_size: # 512  # to overwrite the number of instances to be tested in fixed test set (first x instances)
+  dataset_range: # solve range of dataset , e.g. [10, 20]
+  batch_size: 2 #
+
+# important model eval params # network parameters here, not same as in DACT
+T_max: 5000 # 5000    # number of steps for inference
+num_augments: 1  # number of data augments (<=8) # ? can't find that parameter in options.py (from original code)
+
+# global paths and logging
+log_lvl: INFO
+tb_log_path: 'logs/tb/'
+log_path: 'logs/'
+checkpoint_save_path: 'checkpoints/'
+

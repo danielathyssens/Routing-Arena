@@ -1,0 +1,32 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: "uniform"
+weights_dist: "random_int"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/cvrp/uniform/cvrp100/val_seed4321_size512.pkl
+  # data/test_data/cvrp/sub_uniform/cvrp100/val_seed4321_size128.pt
+# data/test_data/cvrp/uniform/cvrp100/val_seed4321_size512.pkl
+normalize_data: True   # DeepACO takes demand-input as unnormalized floats, coords will stay betw. 0-1 for unf data
+# checkpoint in model cfg yaml
+k_sparse: 20
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: random_int # sampling integers from 1-10
+    normalize_demands: False  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: # data/train_data/${problem}_10000/${coords_dist}/single_large_instance.pt
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: False
+    k: 20
+    cap: 50
+    max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+    n_depots: 1 #number of depots (default = 1)
+

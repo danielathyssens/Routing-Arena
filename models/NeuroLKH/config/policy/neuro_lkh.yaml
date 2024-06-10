@@ -2,14 +2,15 @@
 # policy config
 
 policy: "NeuroLKH"
+cuda: True
 
 policy_cfg:
   num_workers: 8
-  model_path: 'models/NeuroLKH/NeuroLKH/pretrained/cvrp_neurolkh.pt'
-  lkh_exe_path: "./models/NeuroLKH/LKH"
+  model_path: ${checkpoint_load_path}
+  exe_path: "./models/NeuroLKH/NeuroLKH/LKH"
   max_trials: 10000
   int_prec: 10000
-  batch_size: 1
+  batch_size: 1  # must be 1
 
 # TIME_LIMIT: ${test_cfg.time_limit}
 

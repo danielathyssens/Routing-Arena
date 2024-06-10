@@ -1,0 +1,5 @@
+# @package _global_
+# policy config
+
+model: "DeepACO"
+checkpoint_load_path: models/DeepACO/DeepACO/pretrained/${problem}/${problem}${graph_size}.pt

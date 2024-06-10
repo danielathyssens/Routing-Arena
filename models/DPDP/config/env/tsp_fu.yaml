@@ -1,0 +1,18 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: "uniform_fu"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uniform/fu/tsp${graph_size}_fu.pt
+normalize_data: True
+checkpoint_load_path: models/DPDP/DPDP/logs/${problem}_uniform100/best_val_checkpoint.tar
+heatmap_load_path: models/DPDP/DPDP/results/${problem}/${problem}_uniform${graph_size}_test_seed1234/heatmaps/heatmaps_${problem}_uniform${graph_size}.pkl
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+  sampling_args:
+    # sample_size: 1
+    graph_size: ${graph_size}

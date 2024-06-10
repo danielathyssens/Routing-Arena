@@ -2,11 +2,12 @@
 # policy config
 
 policy: "LKH"
+cuda: False
 
 policy_cfg:
   num_workers: 8 #1
   model_path: #
-  lkh_exe_path: "./models/NeuroLKH/LKH"
+  exe_path: "./models/NeuroLKH/LKH"
   max_trials: 10000
   int_prec: 10000
   batch_size: 1
