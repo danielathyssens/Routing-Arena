@@ -1,14 +1,14 @@
 # RA
-### **Routing Arena**: A Benchmark Suite for Neural Routing Solvers
-This repository corresponds to the paper ""_Routing Arena: A Benchmark Suite for Neural Routing Solvers_"".
+### **Routing Arena**: A Benchmark Suite for Neural Routing Methods
+This repository corresponds to the paper ""_Routing Arena: A Benchmark Suite for Neural Routing Methods_"".
 The Benchamark Suite aims at providing a seamless integration of **consistent evaluation** and **provision of baselines 
 and benchmarks** for routing solvers prevalent in the Machine Learning (ML)- and Operations Research (OR) field, by unifying the evaluation 
 protocol and extending the pool of easily accessible baselines and datasets.
 
-**The implementation** currently focuses on the _Capacitated Vehicle Routing Problem_ (CVRP) as one of the most common 
-problems in Neural Combinatorial Optimization (NCO) and among the most well studied problems in OR. Further 
-interfacing, datasets and baselines for the Traveling Salesmen Problem (TSP) and the Vehicle Routing Problem with Time 
-Windows (VRPTW) in particular are currently being adopted.
+**The implementation** currently focuses on the _Traveling Salesmen Problem_ (TSP), _Capacitated Vehicle Routing Problem_ (CVRP) 
+and the _Capacitated Vehicle Routing Problem with Time Windows_ (CVRPTW) as the most common and emblematic
+routing problems in Neural Combinatorial Optimization (NCO) and among the most well studied problems in OR. Further 
+interfacing, datasets and baselines for other problem variants are continuously being adopted.
 
 Below are some quick-start instructions to test the functionality of the RA.
 A comprehensive **Documentation** on how the Suite is designed and structured can be found in the appendix of the paper.
@@ -21,14 +21,15 @@ A copy of the Documentation PDF as well as a **Quick Baseline Setup** Guide will
 ```sh
 conda env create -f environment.yml
 ```
-2. Update the CPU and GPU PassMark specifications in the respective `config/meta/run.yaml` file of the model you want to 
-evaluate to retrieve the correct runtime normalizations that correspond to your machine.
+2. Open the markdown files and add your machine information into the respective registries for CPU and GPU machines:
+  - In `machine_scores/gpu_scores.md` you should enter the name and the G3D / G2D Mark from [PassMark-gpu](https://www.videocardbenchmark.net/high_end_gpus.html)
+  - In `machine_scores/cpu_scores.md` you should enter the name and respective scpres from [PassMark-cpu](https://www.cpubenchmark.net/high_end_cpus.html) 
+
+    Alternatively, update the CPU and GPU PassMark specifications in the respective `config/meta/run.yaml` file of the model you want to 
+    evaluate to retrieve the correct runtime normalizations that correspond to your machine.
 To run the example below, update this [run config file](models/SGBS/config/meta/run.yaml).
 The PassMarks for CPUs and GPUs can be found [here](https://www.cpubenchmark.net/high_end_cpus.html) 
 and [here]( https://www.videocardbenchmark.net/high_end_gpus.html) respectively. 
-The files `formats/CPU_MACHINES.pkl` and `formats/GPU_MACHINES.pkl` comprise a selection of common machine PassMark 
-specifications, you can also add your machine's specs there to avoid manually updating the PassMark specifications 
-in the config files, or enter the specs as arguments to the command line.
 ---
 ### Evaluation Run - Quick Start
 After activating the environment and updating the CPU/GPU PassMark specifications, executing an evaluation run for a 
@@ -85,6 +86,10 @@ following original source-code publications of the respective baselines:
 - Savings: https://github.com/yorak/VeRyPy
 - SGBS: https://github.com/yd-kwon/SGBS
 - NeuOpt: https://github.com/yining043/NeuOpt
+- BQ: https://github.com/naver/bq-nco
+- DeepACO: https://github.com/henry-yeh/DeepACO
+- EAS:https://github.com/ahottung/EAS
+- GLOP: https://github.com/henry-yeh/GLOP/tree/master
 
 For further information
 concerning implementation and paper references, see the README.md in the respective 

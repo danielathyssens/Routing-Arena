@@ -141,7 +141,7 @@ class Runner:
         if self.cfg.run_type in ["val", "test"]:
             if self.cfg.data_file_path is not None and self.passMark is not None \
                     and self.cfg.test_cfg.eval_type != "simple":
-                assert self.device in [torch.device("cpu"), torch.device("cuda")], \
+                assert self.device in [torch.device("cpu"), torch.device("cuda"), torch.device("mps")], \
                     f"Device {self.device} unknown - set to torch.device() for metric Evaluation " \
                     f"or set test_cfg.eval_type to 'simple'"
                 self.init_metrics(self.cfg)

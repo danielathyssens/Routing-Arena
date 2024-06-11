@@ -65,14 +65,25 @@ class CVRPTester:
         # cuda
         # if self.run_params['use_cuda']:
         if USE_CUDA:
+            # cuda_device_num = self.tester_params['cuda_device_num']
+            # torch.cuda.set_device(cuda_device_num)
+            # device = torch.device('cuda', cuda_device_num)
+            # torch.set_default_tensor_type('torch.cuda.FloatTensor')
             cuda_device_num = self.run_params['cuda_device_num']
-            torch.cuda.set_device(cuda_device_num)
-            device = torch.device('cuda', cuda_device_num)
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+            # print('cuda_device_num', cuda_device_num)
+            try:
+                torch.cuda.set_device(cuda_device_num)
+                self.device = torch.device('cuda', cuda_device_num)
+                torch.set_default_tensor_type('torch.cuda.FloatTensor')  # deprecated
+                # torch.set_default_dtype(torch.cuda.FloatTensor)
+            except AttributeError:
+                if torch.backends.mps.is_available():
+                    self.device = torch.device('mps')
+                    torch.set_default_device("mps")
+                    torch.set_default_dtype(torch.float32)
         else:
-            device = torch.device('cpu')
+            self.device = torch.device('cpu')
             torch.set_default_tensor_type('torch.FloatTensor')
-        self.device = device
 
         # ENV
         self.env = env  # Env(**self.env_params)
@@ -92,7 +103,7 @@ class CVRPTester:
 
         # Model
         # self.model = Model(**self.model_params)
-        self.model = model.to(device=device)
+        self.model = model.to(device=self.device)
         # Restore --> already done in runner
         # model_load = self.run_params['model_load']
         # checkpoint_fullname = '{path}/checkpoint-{epoch}.pt'.format(**model_load)
@@ -471,7 +482,7 @@ class CVRPTester:
         self.all_incumbent_solution[:, episode:episode + batch_size] = cpu_solution
         # print('self.all_incumbent_solution.size()', self.all_incumbent_solution.size())
         # print('self.all_incumbent_solution after EAS in eas batch[:2,0,:50]', self.all_incumbent_solution[:2,0,:50])
-        incumb_sol_best = self.all_incumbent_solution[index_aug_best][0]
+        incumb_sol_best = self.all_incumbent_solution[index_aug_best.to(self.all_incumbent_solution.device)][0]
         # print('best_incumb_sol[0, :101]', incumb_sol_best[0, :101])
         cpu_score = incumbent_score.reshape(aug_factor, batch_size).to('cpu')
         self.all_incumbent_score[:, episode:episode + batch_size] = cpu_score

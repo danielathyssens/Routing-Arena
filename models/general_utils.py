@@ -6,7 +6,7 @@ from typing import Tuple
 
 def get_machine_info(which_type: str, machine_name: str) -> Tuple:
     current_dir = os.getcwd()
-    root_dir = os.path.join(current_dir.split("routing-arena")[0], "routing-arena")
+    root_dir = os.path.join(current_dir.split("RA")[0], "RA")
     if which_type == "cpu":
         score_registry_path = os.path.join(root_dir, 'machine_scores/cpu_scores.md')
     elif which_type == "gpu":
