@@ -90,6 +90,7 @@ following original source-code publications of the respective baselines:
 - DeepACO: https://github.com/henry-yeh/DeepACO
 - EAS:https://github.com/ahottung/EAS
 - GLOP: https://github.com/henry-yeh/GLOP/tree/master
+- Omni-VRP: https://github.com/RoyalSkye/Omni-VRP
 
 For further information
 concerning implementation and paper references, see the README.md in the respective 
