@@ -696,7 +696,9 @@ class CVRPSolver(RoutingSolver):
         locs = data.coords if isinstance(data.coords, np.ndarray) else data.coords.numpy()
         # print('locs BEFORE', locs[:5])
         # print('(np.round(locs * precision))[:5]', (np.round(locs * precision))[:5])
-        if (locs < 1).all():
+        # print('(locs <= 1).all()', (locs <= 1).all())
+        # print('grid_size', grid_size)
+        if (locs <= 2.5).all():
             if grid_size == 1:
                 locs = (locs * 1000).astype(int) if not data.type == "Golden" else locs * precision
             else:
@@ -1425,14 +1427,15 @@ class ParallelSolver:
                     total=len(prep_data)
                 ))
             failed = [str(i) for i, res in enumerate(results) if res[0] is None]
+            print('failed', failed)
             if len(failed) > 0:
                 warnings.warn(f"Some instances failed: {failed}")
         else:
             if self.time_limit is not None:
                 # print('prep_data', prep_data)
-                print('init_sol_prep', init_sol_prep)
-                print('len(prep_data)', len(prep_data))
-                print('len(init_sol_prep)', len(init_sol_prep))
+                # print('init_sol_prep', init_sol_prep)
+                # print('len(prep_data)', len(prep_data))
+                # print('len(init_sol_prep)', len(init_sol_prep))
                 with Pool(self.num_workers) as pool:
                     results = list(tqdm(
                         pool.imap(
@@ -1453,6 +1456,7 @@ class ParallelSolver:
                         total=len(prep_data),
                     ))
             failed = [str(i) for i, res in enumerate(results) if res[0] is None]
+            print('failed', failed)
             if len(failed) > 0:
                 warnings.warn(f"Some instances failed: {failed}")
 
@@ -1470,9 +1474,10 @@ class ParallelSolver:
         # print('len results[0][1][running_solutions]', len(results[0][1]['running_solutions']))
         # print('results[0][1][running_times][-5:]', results[0][1]['running_times'][-5:])
 
+        final_routes_updated = None
         # update running sols
         for r in results:
-            # print("r[1]['running_solutions']", r[1]['running_solutions'])
+            #print("r[1]['running_solutions']", r[1]['running_solutions'])
             if r[1]['running_solutions'] is not None:
                 running_sols_updated = []
                 for running_sol in r[1]['running_solutions']:
@@ -1488,13 +1493,26 @@ class ParallelSolver:
 
 
                 r[1]['running_sols_upd'] = running_sols_updated
+                # print('r[1][running_sols_upd]', r[1]['running_sols_upd'])
             else:
                 r[1]['running_sols_upd'] = None
+            # print("r[1]['running_sols_upd'][0] == r[1]['running_sols_upd'][1]  == r[1]['running_sols_upd'][2]",
+            #       r[1]['running_sols_upd'][0] == r[1]['running_sols_upd'][1] == r[1]['running_sols_upd'][2])
+            if r[0]['routes'] is not None:
+                # print('r[0][routes]',r[0]['routes'])
+                final_routes_updated = []
+                for r_ in r[0]['routes']:
+                    if not r_[0] == 0:
+                        final_routes_updated.append([0]+r_)
+                    if not r_[-1] == 0:
+                        final_routes_updated.append(r_+[0])
+                    else:
+                        final_routes_updated.append(r_)
+                # print('final_routes_updated', final_routes_updated)
+            r[0]['routes'] = final_routes_updated
             if len(r[0]['routes']) > 1 and not self.problem == "TSP":
                 # print("len(r[0]['routes'])", len(r[0]['routes']))
                 r[0]['routes'] = [r[0]['routes']]
-            # print("r[1]['running_sols_upd'][0] == r[1]['running_sols_upd'][1]  == r[1]['running_sols_upd'][2]",
-            #       r[1]['running_sols_upd'][0] == r[1]['running_sols_upd'][1] == r[1]['running_sols_upd'][2])
             # print("r[1]['running_costs']", r[1]['running_costs'])
             # print("r[0]['routes'][0]", r[0]['routes'][0])
         return [
@@ -1520,10 +1538,10 @@ class ParallelSolver:
             init_sol_prep_1 = [init_sols[i].solution for i in range(len(init_sols)) if i in failed_inst_ids]
             init_sol_inst_ids = [init_sols[i].instance.instance_id for i in range(len(init_sols)) if i in failed_inst_ids]
             solved_inst_ids = failed_inst_ids
-            print('init_sol_inst_ids', init_sol_inst_ids)
-            print('solved_inst_ids', solved_inst_ids)
-        print('len(init_sol_prep_1)', len(init_sol_prep_1))
-        print('solved_inst_ids', solved_inst_ids)
+        #     print('init_sol_inst_ids', init_sol_inst_ids)
+        #     print('solved_inst_ids', solved_inst_ids)
+        # print('len(init_sol_prep_1)', len(init_sol_prep_1))
+        # print('solved_inst_ids', solved_inst_ids)
         init_sol_prep = []
         for i in range(len(init_sol_prep_1)):
             if init_sol_prep_1[i] is not None:

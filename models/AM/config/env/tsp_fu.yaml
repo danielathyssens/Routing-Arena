@@ -13,7 +13,7 @@ trained_model_args_path: models/AM/AM/pretrained/${problem}_100/uniform/args.jso
 # RP Env cfg
 env_kwargs:
   generator_args:
-    coords_sampling_dist: ${coords_dist}
+    coords_sampling_dist: uniform
     single_large_instance: # data/train_data/${problem}/${coords_dist}/single_large_instance.pt
   sampling_args:
     sample_size: 128

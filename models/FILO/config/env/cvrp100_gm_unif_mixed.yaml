@@ -14,6 +14,8 @@ env_kwargs:
   generator_args:
     coords_sampling_dist: ${coords_dist}
     weights_sampling_dist: ${weights_dist}
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: #
     mu_sampling_dist: "normal"
     mu_sampling_params: [ 0, 1 ]
     sigma_sampling_dist: "uniform"
@@ -23,6 +25,7 @@ env_kwargs:
   sampling_args:
     sample_size: 64
     graph_size: ${graph_size}
+    subsample: False
     k: 32
     cap: 50
     n_depots: 1 #number of depots (default = 1)

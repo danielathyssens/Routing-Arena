@@ -5,8 +5,9 @@ problem: "cvrp"
 graph_size: 100
 coords_dist: 'uniform'
 out_name: ${problem}_${graph_size}_${coords_dist}
-data_file_path: data/test_data/cvrp/sub_uniform/cvrp100/val_seed4321_size128.pt
-# data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed4321_size512.pkl
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed4321_size512.pkl
+# data/test_data/cvrp/sub_uniform/cvrp100/val_seed4321_size128.pt
+#
 normalize_data: True
 
 # RP Env cfg
@@ -14,7 +15,7 @@ env_kwargs:
   generator_args:
     coords_sampling_dist: ${coords_dist}
     weights_sampling_dist: random_int # sampling integers from 1-10
-    normalize_demands: False  # if None or False - demands will remain un-normalized (not between 0-1)
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
     single_large_instance:
   sampling_args:
     sample_size: 64

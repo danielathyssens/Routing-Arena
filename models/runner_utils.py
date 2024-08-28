@@ -91,7 +91,9 @@ NORMED_BENCHMARKS = ['cvrp20_test_seed1234.pkl',
                      'val_seed123_size512.pkl',
                      'E_R_6_seed123_size512.pt',
                      'val_seed123_size4321.pkl',
-                     'val_seed123_size4321.pt']
+                     'val_seed123_size4321.pt',
+                     'val_E_size2000.pkl',
+                     'val_R_size2000.pkl']
 
 XE_DIMS = {'XE_1': 100, 'XE_2': 124, 'XE_3': 128, 'XE_4': 161, 'XE_5': 180, 'XE_6': 185, 'XE_7': 199,
            'XE_8': 203, 'XE_9': 213, 'XE_10': 218, 'XE_11': 236, 'XE_12': 241, 'XE_13': 269, 'XE_14': 274,
@@ -216,22 +218,21 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
         try:
             BKS_path = os.path.join(ds_path, "BKS_" + ds_path.split("/")[-1] + ".pkl")
             # bks_registry = torch.load(BKS_path)
-            print("BKS_path in 1st try", BKS_path)
         except FileNotFoundError:
             BKS_path = os.path.join(ds_path, "BKS_" + ds_path.split("/")[-2] + ".pkl")
             # bks_registry = torch.load(BKS_path)
-            print("BKS_path in 1st except", BKS_path)
     else:
-        print('path bks', os.path.join(os.path.dirname(ds_path), "BKS_"
-                                       + os.path.basename(ds_path).split('.')[0] + ".pkl"))
+        # print('path bks', os.path.join(os.path.dirname(ds_path), "BKS_"
+        #                                + os.path.basename(ds_path).split('.')[0] + ".pkl"))
         if "seed" in os.path.basename(ds_path):
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path).split('_seed')[0] + ".pkl")
-            print("BKS_path in 2nd try", BKS_path)
+        elif "size" in os.path.basename(ds_path):
+            BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
+                                    os.path.basename(ds_path)[:3] + ".pkl")
         else:
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path).split('.')[0] + ".pkl")
-            print("BKS_path in 2nd except", BKS_path)
     bks_registry = torch.load(BKS_path)
 
     # update BKS for this test set if there are new best costs
@@ -242,7 +243,6 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
             # or sol.instance.instance_id == int(id_)
             if len(bks_registry[id_]) < 4:
                 bks_registry[id_] = (solution_tuple.cost, solution_tuple.solution, acronym)
-                logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
             else:
                 if bks_registry[id_][3] == 'opt':
                     if math.ceil(solution_tuple.cost) < bks_registry[id_][0]:
@@ -255,7 +255,8 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
                                     f"Not updating BKS for this Instance. ")
                 else:
                     bks_registry[id_] = (solution_tuple.cost, solution_tuple.solution, acronym, 'not_opt')
-                    logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
+                    # logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
+        logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
     # save back the update registry of BKS
     torch.save(bks_registry, BKS_path)
 

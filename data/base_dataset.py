@@ -49,6 +49,8 @@ TEST_SETS_BKS = ['tsp100_fu.pt',
                  'val_seed1234_size128.pt',
                  'E_R_6_seed123_size512.pt',
                  'val_seed4321_size128.pt',
+                 'val_E_size2000.pkl',
+                 'val_R_size2000.pkl',
                  'val_cvrptw_40.pkl',
                  'val_cvrptw_200.pkl',
                  'XE',
@@ -430,10 +432,6 @@ class BaseDataset(Dataset):
                            place_holder_final_sol: bool = False,
                            update_runn_sols: bool = True):
         runn_costs_upd, runn_sols = None, None
-        # print('running_sol', running_sol)
-        # print('running_costs', running_costs)
-        print('scale_factor', scale_factor)
-        print('grid_size', grid_size)
         if running_sol is not None and running_t is not None:
             runn_costs = [self.feasibility_check(instance=instance, rp_solution=sol, is_running=True)[0]
                           for sol in running_sol]
@@ -576,7 +574,6 @@ class BaseDataset(Dataset):
         # check if dataset has a BKS/BaseSol store file
         if self.store_path is not None:
             _path = None
-            print('os.path.basename(self.store_path)', os.path.basename(self.store_path))
             if os.path.basename(self.store_path) in TEST_SETS_BKS \
                     or os.path.basename(self.store_path)[:2] in TEST_SETS_BKS \
                     or self.store_path.split("/")[-2] in TEST_SETS_BKS:

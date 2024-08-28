@@ -3,15 +3,19 @@
 
 problem: "cvrp"
 graph_size: 500
-coords_dist: 'uchoa'
+coords_dist: uchoa
+weights_dist: uchoa
 out_name: ${problem}_${graph_size}_${coords_dist}
 data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed123_size512.pkl
-normalize_data: True
+normalize_data: False
 
 # RP Env cfg
 env_kwargs:
   generator_args:
     coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: ${weights_dist}
+    normalize_demands: False  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: #
     # if None in the following two args, then all are mixed
     depot_type: E # Depot Position (uchoa only): C = central (500, 500), E = eccentric (0, 0), R = random
     customer_type: R # Customer Position (uchoa only): C = Clustered, RC = Random-Clustered (half half), R = Random
@@ -19,6 +23,7 @@ env_kwargs:
   sampling_args:
     sample_size: 1024
     graph_size: ${graph_size}
+    subsample: False
     k: 16
     cap: 50
     max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle

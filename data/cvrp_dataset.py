@@ -75,9 +75,9 @@ class CVRPDataset(BaseDataset):
         self.generator_args = generator_args
         self.sampling_args = sampling_args
         self.graph_size = graph_size
-        print('self.distribution', self.distribution)
-        self.grid_size = grid_size if self.distribution in ["uchoa", "XML"] else 1000
-        print('self.grid_size', self.grid_size)
+        # print('self.distribution', self.distribution)
+        self.grid_size = grid_size if self.distribution in ["uchoa", "XML", "explosion", "rotation"] else 1000
+        # print('self.grid_size', self.grid_size)
         self.num_vehicles = num_vehicles
         self.capacity = capacity
         self.time_limit = TimeLimit
@@ -176,9 +176,9 @@ class CVRPDataset(BaseDataset):
 
     def _make_CVRPInstance(self):
         """Reformat (loaded) test instances as CVRPInstances"""
-        if isinstance(self.data[0][0], List) or self.data_key == 'uniform':
-            logger.info("Transforming instances to CVRPInstances")
-            warnings.warn("This works only for Nazari et al type of data")
+        if isinstance(self.data[0][0], List) or self.data_key in ['uniform', 'explosion', 'rotation']:
+            logger.info("Transforming instances from lists to CVRPInstances")
+            # warnings.warn("This works only for Nazari et al type of data")
             coords, demands = [], []
             for i in range(len(self.data)):
                 if self.normalize:
@@ -207,7 +207,7 @@ class CVRPDataset(BaseDataset):
                     constraint_idx=[-1],  # demand is at last position of node features
                     vehicle_capacity=1.0,  # demands are normalized
                     original_capacity=self.data[i][3],  # original_capacity for NLNS, DPDP
-                    time_limit=self.time_limit,  # TODO: schematic approach to time limit
+                    time_limit=self.time_limit,
                     BKS=self.bks[str(i)][0] if self.bks is not None else None,
                     instance_id=i,
                     # data_key=self.data_key,

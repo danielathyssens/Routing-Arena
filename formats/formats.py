@@ -221,6 +221,7 @@ class RPSolution(NamedTuple):
     running_sols: Optional[List[List[List]]] = None  # for PI and WRAP eval
     instance_id: Optional[int] = None  # only needed for some models where solution lists are not sorted
     method_internal_cost: Optional[float] = None
+    iterations_time: tuple = None
 
     def update(self, **kwargs):
         return self._replace(**kwargs)

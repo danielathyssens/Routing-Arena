@@ -13,11 +13,3 @@ normalize_data: False
 env_kwargs:
   generator_args:
   sampling_args:
-
-# Model Env cfg
-env_cfg:
-  problem_size: ${graph_size}
-  pomo_size: ${tester_cfg.pomo_size}
-  generator_args:
-    coords_dist: ${coords_dist}
-    graph_size: ${graph_size}

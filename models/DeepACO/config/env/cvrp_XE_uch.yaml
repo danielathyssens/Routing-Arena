@@ -8,17 +8,9 @@ XE_type: XE_1
 out_name: ${problem}_${XE_type}_${coords_dist}
 data_file_path: data/test_data/cvrp/uchoa/XE/${XE_type}
 normalize_data: True
-checkpoint_load_path: models/POMO/POMO/${problem}/POMO/result/saved_CVRP100_model/${coords_dist}/checkpoint-8100.pt
+# checkpoint_load_path: is given in config/model
 
 # RP Env cfg
 env_kwargs:
   generator_args:
   sampling_args:
-
-# Model Env cfg
-env_cfg:
-  problem_size: ${graph_size}
-  pomo_size: ${tester_cfg.pomo_size}
-  generator_args:
-    coords_dist: ${coords_dist}
-    graph_size: ${graph_size}
