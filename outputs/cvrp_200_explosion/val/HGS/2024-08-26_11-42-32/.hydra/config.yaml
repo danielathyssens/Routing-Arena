@@ -1,0 +1,54 @@
+problem: cvrp
+graph_size: 200
+coords_dist: explosion
+weights_dist: random_int
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_E_size2000.pkl
+normalize_data: true
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: ${weight_dist}
+    normalize_demands: true
+    single_large_instance: null
+  sampling_args:
+    sample_size: 1024
+    graph_size: ${graph_size}
+    subsample: false
+    k: 16
+    cap: 50
+    max_cap_factor: null
+    n_depots: 1
+policy: HGS
+explicit_name: false
+policy_cfg:
+  num_workers: 8
+  hgs_exe_path: ./models/HGS/HGS/build/hgs
+  nbIter: 20000
+  int_precision: 1000
+run_type: val
+number_runs: 1
+debug_lvl: 0
+global_seed: 1234
+cuda: false
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: 480
+  save_solutions: false
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  data_file_path: ${data_file_path}
+  fixed_dataset: true
+  dataset_size: 128
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/

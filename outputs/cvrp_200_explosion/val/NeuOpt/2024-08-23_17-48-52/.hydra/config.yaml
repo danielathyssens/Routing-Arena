@@ -1,0 +1,87 @@
+problem: cvrp
+graph_size: 200
+coords_dist: explosion
+weights_dist: random_int
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_E_size2000.pkl
+normalize_data: true
+checkpoint_load_path: models/NeuOpt/NeuOpt/pretrained/cvrp${graph_size}.pt
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: random_int
+    normalize_demands: true
+    single_large_instance: null
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: false
+    k: 16
+    cap: 50
+    max_cap_factor: null
+    n_depots: 1
+wo_feature1: false
+wo_feature3: false
+policy: NeuOpt
+env_cfg:
+  init_val_met: greedy
+  perturb_eps: 250
+  dummy_rate: 0.4
+v_range: 6.0
+critic_head_num: 4
+actor_head_num: 4
+embedding_dim: 128
+hidden_dim: 128
+n_encode_layers: 3
+normalization: layer
+gamma: 0.999
+K_epochs: 3
+eps_clip: 0.1
+T_train: 200
+n_step: 4
+lr_model: 8.0e-05
+lr_critic: 2.0e-05
+lr_decay: 0.985
+warm_up: 2
+max_grad_norm: 0.04
+wo_bonus: false
+wo_regular: false
+wo_RNN: false
+wo_MDP: true
+stall: 10
+no_DDP: false
+run_type: val
+number_runs: 3
+debug_lvl: 0
+global_seed: 1234
+cuda: true
+eval_only: true
+G3DMark: 17177
+G2DMark: 975
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: 480
+  save_solutions: true
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  data_file_path: ${data_file_path}
+  checkpoint_load_path: ${checkpoint_load_path}
+  fixed_dataset: true
+  dataset_size: 128
+  dataset_range: null
+  batch_size: 2
+T_max: 5000
+num_augments: 1
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
+checkpoint_save_path: checkpoints/

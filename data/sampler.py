@@ -91,6 +91,8 @@ class DataSampler:
                  sigma_sampling_params: Tuple = (0.1, 0.3),
                  weights_sampling_params: Tuple = (1, 10),
                  uniform_fraction: float = 0.5,
+                 beta_exp: float = 10.0,
+                 radius: float = 0.3,
                  random_state: Optional[Union[int, np.random.RandomState, np.random.Generator]] = None,
                  try_ensure_feasibility: bool = True,
                  verbose: bool = False,
@@ -114,6 +116,7 @@ class DataSampler:
             weights_sampling_params: parameters for weight sampling distribution
             uniform_fraction: fraction of coordinates to be sampled uniformly for mixed instances
                               or parameter tuple to sample this per instance from a beta distribution
+            lambda_expl: lambda scale value for exponential distribution in explosion mutation
             random_state: seed integer or numpy random (state) generator
             try_ensure_feasibility: flag to try to ensure the feasibility of the generated instances
             verbose: verbosity flag to print additional info and warnings
@@ -136,6 +139,8 @@ class DataSampler:
         self.weights_sampling_dist = weights_sampling_dist.lower()
         self.weights_sampling_params = weights_sampling_params
         self.uniform_fraction = uniform_fraction
+        self.beta_exp = beta_exp
+        self.radius = radius
         self.try_ensure_feasibility = try_ensure_feasibility
         self.verbose = verbose
         self.normalize_demands = normalize_demands
@@ -190,8 +195,10 @@ class DataSampler:
                 if covariance_type not in ["diag", "full"]:
                     raise ValueError(f"unknown covariance type: <{covariance_type}>")
                 self.sigma = self._sample_sigma(sigma_sampling_dist.lower(), sigma_sampling_params, covariance_type)
+        elif coords_sampling_dist == "explosion":
+            self.s = self.rnd.exponential(scale=self.beta_exp)
         else:
-            if self.coords_sampling_dist not in ["uniform", "uchoa"]:
+            if self.coords_sampling_dist not in ["uniform", "uchoa", "explosion", "rotation"]:
                 raise ValueError(f"unknown coords_sampling_dist: '{self.coords_sampling_dist}'")
 
         ### TWs
@@ -208,8 +215,8 @@ class DataSampler:
 
             # set key-value pairs from Solomon instance stats
             # as InstanceSampler instance attributes
-            print('cfg_stats[0]', cfg_stats[0])
-            print('cfg_stats[1]', cfg_stats[1])
+            # print('cfg_stats[0]', cfg_stats[0])
+            # print('cfg_stats[1]', cfg_stats[1])
             for k, v in cfg_stats[0].items():
                 setattr(self, k, v)
 
@@ -307,16 +314,17 @@ class DataSampler:
                  f" Setting 'max_cap_factor' to default of 1.5")
             max_cap_factor = 1.5
 
-        print('kwargs in sample_cvrp', kwargs)
+        # print('kwargs in sample_cvrp', kwargs)
         coords, c_types, d_types = self.sample_coords(n=n + n_depots,
-                                                      resample_mixture_components=resample_mixture_components, **kwargs)
+                                                      resample_mixture_components=resample_mixture_components,
+                                                      **kwargs)
         c_probs = np.ones_like(coords)
 
         if self.coords_sampling_dist == "uchoa":
             c_type, d_type = c_types[0], d_types[0]
         else:
             c_type, d_type = c_types, d_types
-        print('feasibility_insurance in samplecvrp', feasibility_insurance)
+        # print('feasibility_insurance in samplecvrp', feasibility_insurance)
         weights, original_capa, q_type = self.sample_weights(n=n + n_depots, k=k, cap=cap,
                                                              max_cap_factor=max_cap_factor,
                                                              coords=coords,
@@ -495,6 +503,7 @@ class DataSampler:
                       resample_mixture_components: bool = True,
                       depot_type: Optional[str] = None,
                       customer_type: Optional[str] = None,
+                      ensure_uniqueness: Optional[bool] = True,
                       **kwargs) -> Tuple[np.ndarray, List, List]:
         """
         Args:
@@ -512,14 +521,25 @@ class DataSampler:
         elif self.coords_sampling_dist == "uchoa":
             # d_types --> {'C': 0, 'E': 1, 'R': 2}
             # c_types --> {'R': 0, 'C': 1, 'RC': 2}
-            print('customer_type', customer_type)
+            # print('customer_type', customer_type)
             customer_type = customer_type if customer_type is not None else self.customer_type
             depot_type = depot_type if depot_type is not None else self.depot_type
             coords, c_types, d_types, grid_s = self.sample_coords_uchoa(n - 1, num_samples=num_samples,
                                                                         depot_type=depot_type,
-                                                                        customer_type=customer_type)
+                                                                        customer_type=customer_type,
+                                                                        ensure_uniqueness=ensure_uniqueness)
             coords = coords.squeeze() if num_samples is None else coords
             coords = coords / grid_s
+        elif self.coords_sampling_dist == "explosion":
+            # Following Bossek et al. (2019)
+            # coords generated by mutating uniform distributed nodes by simulating a random explosion
+            coords_unif = self._sample_unf_coords(n, **kwargs)   # sample uniformly distrib. customers
+            coords = self._mutate_explosion(coords_unif, **kwargs)
+            c_types, d_types = ["explosion"] * 2
+            # pass
+        elif self.coords_sampling_dist == "rotation":
+            c_types, d_types = ["rotation"] * 2
+            pass
         else:
             if self._sample_nc:
                 self.nc = self.sample_rnd_int(*self._nc_params)
@@ -578,7 +598,7 @@ class DataSampler:
         n_wo_depot = n - 1
         try_ensure_feasibility_ = feasibility_insurance if feasibility_insurance is not None\
             else self.try_ensure_feasibility
-        print('try_ensure_feasibility_', try_ensure_feasibility_)
+        # print('try_ensure_feasibility_', try_ensure_feasibility_)
         # sample a weight for each point
         if self.weights_sampling_dist in ["random_int", "random_k_variant"]:
             assert cap is not None, \
@@ -589,12 +609,12 @@ class DataSampler:
                 # print('self.rnd', self.rnd)
                 # random_
                 weights = self.rnd.integers(1, 10, size=(n_wo_depot,))
-                print('weight raw', weights)
+                # print('weight raw', weights)
                 normalizer = cap # + 1
-                print('normalizer', normalizer)
+                # print('normalizer', normalizer)
                 if try_ensure_feasibility_:
                     need_k = int(np.ceil(weights.sum() / cap))
-                    print('need_k', need_k)
+                    # print('need_k', need_k)
                     normalizer *= ((need_k / k) + 0.1)
                 if not normalize:
                     normalizer = 1
@@ -611,7 +631,7 @@ class DataSampler:
                     normalizer = np.ceil((weights.sum(axis=-1)) * 1.08) / _div
                 type_w = "random_k_variant"
         elif self.weights_sampling_dist in ["uniform", "gamma"]:
-            print('self.weights_sampling_dist', self.weights_sampling_dist)
+            # print('self.weights_sampling_dist', self.weights_sampling_dist)
             assert max_cap_factor is not None, \
                 f"weight sampling dists 'uniform' and 'gamma' require <max_cap_factor> to be specified"
             if self.weights_sampling_dist == "uniform":
@@ -632,26 +652,26 @@ class DataSampler:
             normalizer = np.ceil((weights.sum(axis=-1)) * max_cap_factor) / k
         elif self.weights_sampling_dist == "uchoa":
             # sample uchoa type weights
-            print('uchoa coords in sampler', coords[:2])
-            print('demand_type', demand_type)
+            # print('uchoa coords in sampler', coords[:2])
+            # print('demand_type', demand_type)
             demand_type = demand_type if demand_type is not None else self.demand_type
             weights_sc, capacity_orig, type_w = self.sample_weights_uchoa(coordinates=coords * GRID_SIZE,
                                                                           demand_type=demand_type,
                                                                           n=n_wo_depot)
-            print('weights_sc[:5]', weights_sc[:5])
+            # print('weights_sc[:5]', weights_sc[:5])
             weights = np.squeeze(weights_sc)
-            print('weights.shape', weights.shape)
-            print('weights[:5]', weights[:5])
+            # print('weights.shape', weights.shape)
+            # print('weights[:5]', weights[:5])
             cap = capacity_orig[0]
             type_w = type_w[0]
-            print('cap', cap)
-            print('type_w', type_w)
+            # print('cap', cap)
+            # print('type_w', type_w)
             normalizer = cap
         else:
             raise ValueError(f"unknown weight sampling distribution: {self.weights_sampling_dist}")
 
-        print('normalize', normalize)
-        print('normalizer', normalizer)
+        # print('normalize', normalize)
+        # print('normalizer', normalizer)
         if normalize:
             weights = weights / normalizer
             # print(np.clip(weights, None, 1.000000))
@@ -660,8 +680,8 @@ class DataSampler:
                 # print(f"Make sure customer demands are not larger than vehicle capacity! Clipping demands to 1.0.")
                 weights = np.clip(weights, None, 1.000000000)
 
-        print(f"np.sum(weights): {np.sum(weights)}")
-        print('k', k)
+        # print(f"np.sum(weights): {np.sum(weights)}")
+        # print('k', k)
         # only bigger than k here because demands are normalized and cap then set to 1.0
         if np.sum(weights) > k and np.sum(weights) > k*cap:
             if self.verbose:
@@ -679,7 +699,7 @@ class DataSampler:
             weights = weights.astype(np.int32)
         else:
             pass
-        print('cap', cap)
+        # print('cap', cap)
 
         return weights, cap, type_w
 
@@ -701,7 +721,8 @@ class DataSampler:
                             customer_type: [str] = None,
                             int_locs: bool = True,
                             min_seeds: int = 3,
-                            max_seeds: int = 8) -> Tuple[np.ndarray, List, List, int]:
+                            max_seeds: int = 8,
+                            ensure_uniqueness: bool = True) -> Tuple[np.ndarray, List, List, int]:
 
         """
         Args:
@@ -712,6 +733,7 @@ class DataSampler:
             int_locs: whether coordindates should be integers
             min_seeds: min nr. of seeds to be sampled
             max_seeds: max nr. of seeds to be sampled
+            ensure_uniqueness: unique coordinates (default True)
 
         Returns:
             coords: (n, n_dims)
@@ -754,7 +776,7 @@ class DataSampler:
         # customer_types = (np.random.rand(num_samples) * 3).astype(int)
         # use random state for sampler:
         customer_types = (self.rnd.random(num_samples) * 3).astype(int)
-        print('customer_types', customer_types)
+
 
         if customer_type is not None:  # else Mix
             # Random, Clustered, Random-Clustered (half half)
@@ -766,7 +788,7 @@ class DataSampler:
                             f"(Random, Clustered, Random-Clustered (half half))")
             else:
                 logger.info(f"Sampling uchoa-type data with customer type: {customer_type}")
-
+        # print('customer_types', customer_types)
         # Sample number of seeds uniform (inclusive)
         # num_seeds = (np.random.rand(num_samples) * ((max_seeds - min_seeds) + 1)).astype(int) + min_seeds
         # use random state for sampler:
@@ -787,9 +809,46 @@ class DataSampler:
         # stack depot coord and customer coords
         coords = np.stack([np.vstack((depot_locations[i].reshape(1, 2), rand_coords[i])) for i in range(num_samples)])
         coords = coords.astype(int) if int_locs else coords
+
+        # ensure uniqueness
+        if ensure_uniqueness:
+            duplicates = True
+            while duplicates:
+                coords_torch = torch.from_numpy(coords[0])
+                prev_nodes = [coords_torch[0]]
+                prev_node_ids = [0]
+                # print('CHECKING UNIQUENESS')
+                # print('len(coords[0])', len(coords[0]))
+                double_idxs = []
+                for i in range(1, len(coords[0])):
+                    if any([(coords_torch[i] == c_).all() for c_ in prev_nodes]):  # coor_[i] in prev_nodes:
+                        idx_of_same = torch.where((torch.stack(prev_nodes) == coords_torch[i]).all(dim=1))[0]
+                        # print(f'node coord {coords_torch[i]} with node ID {i} exists already for node {idx_of_same.item()}')
+                        # print(f'currently  added node coords (ID {i}):', coords_torch[i])
+                        # print(f'previously added node coords (ID {idx_of_same.item()}):', prev_nodes[idx_of_same])
+                        double_idxs.append(i)
+                    else:
+                        prev_nodes.append(coords_torch[i])
+                        prev_node_ids.append(i)
+                if double_idxs:
+                    # print(f'there are duplicates for {double_idxs}')
+                    for idx in double_idxs:
+                        # resample for duplicates
+                        # if customer_types[idx] != 1:
+                        #     coords[idx] = self.rnd.random((1, n, 2)) * GRID_SIZE
+                        # add small integer number to duplicate node coordinates
+                        assert coords[0][idx][0].dtype == np.dtype('int64')
+                        coords[0][idx][0] = coords[0][idx][0] + 1
+                        # print('coords[0][idx] now:', coords[0][idx])
+                else:
+                    # print('no duplicates found')
+                    duplicates = False
+
+
+
         return coords, customer_types.tolist(), depot_types.tolist(), GRID_SIZE
 
-    # from DPDP (Kol et al. 2020)
+    # from DPDP (Kool et al. 2020)
     # @staticmethod
     def sample_weights_uchoa(self,
                              coordinates: np.ndarray,
@@ -850,15 +909,15 @@ class DataSampler:
             demands_small,
             (rand_1[customer_positions == 6] * (100 - 50 + 1)).long() + 50
         )
-        print("batchsize", batch_size)
-        print('self.rnd', self.rnd)
+        # print("batchsize", batch_size)
+        # print('self.rnd', self.rnd)
         r = sample_triangular(batch_size, 3, 6, 25, rnd_state=self.rnd, device="cpu")
         capacity = torch.ceil(r * demands.float().mean(-1)).long()
         # It can happen that demand is larger than capacity, so cap demand
         demand = torch.min(demands, capacity[:, None])
 
-        print('customer_positions.cpu().tolist()', customer_positions.cpu().tolist())
-        print('demand.cpu().numpy()', demand.cpu().numpy())
+        # print('customer_positions.cpu().tolist()', customer_positions.cpu().tolist())
+        # print('demand.cpu().numpy()', demand.cpu().numpy())
 
         return demand.cpu().numpy(), capacity.cpu().numpy(), customer_positions.cpu().tolist()
 
@@ -872,7 +931,7 @@ class DataSampler:
         batch_rng = torch.arange(num_samples, dtype=torch.long, device="cpu")
         # batch_rng = np.arange(num_samples, dtype=int)
         seed_coords = (torch.from_numpy(self.rnd.random((num_samples, max_seeds, 2)) * GRID_SIZE))
-        print('seed_coords', seed_coords)
+        # print('seed_coords', seed_coords)
         # We make a little extra since some may fall off the grid
         n_try = graph_size * 2
         while True:
@@ -880,8 +939,8 @@ class DataSampler:
             loc_seed_ind = (torch.from_numpy(self.rnd.random((num_samples, n_try)))
                             * num_seeds[:, None].astype(float)).long()
             # loc_seed_ind = (np.random.rand(num_samples, n_try) * num_seeds[:, None].astype(float)).astype(int)
-            print('batch_rng', batch_rng)
-            print('loc_seed_ind', loc_seed_ind)
+            # print('batch_rng', batch_rng)
+            # print('loc_seed_ind', loc_seed_ind)
             loc_seeds = seed_coords[batch_rng[:, None], loc_seed_ind]
             # alpha = torch.rand(num_samples, n_try) * 2 * math.pi
             alpha = torch.from_numpy(self.rnd.random((num_samples, n_try))) * 2 * math.pi
@@ -940,6 +999,30 @@ class DataSampler:
         print('low,', low)
         print('high,', high)
         return self.rnd.uniform(size=size, low=low, high=high)
+
+    def _mutate_explosion(self,
+                          original_coords: np.ndarray,
+                          # radius: float = 0.3,
+                          low: Union[int, np.ndarray] = 0.0,
+                          high: Union[int, np.ndarray] = 1.0,
+                          **kwargs):
+        # sample center of explosion
+        v_c = np.array([0.5, 0.5])  # self.rnd.uniform(size=2, low=low, high=high) # hard coded to (0.5, 0.5) for SLI
+        # get coords in radius of v_c
+        coors_in_r2 = [coord for coord in original_coords if
+                       np.linalg.norm(v_c - coord) <= self.radius]
+        # nodes within explosion radius moved away from v_c following func from Bossek et al. (2019)/Zhou et al. (2023)
+        new_coords = []
+        for coord in original_coords:
+
+            if (coord == list(coors_in_r2)).any():
+                # direction of shift
+                direction = (v_c - coord) / np.linalg.norm(v_c - coord)
+                v_i = v_c + ((self.radius + self.s) * direction)
+            else:
+                v_i = coord
+            new_coords.append(v_i)
+        return np.clip(np.array(new_coords), 0.0, 1.0)
 
     def _sample_normal(self,
                        size: Union[int, Tuple[int, ...]],

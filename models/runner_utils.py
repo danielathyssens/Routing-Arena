@@ -159,18 +159,7 @@ def eval_inference(run, nr_runs, sols_, ds_class, log_path, acronym, test_cfg, d
     gpu_name = torch.cuda.get_device_name() if (torch.cuda.is_available() and DEVICE == 'cuda') else str(None)
     gpu_count = torch.cuda.device_count() if (torch.cuda.is_available() and DEVICE == 'cuda') else None
 
-    if test_cfg.save_solutions:
-        logger.info(f"Storing Results of run {run} in {log_path}")
-        save_results(
-            result={
-                "solutions": results,
-                "summary": stats,
-                "machine": {'CPU': cpu_name + ":" + str(cpu_count), 'GPU': gpu_name + ":" + str(gpu_count)}
-            },
-            log_pth=log_path,
-            run_id=run)
-
-    elif test_cfg.save_for_analysis:
+    if test_cfg.save_for_analysis:
         acronym_analysis = acronym.replace("_", "-")
         file_name = "run_" + str(run) + "_results_" + acronym_analysis + ".pkl"
         if test_cfg.out_name.split("_")[1] not in SET_TYPES:
@@ -199,6 +188,17 @@ def eval_inference(run, nr_runs, sols_, ds_class, log_path, acronym, test_cfg, d
             file_name=file_name,
             run_id=run)
 
+    elif test_cfg.save_solutions:
+        logger.info(f"Storing Results of run {run} in {log_path}")
+        save_results(
+            result={
+                "solutions": results,
+                "summary": stats,
+                "machine": {'CPU': cpu_name + ":" + str(cpu_count), 'GPU': gpu_name + ":" + str(gpu_count)}
+            },
+            log_pth=log_path,
+            run_id=run)
+
     return results, per_instance_summaries, stats
 
 
@@ -218,21 +218,25 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
         try:
             BKS_path = os.path.join(ds_path, "BKS_" + ds_path.split("/")[-1] + ".pkl")
             # bks_registry = torch.load(BKS_path)
+            print("BKS_path in 1st try", BKS_path)
         except FileNotFoundError:
             BKS_path = os.path.join(ds_path, "BKS_" + ds_path.split("/")[-2] + ".pkl")
             # bks_registry = torch.load(BKS_path)
+            print("BKS_path in 1st except", BKS_path)
     else:
-        # print('path bks', os.path.join(os.path.dirname(ds_path), "BKS_"
-        #                                + os.path.basename(ds_path).split('.')[0] + ".pkl"))
+        print('path bks', os.path.join(os.path.dirname(ds_path), "BKS_"
+                                       + os.path.basename(ds_path).split('.')[0] + ".pkl"))
         if "seed" in os.path.basename(ds_path):
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path).split('_seed')[0] + ".pkl")
+            print("BKS_path in 2nd try", BKS_path)
         elif "size" in os.path.basename(ds_path):
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path)[:3] + ".pkl")
         else:
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path).split('.')[0] + ".pkl")
+            print("BKS_path in 2nd except", BKS_path)
     bks_registry = torch.load(BKS_path)
 
     # update BKS for this test set if there are new best costs
@@ -246,17 +250,18 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
             else:
                 if bks_registry[id_][3] == 'opt':
                     if math.ceil(solution_tuple.cost) < bks_registry[id_][0]:
-                        logger.info(f"Incurred Cost that is lower than a proven optimal cost for instance {id_}! "
-                                    f"Not updating BKS for this Instance. "
+                        logger.info(f"Incurred Cost that is lower than a proven optimal cost for instance {id_}! " 
+                                    f"Not updating BKS for this Instance. " 
                                     f"Please double check calculation of cost.")
                     if math.ceil(solution_tuple.cost) == bks_registry[id_][0] or solution_tuple.cost == \
                             bks_registry[id_][0]:
-                        logger.info(f"Incurred the same cost than a proven optimal cost for instance {id_}! "
+                        logger.info(f"Incurred the same cost than a proven optimal cost for instance {id_}! " 
                                     f"Not updating BKS for this Instance. ")
                 else:
                     bks_registry[id_] = (solution_tuple.cost, solution_tuple.solution, acronym, 'not_opt')
                     # logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
         logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
+
     # save back the update registry of BKS
     torch.save(bks_registry, BKS_path)
 
@@ -420,7 +425,7 @@ def set_device(cfg):
 
 def _adjust_time_limit(original_TL, pass_mark, device, nr_threads=1, passmark_version=PASSMARK_VERSION):
     # TODO: Tmax = n × 240/100 seconds (used in HGS-CVRP)
-    #  "Therefore, the smallest instance with 100 clients
+    # Therefore, the smallest instance with 100 clients
     # is run for 4 minutes, whereas the largest instance containing 1000 clients is run for 40 minutes."
 
     print(f'IN ADJUST TIME LIMIT: device: {device}, pass_mark: {pass_mark}, nr_threads: {nr_threads}, '

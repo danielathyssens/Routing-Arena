@@ -1,0 +1,137 @@
+2024/08/26 19:03:21 __main__: problem: cvrp
+graph_size: 200
+coords_dist: explosion
+weights_dist: random_int
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_E_size2000.pkl
+normalize_data: true
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: ${weight_dist}
+    normalize_demands: true
+    single_large_instance: null
+  sampling_args:
+    sample_size: 1024
+    graph_size: ${graph_size}
+    subsample: false
+    k: 30
+    cap: 70
+    max_cap_factor: null
+    n_depots: 1
+run_type: val
+number_runs: 1
+debug_lvl: 0
+global_seed: 1234
+cuda: false
+save_as_base: true
+base_filename: BaseSol_val_tl500_128_new
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: 500
+  save_solutions: true
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  fixed_dataset: true
+  data_file_path: ${data_file_path}
+  dataset_size: 128
+  dataset_range: null
+  add_ls: true
+  ls_policy: sa
+  ls_policy_cfg:
+    local_search_strategy: SIMULATED_ANNEALING
+    solution_limit: null
+    verbose: false
+    log_search: false
+    batch_size: 12
+    search_workers: 1
+    int_prec: 1000
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
+method:
+  savings_criterion: clarke_wright
+
+2024/08/26 19:03:21 models.runner_utils: torch.cuda.is_available() False
+2024/08/26 19:03:21 models.runner_utils: cfg.cuda False
+2024/08/26 19:03:21 models.runner_utils: Running val-run on cpu
+2024/08/26 19:03:21 models.runner_utils: CPU Specs: cpu_name: Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz, threads_per_cpu: 2, total_cores: 20
+2024/08/26 19:03:21 models.runners: Eval PassMark for this run: 1612. Adjusted Time Limit per Instance for Construction: 620.0. PassMark for additional GORT Search: 1612. Adjusted Time Limit per Instance for Search : 620.0.
+2024/08/26 19:03:21 data.base_dataset: Test Data provided: /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl, No new samples are generated.
+2024/08/26 19:03:21 data.base_dataset: BKS file should exists for /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:03:21 data.base_dataset: Loading Best Known Solutions from /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/BKS_val.pkl
+2024/08/26 19:03:21 data.base_dataset: BaseSol file should exists for /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:03:21 data.base_dataset: Loading Base Solver Results (for WRAP eval.) from /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/BaseSol_val.pkl
+2024/08/26 19:03:21 data.base_dataset: Tried to load Base Solutions, but do not exists... No WRAP eval. possible.
+2024/08/26 19:03:21 data.base_dataset: Loaded 2000 BKS for the test (val) set.
+2024/08/26 19:03:21 data.base_dataset: Loading dataset from: /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:03:22 data.cvrp_dataset: 128 CVRP Test/Validation Instances for cvrp with 200 explosion-distributed customers loaded.
+2024/08/26 19:03:22 data.cvrp_dataset: Transforming instances from lists to CVRPInstances
+2024/08/26 19:03:22 metrics.metrics: Base Reference for this machine in metrics initialisation set to 2000
+2024/08/26 19:03:23 models.runners: Parallelize local search runs: running 12 instances in parallel.
+2024/08/26 19:03:23 models.runners: running inference 1/1...
+2024/08/26 19:03:23 models.runners: Run-time dependent parameters: cpu Device (threads: 12), Adjusted Time Budget for construction: 620.0 / instance. Adjusted Time Budget for LS: 620.0 / instance.
+2024/08/26 19:03:23 models.runners: running test inference for Savings_clarke_wright with additional LS: SA...
+2024/08/26 19:03:29 models.runners: Constructed solutions with average cost 20.368706030999398 in 0.045891896734246984/inst
+2024/08/26 19:03:29 models.runners: 
+ finished construction... starting LS
+2024/08/26 19:04:13 models.or_tools.or_tools: Local Search has remaining 619.9541081032658 seconds per instance.
+2024/08/26 20:57:53 models.runners: Starting Evaluation for run 1/1 with time limit 500 for Savings_clarke_wright_SA
+2024/08/26 20:57:54 data.base_dataset: Saving solution trajectory for instance 0
+2024/08/26 21:00:27 models.runner_utils: Stats for run 1/1:
+2024/08/26 21:00:27 models.runner_utils: =================================
+2024/08/26 21:00:27 models.runner_utils: 
+Instance 0 Cost: 17.344482949203456, 
+Instance 0 Method Internal-Cost: 17.70965038701335, 
+Instance 0 PI: 2.7242572675265198, 
+Instance 0 WRAP: None, 
+Instance 0 Run Time (best sol found): 3.463717211037874, 
+Instance 0 Run Time (total): 620.0295181907713
+2024/08/26 21:00:27 models.runner_utils: 
+Instance 1 Cost: 23.31934006736798, 
+Instance 1 Method Internal-Cost: 23.870404188965054, 
+Instance 1 PI: 3.1110962231599038, 
+Instance 1 WRAP: None, 
+Instance 1 Run Time (best sol found): 173.66425460204482, 
+Instance 1 Run Time (total): 620.0527821406722
+2024/08/26 21:00:27 models.runner_utils: 
+Instance 2 Cost: 22.88196951898734, 
+Instance 2 Method Internal-Cost: 23.054602688086938, 
+Instance 2 PI: 3.0198775933431676, 
+Instance 2 WRAP: None, 
+Instance 2 Run Time (best sol found): 8.103795610368252, 
+Instance 2 Run Time (total): 620.0270825438201
+2024/08/26 21:00:27 models.runner_utils: 
+Instance 3 Cost: 22.895398384241812, 
+Instance 3 Method Internal-Cost: 23.190047535683018, 
+Instance 3 PI: 5.647625541624901, 
+Instance 3 WRAP: None, 
+Instance 3 Run Time (best sol found): 7.500752002000809, 
+Instance 3 Run Time (total): 620.0415792316198
+2024/08/26 21:00:27 models.runner_utils: 
+Instance 4 Cost: 17.367825088482356, 
+Instance 4 Method Internal-Cost: 17.506868353088894, 
+Instance 4 PI: 2.5937172559061805, 
+Instance 4 WRAP: None, 
+Instance 4 Run Time (best sol found): 6.325908120721579, 
+Instance 4 Run Time (total): 620.0395502857864
+2024/08/26 21:00:27 models.runner_utils: 
+Average cost  : 20.08379080640354 +/- 3.882869774634629, 
+Average cost-intern (Method)  : 20.368706030999405 +/- 0.0, 
+Average PI: 4.186486835508235 +/- 1.2872878505028293, 
+Average WRAP: None +/- None, 
+Average Run Time (best sol found): 17.912117999017937 +/- 36.39297306205429, 
+Average Run Time (total): 619.8241495027905 +/- 0.07191589356660931
+2024/08/26 21:00:28 models.runner_utils: CPU Specs: cpu_name: Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz, threads_per_cpu: 2, total_cores: 20
+2024/08/26 21:00:28 models.runner_utils: Storing Results of run 1 in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/Savings/2024-08-26_19-03-21/logs/
+2024/08/26 21:00:29 models.Savings.runner: Saving solutions for Savings_clarke_wright_SA as Base Solution
+2024/08/26 21:00:29 models.Savings.runner: If multiple runs - saving first run results as Base Solution

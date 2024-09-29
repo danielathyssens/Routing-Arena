@@ -140,7 +140,7 @@ def generate_demands(coords, device=None):
 # changed from Kool et al. (random state)
 def sample_triangular(sz, a, b, c, rnd_state=None, device=None):
     # See https://en.wikipedia.org/wiki/Triangular_distribution#Generating_triangular-distributed_random_variates
-    print('device', device)
+    # print('device', device)
     a, b, c = (torch.tensor(v, dtype=torch.float, device=device) for v in (a, b, c))
     # U = torch.rand(sz, device=device)
     U = torch.from_numpy(rnd_state.random(sz)).to(device)

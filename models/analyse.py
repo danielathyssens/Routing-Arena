@@ -5,15 +5,15 @@ import os
 from warnings import warn
 import matplotlib.pyplot as plt
 from formats import RPSolution, CVRPInstance
-from data import CVRPDataset, TSPDataset
+from data import CVRPDataset, TSPDataset, CVRPTWDataset
 from models import runner_utils
 from metrics.metrics import Metrics
 from typing import Optional, Dict, Union, List
-import glob
 import warnings
 
 INSTANCE_SET_TYPES = ["X", "XE", "uniform", "uchoa"]
 INSTANCE_SET_NAMES = ["X", "XE_1", "XE_2", "XE_3", "XE_4", "XE_5" "uniform", "uchoa"]
+GRID_SIZES = {"XE": 1000}
 
 
 class Analyser:
@@ -46,7 +46,7 @@ class Analyser:
         # extract attributes from folder (all info is stores in dicts: each sub-dir is a dict)
         # for ex. when results_dir = "outputs/saved_results/XE":
         # then self.info_dct.keys() = dict_keys(['XE_3', 'XE_6', 'XE_7', 'XE_2', ... , 'XE_4', 'XE_1', 'XE_10'])
-        # and self.info_dct['XE_3'].keys() = dict_keys(['TL_5', 'TL_20', 'TL_10']) dep. on the nr of res folders
+        # and self.info_dct['XE_3'].keys() = dict_keys(['TL_5', 'TL_20', 'TL_10_old']) dep. on the nr of res folders
         self.info_dct = self.get_info_dct()
         self.insts_dct = self.get_instances() if load_instances else {}
 
@@ -106,14 +106,22 @@ class Analyser:
         set_metric_means = {}
         for set_type in set_type_list:
             set_TL_list = info_dct[set_type].keys() if TLs_list is None else TLs_list
+            print('set_type', set_type)
+            print('set_TL_list', set_TL_list)
+            print('self.info_dct[set_type].keys()', info_dct[set_type].keys())
             TLs = [TL for TL in set_TL_list if TL in info_dct[set_type].keys()]
             TLs_sort = [int(TL[3:]) for TL in TLs]
             TLs_sort.sort()
+            print('TLs_sort init', TLs_sort)
             TLs_sort = [TLs_sort[0]] if across_sets else TLs_sort
+            print('TLs_sort after', TLs_sort)
             metric_means = {}
             for TL in TLs_sort:
                 set_model_list = info_dct[set_type]["TL_" + str(TL)].keys() \
                     if model_names_list is None else model_names_list
+                print('set_model_list', set_model_list)
+                print('self.info_dct[set_type]["TL_" + str(TL)].keys()',
+                      info_dct[set_type]["TL_" + str(TL)].keys())
                 models_list = [modl for modl in set_model_list if
                                modl in info_dct[set_type]["TL_" + str(TL)].keys()]
                 models_list = [modl for modl in models_list if metric_name
@@ -132,6 +140,7 @@ class Analyser:
                 else:
                     save_dr = os.path.join(self.results_dir, set_type)
             if across_timeLimit:
+                print('metric_means', metric_means)
                 plot_metric_across_TL(metric_means, metric.upper(), set_type,
                                       save_dr, TLs_sort)
             else:
@@ -185,26 +194,42 @@ class Analyser:
                           set_name: str = None, inst_ids: List = None):
         fig, ax = plt.subplots()
         set_name = set_name if set_name is not None else list(self.info_dct.keys())[0]
+        print('set_name', set_name)
         inst_ids = list(self.insts_dct.keys()) if inst_ids is None else inst_ids
         TL_results = self.info_dct[set_name].keys()
         TL_results = [int(TL[3:]) for TL in TL_results]
         TL_results.sort()
         TL_results = ["TL_" + str(t_l) for t_l in TL_results]
+        print('TL_results', TL_results)
+        print('inst_ids', inst_ids)
+        print('Time Limit', timelimit)
         model_name_list = self.info_dct[set_name][
             list(TL_results)[-1]].keys() if model_name_list is None else model_name_list
         means_across_time_all = []
         for model_n in model_name_list:
             model_means_across_time, tl_list = [], []
             for tl in TL_results:
+                print('tl', tl)
+                print('tl[3:]', tl[3:])
                 if int(tl[3:]) <= timelimit:
+                    print("list(self.info_dct[set_name][tl][model_n]['gap_to_bks'].values()",
+                          list(self.info_dct[set_name][tl][model_n]['gap_to_bks'].values()))
                     model_mean_tl = np.mean(list(self.info_dct[set_name][tl][model_n]['gap_to_bks'].values()))
+                    print('model_mean_tl', model_mean_tl)
                     model_means_across_time.append(model_mean_tl)
                     result_tl = int(tl[3:])
+                    print('result_tl', result_tl)
+                    print('timelimit', timelimit)
                     percentage_time = round((result_tl / timelimit) * 100)
+                    print('percentage_time', percentage_time)
                     tl_list.append(percentage_time)
             means_across_time_all.append(model_means_across_time)
+            print('tl_list', tl_list)
+            print('model_means_across_time', model_means_across_time)
             xi_ticks = list(range(len(tl_list)))
+            # xi_ticks = [np.log(t_i) for t_i in range(len(tl_list))]
             ax.plot(xi_ticks, model_means_across_time, label=model_n)
+            # ax.set_xscale('log')
         save_name = os.path.join(save_dir, 'gaps_over_time')
 
         plt.xticks(xi_ticks, tl_list)
@@ -229,15 +254,29 @@ class Analyser:
             fig, ax = plt.subplots() if not plot_inst else plt.subplots(1, 2, figsize=(8, 4))
             for cs, ts, model_name, final_cost, final_runtime in zip(c_lists, t_lists, model_names_list, final_costs,
                                                                      final_runtimes):
+                print('inst_id', inst_id)
+                print('cs[inst_id]', cs[inst_id])
                 if cs[inst_id] is not None:
                     if full_trajectories:
                         # append final run_time and final cost
                         if ts[inst_id][-1] < int(TL[3:]):
+                            print('ts[inst_id][-5:]', ts[inst_id][-5:])
+                            print('final_runtime[inst_id]', final_runtime[inst_id])
+                            print('cs[inst_id][-5:]', cs[inst_id][-5:])
+                            print('final_cost[inst_id]', final_cost[inst_id])
                             if final_cost[inst_id] <= cs[inst_id][-1]:
                                 cs[inst_id].append(final_cost[inst_id])
                             else:
                                 cs[inst_id].append(cs[inst_id][-1])
                             ts[inst_id].append(final_runtime[inst_id])
+                            print('ts[inst_id][-5:]', ts[inst_id][-5:])
+                            print('cs[inst_id][-5:]', cs[inst_id][-5:])
+
+                    # print('model_name', model_name)
+                    # print('cs[inst_id][:5]', cs[inst_id][:5])
+                    # print('ts[inst_id][:5]', ts[inst_id][:5])
+                    # print('len(cs[inst_id])', len(cs[inst_id]))
+                    # print('len(cs[inst_id]) > 1', len(cs[inst_id]) > 1)
                     if len(cs[inst_id]) > 1 and inst_id in cs.keys():
                         if not plot_inst:
                             if plot_gaps:
@@ -248,20 +287,22 @@ class Analyser:
                                 # ax.set_yscale('log')
                         else:
                             if plot_gaps:
-                                ax[1].plot(ts[inst_id], [gap_bks(c, instance_bks) for c in cs[inst_id]], label=model_name)
+                                ax[1].plot(ts[inst_id], [gap_bks(c, instance_bks) for c in cs[inst_id]],
+                                           label=model_name)
                             else:
                                 ax[1].plot(ts[inst_id], cs[inst_id], label=model_name)
                     # plt.plot(t, c, label=model_name)
-                    torch.save((ts[inst_id], cs[inst_id]), save_dir+"traj_"+model_name+".pt")
+                    torch.save((ts[inst_id], cs[inst_id]), save_dir + "traj_" + model_name + ".pt")
             if "cvrp_100_uniform" in set_name:
                 title_set_name = "Uniform-100"
             if not plot_gaps:
-                title = 'Trajectory for Instance ' + inst_id + ' of set ' + title_set_name + ' (TL=' + str(TL)[3:] + ' sec.)'
+                title = 'Trajectory for Instance ' + inst_id + ' of set ' + title_set_name + ' (TL=' + str(TL)[
+                                                                                                       3:] + ' sec.)'
                 plt.xlabel('cumulative runtime (seconds) ')
                 plt.ylabel('objective value (total cost)')
             else:
                 # title = 'Gaps over Time for Instance ' + inst_id + ' of set ' + title_set_name + ' (TL=' + str(TL)[
-                                                                                                       #3:] + ' sec.)'
+                #3:] + ' sec.)'
                 title = ''
                 plt.xlabel('cumulative runtime (seconds) ')
                 plt.ylabel('Gap to BKS (%)')
@@ -305,14 +346,24 @@ class Analyser:
                 ax[0].annotate(i, (locations[i, 0], locations[i, 1]),
                                xytext=(locations[i, 0] + 0.012, locations[i, 1] + 0.012),
                                fontsize='medium', fontweight='roman')
+        # fig.set_figheight(15)
+        # if ax.geometry() != geometry:
+        #     ax.change_geometry(*geometry)
+        # ax = fig.axes.append(ax)
+        # fig.axes.append(ax_plot)
         save_name = os.path.join(save_dr, 'subplot_plttd_trajectories_' + instance_id)
         plt.legend()
         plt.savefig(save_name + '.pdf')
         plt.show()
+        # ax1.plot(x, y)
+        # ax2.plot(x, -y)
 
     def get_info_dct(self) -> Dict:
         main_dir_name = self.results_dir.split("/")[-1]
         sub_main_dir_name = self.results_dir.split("/")[-2]
+        print('main_dir_name', main_dir_name)
+        print('sub_main_dir_name', sub_main_dir_name)
+        # print('self.TL', self.TL)
         make_final_dct, make_sub_final_dct = False, False
         if main_dir_name not in INSTANCE_SET_TYPES:
             make_final_dct = True
@@ -320,15 +371,20 @@ class Analyser:
             make_sub_final_dct = True
         results_dct = {}
         dir_entry_names = [str(dir_n).split(" ")[1][:-1][1:-1] for dir_n in list(os.scandir(self.results_dir))]
+        print('dir_entry_names', dir_entry_names)
+        print('self.TL', self.TL)
         if self.TL is not None and "TL_" + str(self.TL[0]) in dir_entry_names:
             filter_dir_list = [dir_n for dir_n in list(os.scandir(self.results_dir)) if
                                str(dir_n).split(" ")[1][:-1][1:-1] in ["TL_" + str(tl) for tl in self.TL]]
         else:
             filter_dir_list = os.scandir(self.results_dir)
+        print('filter_dir_list', filter_dir_list)
         for dir_ in filter_dir_list:
+            print('dir_', dir_)
             if not dir_.is_file():
                 results_dct[dir_.name] = {}
                 sub_dir_entry_names = [str(dir_n).split(" ")[1][:-1][1:-1] for dir_n in list(os.scandir(dir_))]
+                print('sub_dir_entry_names', sub_dir_entry_names)
                 if self.TL is not None and "TL_" + str(self.TL[0]) in sub_dir_entry_names:
                     filter_sub_dir_list = [dir_n for dir_n in list(os.scandir(dir_)) if
                                            str(dir_n).split(" ")[1][:-1][1:-1] in ["TL_" + str(tl) for tl in self.TL]]
@@ -343,10 +399,12 @@ class Analyser:
                 # print('filter_sub_dir_list', filter_sub_dir_list)
                 # for sub_dir in os.scandir(dir_):
                 for sub_dir in filter_sub_dir_list:
+                    print('sub_dir', sub_dir)
                     if not sub_dir.is_file():
                         results_dct[dir_.name][sub_dir.name] = {}
                         sub_sub_dir_entry_names = [str(dir_n).split(" ")[1][:-1][1:-1] for dir_n in
                                                    list(os.scandir(sub_dir))]
+                        print('sub_sub_dir_entry_names', sub_sub_dir_entry_names)
                         if self.TL is not None and "TL_" + str(self.TL[0]) in sub_sub_dir_entry_names:
                             filter_sub_sub_dir_list = [dir_n for dir_n in list(os.scandir(sub_dir)) if
                                                        str(dir_n).split(" ")[1][:-1][1:-1] in ["TL_" + str(tl) for tl in
@@ -413,10 +471,12 @@ class Analyser:
 
     def get_instances(self):
         data_type = self.results_dir.split("saved_results")[-1]
+        print('data_type', data_type)
         if data_type == "XE_avg":
             # update data_type
             data_type = "XE"
         data_type_set_name = data_type.split("/")[-1] if data_type.split("/")[1] in ['XE', 'XE_avg'] else None
+        print('data_type', data_type)
         try:
             # print('DATA_STORE_PATHS[data_type.split("/")[1]]', DATA_STORE_PATHS[data_type.split("/")[1]])
             data_store_path = DATA_STORE_PATHS[data_type.split("/")[1]]
@@ -425,6 +485,7 @@ class Analyser:
             data_store_path = DATA_STORE_PATHS[updated_key]
         if data_type_set_name is not None:
             data_store_path = os.path.join(data_store_path, data_type_set_name)
+        print('data_store_path', data_store_path)
         dataset = self.ds_class(
             store_path=data_store_path,
             re_evaluate=True,
@@ -436,7 +497,8 @@ class Analyser:
             for instance in dataset.data
         }
 
-    def print_scores(self, instance_ids: List[str], set_type_name: str = None, model_n: str = "HGS", tl: str = "TL_10",
+    def print_scores(self, instance_ids: List[str], set_type_name: str = None, model_n: str = "HGS",
+                     tl: str = "TL_10_old",
                      print_average: bool = True):
         set_type_name = list(self.info_dct.keys())[0] if set_type_name is None else set_type_name
         costs_all, gaps_all, wrap_all, pi_all, bks_all = [], [], [], [], []
@@ -473,12 +535,14 @@ DATA_STORE_PATHS = {
     "cvrp_50_uniform": "data/test_data/cvrp/uniform/cvrp50",
     "XML": "data/test_data/XML",
     "cvrp_100_XML": "data/test_data/cvrp/XML100/subsampled/instances",
+    "Li": "data/test_data/Li"
 }
 
-C_METHODS = ["AM", "MDAM", "POMO", "SGBS", "Savings"]
+C_METHODS = ["AM", "MDAM", "POMO", "SGBS", "Savings", "BQ", "GLOP"]
 
 
 def extract_data(path):
+    print('path in extract data', path)
     if "trajectory" in path:
         inst_id = path.split("/")[-1].split("_")[2]
         value_list = torch.load(path)
@@ -489,7 +553,15 @@ def extract_data(path):
     elif "run_avg_results" in path:
         # if "run_avg" in path:
         res_dct = torch.load(path, map_location=torch.device('cpu'))
-        print('Getting Problem Instances from: ', path)
+        # else:
+        #     res_dct = None
+        # if "run_1" in path:
+        #     res_dct_1 = torch.load(path, map_location=torch.device('cpu'))
+        # elif "run_2" in path:
+        #     res_dct_2 = torch.load(path, map_location=torch.device('cpu'))
+        # elif "run_3" in path:
+        #     res_dct_2 = torch.load(path, map_location=torch.device('cpu'))
+        print('path', path)
         if isinstance(res_dct, dict):
             sol_tuples = res_dct["solutions"]
         else:
@@ -497,6 +569,10 @@ def extract_data(path):
         # if None not in [sol.pi_score for sol in sol_tuples] and None not in [sol.wrap_score for sol in sol_tuples]:
         pi_list = [sol.pi_score for sol in sol_tuples if sol.pi_score is not None]
         wrap_list = [sol.wrap_score for sol in sol_tuples if sol.wrap_score is not None]
+        print('pi_list', pi_list)
+        print('wrap_list', wrap_list)
+        print('sol.cost         ', [sol.cost for sol in sol_tuples])
+        print('gap_bks(sol.cost, sol.instance.BKS)', [gap_bks(sol.cost, sol.instance.BKS) for sol in sol_tuples])
         return {
             "final_costs": {str(sol.instance.instance_id): sol.cost for sol in sol_tuples},
             "total_runtimes": {str(sol.instance.instance_id): sol.run_time for sol in sol_tuples},
@@ -522,6 +598,7 @@ def plot_metric_across_sets(metric_values: Dict, metric_name: str, save_dir: str
     set_name_lst = metric_values.keys()
     model_set_metrics = {}
     for i, set_name in enumerate(metric_values):
+        print('metric_values[set_name]', metric_values[set_name])
         for model_name in metric_values[set_name]:
             if model_name not in model_set_metrics.keys() and i == 0:
                 model_set_metrics[model_name] = [metric_values[set_name][model_name][0][1]]
@@ -534,7 +611,9 @@ def plot_metric_across_sets(metric_values: Dict, metric_name: str, save_dir: str
         for model_n in model_set_metrics.keys():
             if len(model_set_metrics[model_n]) - 1 != i:
                 model_set_metrics[model_n].append(None)
+            print('len(model_set_metrics[model_n])', len(model_set_metrics[model_n]))
     for model_name in model_set_metrics.keys():
+        print('model_set_metrics[model_name]', model_set_metrics[model_name])
         ax.plot(np.arange(len(set_name_lst)), model_set_metrics[model_name], label=model_name)
     plt.xticks(np.arange(len(set_name_lst)), set_name_lst)
     plt.xlabel('Data Sets')
@@ -551,14 +630,28 @@ def plot_metric_across_sets(metric_values: Dict, metric_name: str, save_dir: str
 def plot_metric_across_TL(metric_values: Dict, metric_name: str, set_type: str, save_dir: str, TL_lst: List):
     fig, ax = plt.subplots()
     for i, model_name in enumerate(metric_values):
+        # print('np.arange(len(TL_lst))', np.arange(len(TL_lst)))
+        # print('metric_values[model_name]', metric_values[model_name])
+        # if len(TL_lst) == len(metric_values[model_name]):
+        #     ax.plot(np.arange(len(TL_lst)), metric_values[model_name], label=model_name)
+        # else:
+        print('metric_values[model_name]', metric_values[model_name])
+        # add dummy entries to metric values if for model have not all TL metrics - to iterate over all TLs in TL_lst
+        # while len(metric_values[model_name]) < len(TL_lst):
+        #     metric_values[model_name].append((0, 0))
         model_metrics_lst = []
+        print('TL_lst', TL_lst)
         for tl in TL_lst:
+            print('tl', tl)
             tls_models = [metr_val[0] for metr_val in metric_values[model_name]]
             if tl in tls_models:
                 model_metrics_lst.append(
                     [metr_val[1] for metr_val in metric_values[model_name] if metr_val[0] == tl][0])
             else:
                 model_metrics_lst.append(None)
+            print('model_metrics_lst', model_metrics_lst)
+        # model_metrics_lst = [metr_val[1]   else None]
+        # ax.plot(np.arange(len(TL_lst)), metric_values[model_name], label=model_name)
         ax.plot(np.arange(len(TL_lst)), model_metrics_lst, label=model_name)
     plt.xticks(np.arange(len(TL_lst)), TL_lst)
     plt.xlabel('Time Limits')
@@ -587,19 +680,8 @@ def plot_scatter_per_instance(metric_values, metric_name, instance_ids, instance
     plt.show()
 
 
-def average_run_results(path_to_results: str, model_name: str, number_runs: int, save_dir_sols: str = None,
-                        save_dir_info: str = None, data_length=None):
-
-    # get plain model name
-    all_file_names_in_dir = [file.split("_")[-1].split(".")[-2] for file in glob.glob(path_to_results+"/*.pkl")]
-    model_n = [file_n for file_n in all_file_names_in_dir if model_name in file_n][0]
-
-    # get run_results
-    run_results = [torch.load(path_to_results + "/run_" + str(
-                r) + "_results_" + model_n + ".pkl") for r in np.arange(1, number_runs+1)]
-
+def average_run_results(run_results: List[Dict], save_dir_sols, save_dir_info, data_length):
     if data_length is None:
-        # for cvrp_100_uniform data have subsamples --> length 128
         data_length = len(run_results[0]["solutions"])
     final_costs, num_vehicles, gaps, pi_scores, wrap_scores, final_runtime, final_runn_t = [], [], [], [], [], [], []
     cost_stds, gap_stds, pi_stds, wrap_stds, n_vehicles_std, runn_t_std = [], [], [], [], [], []
@@ -610,34 +692,71 @@ def average_run_results(path_to_results: str, model_name: str, number_runs: int,
     # averages over 3 runs for set
     average_run_cost, average_run_gaps, average_run_pi, average_run_wrap = [], [], [], []
     for run_sol in run_solutions:
-        average_run_cost.append(np.mean([run_sol[i].cost for i in range(data_length) if run_sol[i].cost != float('inf')]))
+        average_run_cost.append(
+            np.mean([run_sol[i].cost for i in range(data_length) if run_sol[i].cost != float('inf')]))
         average_run_gaps.append(
-            np.mean([gap_bks(run_sol[i].cost, run_sol[i].instance.BKS) for i in range(data_length) if run_sol[i].cost != float('inf')]))
+            np.mean([gap_bks(run_sol[i].cost, run_sol[i].instance.BKS) for i in range(data_length) if
+                     run_sol[i].cost != float('inf')]))
         average_run_pi.append(np.mean([run_sol[i].pi_score for i in range(data_length)]))
         average_run_wrap.append(np.mean([run_sol[i].wrap_score for i in range(data_length)]))
+    print('average_run_cost', average_run_cost)
+    print('average_run_gaps', average_run_gaps)
+    print('average_run_pi', average_run_pi)
+    print('average_run_wrap', average_run_wrap)
 
     # averages over 3 runs per instance
     for i in range(data_length):
+        # print('i', i)
+        # for run_sol in run_solutions:
+        # solutions.append(r_sol.solution for r_sol in run_sol[:data_length])
         final_costs.append(np.mean([r_sol[i].cost for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
         cost_stds.append(np.std([r_sol[i].cost for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
-        cost_min.append(np.min([r_sol[i].cost for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
+        try:
+            cost_min.append(np.min([r_sol[i].cost for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
+        except ValueError:
+            print('instance was not solvable by method in all three runs... appending min(cost)=inf')
+            cost_min.append(float('inf'))
         final_runtime.append(np.mean([r_sol[i].run_time for r_sol in run_solutions if r_sol[i].run_time is not None]))
-        final_rt_min.append(np.min([r_sol[i].run_time for r_sol in run_solutions if r_sol[i].run_time is not None]))
-        final_runn_t.append(np.mean([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
-        runn_t_std.append(np.std([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
-        runn_t_min.append(np.min([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
-        num_vehicles.append(np.mean([r_sol[i].num_vehicles for r_sol in run_solutions])) # if r_sol[i].num_vehicles != float('inf')
+        try:
+            final_rt_min.append(np.min([r_sol[i].run_time for r_sol in run_solutions if r_sol[i].run_time is not None]))
+        except ValueError:
+            final_rt_min.append(
+                np.mean([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
+        final_runn_t.append(
+            np.mean([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
+        runn_t_std.append(
+            np.std([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
+        try:
+            runn_t_min.append(
+                np.min([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
+        except ValueError:
+            print('r_sol[0][i]', run_solutions[0][i])
+            print('[r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]',
+                  [r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None])
+            runn_t_min.append(
+                np.mean([r_sol[i].running_times[-1] for r_sol in run_solutions if r_sol[i].running_times is not None]))
+        num_vehicles.append(
+            np.mean([r_sol[i].num_vehicles for r_sol in run_solutions]))  # if r_sol[i].num_vehicles != float('inf')
         num_vehicles_min.append(np.min([r_sol[i].num_vehicles for r_sol in run_solutions]))
-        n_vehicles_std.append(np.std([r_sol[i].num_vehicles for r_sol in run_solutions ]))
+        n_vehicles_std.append(np.std([r_sol[i].num_vehicles for r_sol in run_solutions]))
         pi_scores.append(np.mean([r_sol[i].pi_score for r_sol in run_solutions]))
         pi_stds.append(np.std([r_sol[i].pi_score for r_sol in run_solutions]))
         pi_min.append(np.min([r_sol[i].pi_score for r_sol in run_solutions]))
         wrap_scores.append(np.mean([r_sol[i].wrap_score for r_sol in run_solutions]))
         wrap_stds.append(np.std([r_sol[i].wrap_score for r_sol in run_solutions]))
         wrap_min.append(np.min([r_sol[i].wrap_score for r_sol in run_solutions]))
-        gaps.append(np.mean([gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
-        gap_stds.append(np.std([gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
-        gap_min.append(np.min([gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for r_sol in run_solutions if r_sol[i].cost != float('inf')]))
+        gaps.append(np.mean([gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for r_sol in run_solutions if
+                             r_sol[i].cost != float('inf')]))
+        gap_stds.append(np.std([gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for r_sol in run_solutions if
+                                r_sol[i].cost != float('inf')]))
+        try:
+            gap_min.append(np.min([gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for r_sol in run_solutions if
+                                   r_sol[i].cost != float('inf')]))
+        except ValueError:
+            print("[gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for "
+                  "r_sol in run_solutions if r_sol[i].cost != float('inf')] =",
+                  [gap_bks(r_sol[i].cost, r_sol[i].instance.BKS) for r_sol in run_solutions if
+                   r_sol[i].cost != float('inf')])
 
     avergage_info_sols = [
         RPSolution(
@@ -678,12 +797,10 @@ def average_run_results(path_to_results: str, model_name: str, number_runs: int,
                     'std_wrap': np.std(average_run_wrap),
                     }
 
-    if save_dir_info is not None:
-        torch.save(avergage_info_dicts, save_dir_info)
-    if save_dir_sols is not None:
-        torch.save(avergage_info_sols, save_dir_sols)
+    torch.save(avergage_info_sols, save_dir_sols)
+    torch.save(avergage_info_dicts, save_dir_info)
 
-    return summary_runs
+    return summary_runs, avergage_info_dicts
 
 
 def re_evaluate_results(time_budgets: List[int],
@@ -701,27 +818,30 @@ def re_evaluate_results(time_budgets: List[int],
 
 def re_evaluate(data_path: str, run_results: Dict, original_TL, model_name: str, data_coord_dist: str,
                 save_path: str = None, wrap_eval: bool = True, normalized_runtimes: bool = True,
-                normalized_ds: bool = True, same_tl: bool = True, data_length: int = 128, not_saving=False):
+                normalized_ds: bool = True, same_tl: bool = True, data_length: int = 128, not_saving=False,
+                problem='tsp'):
     # normalized runtimes means that the running_times and the final runtime are normalized as used in the
     # PI and WRAP evaluation (so not the actual time seen on respective machine, but normalized to the std machines)
 
     # get machine specs
     is_add_ls, adjusted_inst_timelimit_ls, bas_ref_ls, normalizing_factor_ls = False, None, None, None
     try:
+        # print('run_results', run_results)
         run_machine_specs = run_results["machine"]
         number_cpus = int(run_machine_specs["CPU"].split(":")[1])
         print('run_machine_specs["GPU"].split(":")[0] == None', run_machine_specs["GPU"].split(":")[0] is None)
         print('run_machine_specs["GPU"].split(":")[0] == None', run_machine_specs["GPU"].split(":")[0] == 'None')
         used_cpu_only = True if run_machine_specs["GPU"].split(":")[0] == 'None' else False
-        print('used_cpu_only', used_cpu_only)
+        # print('used_cpu_only', used_cpu_only)
         pass_mark_for_eval, cpu_mark = set_eval_passmark(run_machine_specs["CPU"], run_machine_specs["GPU"])
         # get time_limits
         is_c_method = [c_m for c_m in C_METHODS if c_m in model_name]
+        print('is_c_method', is_c_method)
         is_add_ls, adjusted_inst_timelimit_ls, bas_ref_ls, normalizing_factor_ls = False, None, None, None
         if is_c_method:
             is_add_ls = True if model_name[-3:] in ["-SA", "TBS", "GLS"] else False
-        print('is_c_method', is_c_method)
-        print('is_add_ls', is_add_ls)
+        # print('is_c_method', is_c_method)
+        # print('is_add_ls', is_add_ls)
         device_ = torch.device("cpu") if used_cpu_only else torch.device("cuda")
         adjusted_inst_timelimit, base_ref = adjust_time_limit(original_TL, pass_mark_for_eval, device_, number_cpus)
         normalizing_factor = (pass_mark_for_eval / base_ref)
@@ -742,9 +862,16 @@ def re_evaluate(data_path: str, run_results: Dict, original_TL, model_name: str,
         solutions = run_results["solutions"]
     except TypeError:
         solutions = run_results
-    print('NUMBER OF SOLS IN RES:', len(solutions))
+    # print('NUMBER OF SOLS IN RES:', len(solutions))
     ds_size = len(solutions)
-    ds_class = CVRPDataset(
+    if problem.lower() == 'tsp':
+        dataset = TSPDataset
+    elif problem.lower() == 'cvrp':
+        dataset = CVRPDataset
+    else:
+        assert problem.lower() == "cvrptw"
+        dataset = CVRPTWDataset
+    ds_class = dataset(
         store_path=data_path,
         distribution=data_coord_dist,
         dataset_size=ds_size,
@@ -770,183 +897,197 @@ def re_evaluate(data_path: str, run_results: Dict, original_TL, model_name: str,
     print('ds_class.adjusted_time_limit', ds_class.adjusted_time_limit)
     updated_sols = []
     for sol in solutions[:data_length]:
-        print(f'RE-EVALUATE {model_name} FOR INSTANCE: {sol.instance.instance_id}')
-        print('SOL.RUNNING_TIMES: ', sol.running_times)
-        # check if invalid times (like 0.0)
-        if float(0) in sol.running_times:
-            print('sol.running_times', sol.running_times)
-            upd_vals = []
-            for value in sol.running_times:
-                if value == float(0):
-                    new_val = 0.1
-                else:
-                    new_val = value
-                upd_vals.append(new_val)
-            print('updated vals', upd_vals)
-            sol = sol.update(running_times=upd_vals)
-        if sol.instance.BKS != ds_class.bks[str(sol.instance.instance_id)][0]:
-            # update BKS, time_limit in stored CVRPInstance
-            sol_inst = sol.instance
-            sol_inst_upd = sol_inst.update(BKS=ds_class.bks[str(sol.instance.instance_id)][0],
-                                           time_limit=original_TL)
-            sol = sol.update(instance=sol_inst_upd)
-        final_runtime_adj = min(sol.run_time, ds_class.adjusted_time_limit)
-        # updated_final_rt_ = min(sol.run_time, ds_class.adjusted_time_limit)
-        # print('sol.running_sols', sol.running_sols)
-        if sol.running_sols is None:
-            # update running costs, running times acc. to (new) Time Limit
-            # costs_up_to_tl, rt_up_to_tl = [], []
-            # print('len(sol.running_costs)', len(sol.running_costs))
-            # print('len(sol.running_times)', len(sol.running_times))
-            assert len(sol.running_costs) == len(sol.running_times), f"Length for running_costs and " \
-                                                                     f"running_times is not equal"
-            # number_costs_orig = len(sol.running_costs)
-            # for i in range(number_costs_orig):
-            #     if sol.running_times[i] <= ds_class.adjusted_time_limit:
-            #         costs_up_to_tl.append(sol.running_costs[i])
-            #         print('costs_up_to_tl', costs_up_to_tl)
-            #         rt_up_to_tl.append(sol.running_times[i])
-            print('sol before update cost=None', sol)
-            # print('sol after update cost=None', sol)
-            print('len(sol.running_costs)', len(sol.running_costs))
-            print('sol.running_costs[-1]', sol.running_costs[-1])
-            print('sol.running_costs[-1]', sol.running_costs[-1])
-            print('sol.instance.BKS', sol.instance.BKS)
-            print('sol.cost', sol.cost)
-            if sol.running_costs[-1] < sol.instance.BKS:
-                print('SMALLER RUNN COSTS THAN BKS --> ROUNDING ERROR IN ', model_name)
-                # if sol.running_costs[-2] > sol.cost >= sol.instance.BKS:
-                #     print('Replace last running cost with final cost')
-                #     updated_runn_costs = sol.running_costs
-                #     updated_runn_costs[-1] = sol.cost
-                #     updated_runn_times = sol.running_times
-                # else:
-                # print('remove last running costs smaller than final cost.')
-                updated_runn_costs, updated_runn_times = [], []
-                for runn_c, runn_t in zip(sol.running_costs, sol.running_times):
-                    if runn_c > sol.cost:
-                        updated_runn_costs.append(runn_c)
-                        updated_runn_times.append(runn_t)
-                updated_runn_costs.append(sol.cost)
-                updated_runn_times.append(sol.running_times[-1])
-                sol = sol.update(running_costs=updated_runn_costs, running_times=updated_runn_times)
-            # placeholder solution for eval -> final sol stays None, cost will be changed to last running cost
-            sol = sol.update(running_costs=sol.running_costs, running_times=sol.running_times, running_sols=None,
-                             cost=None, run_time=final_runtime_adj, solution=sol.solution if same_tl else None)
-            print('sol.running_costs[-1] AFTER', sol.running_costs[-1])
-            print('sol.instance.BKS AFTER', sol.instance.BKS)
-            print('sol.cost', sol.cost)
-        else:
-            # print('sol.running_sols', sol.running_sols)
-            sols_up_to_tl = []
-            if not same_tl:
-                for i in range(len(sol.running_times)):
-                    # print('sol.running_times[i]', sol.running_times[i])
-                    # print('ds_class.adjusted_time_limit', ds_class.adjusted_time_limit)
-                    if sol.running_times[i] <= ds_class.adjusted_time_limit:
-                        sols_up_to_tl.append(sol.running_sols[i])
-                last_sol = None if not sols_up_to_tl else sols_up_to_tl[-1]
-                # print("sols_up_to_tl[-1]", sols_up_to_tl[-1])
-            # print('sol.solution', sol.solution)
-            sol = sol.update(running_costs=None, running_times=sol.running_times, running_sols=sol.running_sols,
-                             cost=None, run_time=final_runtime_adj,
-                             solution=sol.solution if same_tl else last_sol)
-            # sol.running_sols[-1]
-        # update sol with new running values and set final cost, solution and runtime to None before re-eval:
-        # print('sols_up_to_tl[0] == sols_up_to_tl[1] == sols_up_to_tl[2]',
-        #       sols_up_to_tl[0] == sols_up_to_tl[1] == sols_up_to_tl[2])
-        # print('len(sols_up_to_tl)', len(sols_up_to_tl))
-        # print('len(costs_up_to_tl)', len(costs_up_to_tl))
-        # print('len(rt_up_to_tl)', len(rt_up_to_tl))
-        # print('sol.running_costs[-1]', sol.running_costs[-1])
-        # print('costs_up_to_tl[-1]', costs_up_to_tl[-1])
-        # print('sol.cost', sol.cost)
-        # print('sol.running_times[-1]', sol.running_times[-1])
-        # print('rt_up_to_tl[-1]', rt_up_to_tl[-1])
-        # print('sol.run_time', sol.run_time)
-        # print('final_runtime_adj', final_runtime_adj)
-        # print('sol.running_sols', sol.running_sols)
-        # print('sol.cost after update to None', sol.cost)
-        # print('sol.run_time after update to None', sol.run_time)
-        # print('before sol.wrap', sol.wrap_score)
-        # print('before sol.pi', sol.pi_score)
-        updated_sol, summary, new_bks = ds_class.eval_solution(model_name=model_name,
-                                                               solution=sol,
-                                                               eval_mode="pi" if not wrap_eval else ["pi", "wrap"],
-                                                               save_trajectory=False,
-                                                               save_trajectory_for=None,
-                                                               place_holder_final_sol=True if sol.running_sols is None
-                                                               else False)
-        print('updated_sol.cost after EVAL', updated_sol.cost)
-        print('updated_sol.run_time after EVAL', updated_sol.run_time)
-        # print('updated sol after eval', updated_sol)
-        if sol.running_sols is not None:
-            if sol.running_costs is not None:
-                print('len(sol.running_sols)', len(sol.running_sols))
-                print('len(updated_sol.running_sols)', len(updated_sol.running_sols))
-        # print('len(updated_sol.running_costs)', len(updated_sol.running_costs))
-        # print('len(updated_sol.running_times)', len(updated_sol.running_times))
-        if sol.running_sols is None:
-            # updated_final_rt_ = min(updated_sol.run_time, ds_class.adjusted_time_limit)
-            print('same_tl', same_tl)
-            # print('updated_sol.running_costs[-1]', updated_sol.running_costs[-1])
-            updated_sol = updated_sol.update(cost=updated_sol.running_costs[-1] if updated_sol.running_costs is
-                                                                                   not None else float('inf'),
-                                             solution=sol.solution if same_tl else None,
-                                             run_time=min(updated_sol.run_time, ds_class.adjusted_time_limit))
-
-
-        new_r_times, is_first = [], True
-        if normalized_runtimes:
-            if updated_sol.running_times is not None:
-                for i in range(len(updated_sol.running_times)):
-                    if is_first:
-                        normalizing_factor_ = normalizing_factor
+        if (sol.solution is not None) and (sol.running_costs is not None) and (sol.running_times is not None):
+            print(f'RE-EVALUATE {model_name} FOR INSTANCE: {sol.instance.instance_id}')
+            print('SOL.RUNNING_TIMES: ', sol.running_times)
+            print('SOL.RUNNING_COSTS: ', sol.running_costs)
+            print('SOL.solution: ', sol.solution)
+            # check if invalid times (like 0.0)
+            if float(0) in sol.running_times:
+                print('sol.running_times', sol.running_times)
+                upd_vals = []
+                for value in sol.running_times:
+                    if value == float(0):
+                        new_val = 0.1
                     else:
-                        normalizing_factor_ = normalizing_factor if normalizing_factor_ls is None \
-                            else normalizing_factor_ls
-                    normalized_rt = int(((updated_sol.running_times[i] * normalizing_factor_) * 1000) + .5) / 1000.0
-                    if normalized_rt > original_TL:
-                        # print('normed_rt bigger than original TL')
-                        normalized_rt = round(normalized_rt)
-                    new_r_times.append(normalized_rt)
-                    is_first = False
-                print('SOL_UPDATED.running_times: ', updated_sol.running_times)
-                print('new_r_times: ', new_r_times)
-                # update final run_time:
-                print('updated_sol.run_time', updated_sol.run_time)
-                print('AJUSTED PER INST TL: ', ds_class.adjusted_time_limit)
-                if updated_sol.run_time <= ds_class.adjusted_time_limit:
-                    norm_factor = normalizing_factor if normalizing_factor_ls is None else normalizing_factor_ls
-                    updated_final_rt = round(int(((updated_sol.run_time * norm_factor) * 1000) + .5) / 1000.0)
-                    updated_final_rt = updated_final_rt if (
-                            updated_final_rt < (original_TL * (5 / 100))) else original_TL
-                    print('normed UPDATE FINAL RT:', updated_final_rt)
-                else:
-                    # if normalized_runtimes:
-                    updated_final_rt = original_TL
-                    print('normed UPDATE FINAL RT where r_t is bigger than RT:', updated_final_rt)
-
-                updated_sol = updated_sol.update(running_times=new_r_times, run_time=updated_final_rt)
-                # print('updated sol after normalized runtimes', updated_sol)
+                        new_val = value
+                    upd_vals.append(new_val)
+                print('updated vals', upd_vals)
+                sol = sol.update(running_times=upd_vals)
+            if sol.instance.BKS != ds_class.bks[str(sol.instance.instance_id)][0]:
+                # update BKS, time_limit in stored CVRPInstance
+                sol_inst = sol.instance
+                sol_inst_upd = sol_inst.update(BKS=ds_class.bks[str(sol.instance.instance_id)][0],
+                                               time_limit=original_TL)
+                sol = sol.update(instance=sol_inst_upd)
+            final_runtime_adj = min(sol.run_time, ds_class.adjusted_time_limit)
+            # updated_final_rt_ = min(sol.run_time, ds_class.adjusted_time_limit)
+            # print('sol.running_sols', sol.running_sols)
+            print('sol.instance.coords[:3]', sol.instance.coords[:3])
+            print('np.all(sol.instance.coords < 1.1)', np.all(sol.instance.coords < 1.1))
+            if not normalized_ds and np.all(sol.instance.coords < 1.1):
+                print("Costs are not normalized, but coordinates in solution.instance are...")
+                print("Updating coordinates in sol.instance with Grid Size to ensure correct re-evaluation...")
+                grid_size = GRID_SIZES[data_coord_dist]
+                sol_inst_ = sol.instance
+                sol_inst_upd_ = sol_inst_.update(coords=sol_inst_.coords * grid_size)
+                sol = sol.update(instance=sol_inst_upd_)
+            if sol.running_sols is None:
+                # update running costs, running times acc. to (new) Time Limit
+                # costs_up_to_tl, rt_up_to_tl = [], []
+                # print('len(sol.running_costs)', len(sol.running_costs))
+                # print('len(sol.running_times)', len(sol.running_times))
+                assert len(sol.running_costs) == len(sol.running_times), f"Length for running_costs and " \
+                                                                         f"running_times is not equal"
+                # number_costs_orig = len(sol.running_costs)
+                # for i in range(number_costs_orig):
+                #     if sol.running_times[i] <= ds_class.adjusted_time_limit:
+                #         costs_up_to_tl.append(sol.running_costs[i])
+                #         print('costs_up_to_tl', costs_up_to_tl)
+                #         rt_up_to_tl.append(sol.running_times[i])
+                # print('sol before update cost=None', sol)
+                # print('sol after update cost=None', sol)
+                # print('len(sol.running_costs)', len(sol.running_costs))
+                # print('sol.running_costs[-1]', sol.running_costs[-1])
+                # print('sol.running_costs[-1]', sol.running_costs[-1])
+                # print('sol.instance.BKS', sol.instance.BKS)
+                # print('sol.cost', sol.cost)
+                if sol.running_costs[-1] < sol.instance.BKS:
+                    print('SMALLER RUNN COSTS THAN BKS --> ROUNDING ERROR IN ', model_name)
+                    # if sol.running_costs[-2] > sol.cost >= sol.instance.BKS:
+                    #     print('Replace last running cost with final cost')
+                    #     updated_runn_costs = sol.running_costs
+                    #     updated_runn_costs[-1] = sol.cost
+                    #     updated_runn_times = sol.running_times
+                    # else:
+                    # print('remove last running costs smaller than final cost.')
+                    updated_runn_costs, updated_runn_times = [], []
+                    for runn_c, runn_t in zip(sol.running_costs, sol.running_times):
+                        if runn_c > sol.cost:
+                            updated_runn_costs.append(runn_c)
+                            updated_runn_times.append(runn_t)
+                    updated_runn_costs.append(sol.cost)
+                    updated_runn_times.append(sol.running_times[-1])
+                    sol = sol.update(running_costs=updated_runn_costs, running_times=updated_runn_times)
+                # placeholder solution for eval -> final sol stays None, cost will be changed to last running cost
+                sol = sol.update(running_costs=sol.running_costs, running_times=sol.running_times, running_sols=None,
+                                 cost=None, run_time=final_runtime_adj, solution=sol.solution if same_tl else None)
+                # print('sol.running_costs[-1] AFTER', sol.running_costs[-1])
+                # print('sol.instance.BKS AFTER', sol.instance.BKS)
+                # print('sol.cost', sol.cost)
             else:
-                print("NO SOLUTION FOUND IN TIME LIMIT")
-                updated_sol = updated_sol.update(running_times=None, run_time=None)
-        updated_sols.append(updated_sol)
-        print('BEFORE sol.wrap       ', sol.wrap_score)
-        print('AFTER updated_sol.wrap', updated_sol.wrap_score)
-        print('BEFORE sol.pi       ', sol.pi_score)
-        print('AFTER updated_sol.pi', updated_sol.pi_score)
-        print('BEFORE sol.cost       ', sol.cost)
-        print('AFTER updated_sol.cost', updated_sol.cost)
-        print('BEFORE sol.running_costs       ', sol.running_costs)
-        print('AFTER updated_sol.running_costs', updated_sol.running_costs)
-        print('BEFORE sol.running_times       ', sol.running_times)
-        print('AFTER updated_sol.running_times', updated_sol.running_times)
-        if solutions[0].wrap_score is not None:
-            print('BEFORE AVERAGE WRAP:', np.mean([sol_.wrap_score for sol_ in solutions]))
-        print('AFTER AVERAGE WRAP: ', np.mean([sol_.wrap_score for sol_ in updated_sols]))
-        print('UPDATED_SOL', updated_sol)
+                # print('sol.running_sols', sol.running_sols)
+                sols_up_to_tl = []
+                if not same_tl:
+                    for i in range(len(sol.running_times)):
+                        # print('sol.running_times[i]', sol.running_times[i])
+                        # print('ds_class.adjusted_time_limit', ds_class.adjusted_time_limit)
+                        if sol.running_times[i] <= ds_class.adjusted_time_limit:
+                            sols_up_to_tl.append(sol.running_sols[i])
+                    last_sol = None if not sols_up_to_tl else sols_up_to_tl[-1]
+                    # print("sols_up_to_tl[-1]", sols_up_to_tl[-1])
+                # print('sol.solution', sol.solution)
+                sol = sol.update(running_costs=None, running_times=sol.running_times, running_sols=sol.running_sols,
+                                 cost=None, run_time=final_runtime_adj,
+                                 solution=sol.solution if same_tl else last_sol)
+                # sol.running_sols[-1]
+            # update sol with new running values and set final cost, solution and runtime to None before re-eval:
+            # print('sols_up_to_tl[0] == sols_up_to_tl[1] == sols_up_to_tl[2]',
+            #       sols_up_to_tl[0] == sols_up_to_tl[1] == sols_up_to_tl[2])
+            # print('len(sols_up_to_tl)', len(sols_up_to_tl))
+            # print('len(costs_up_to_tl)', len(costs_up_to_tl))
+            # print('len(rt_up_to_tl)', len(rt_up_to_tl))
+            # print('sol.running_costs[-1]', sol.running_costs[-1])
+            # print('costs_up_to_tl[-1]', costs_up_to_tl[-1])
+            # print('sol.cost', sol.cost)
+            # print('sol.running_times[-1]', sol.running_times[-1])
+            # print('rt_up_to_tl[-1]', rt_up_to_tl[-1])
+            # print('sol.run_time', sol.run_time)
+            # print('final_runtime_adj', final_runtime_adj)
+            # print('sol.running_sols', sol.running_sols)
+            # print('sol.cost after update to None', sol.cost)
+            # print('sol.run_time after update to None', sol.run_time)
+            # print('before sol.wrap', sol.wrap_score)
+            # print('before sol.pi', sol.pi_score)
+            updated_sol, summary, new_bks = ds_class.eval_solution(model_name=model_name,
+                                                                   solution=sol,
+                                                                   eval_mode="pi" if not wrap_eval else ["pi", "wrap"],
+                                                                   save_trajectory=False,
+                                                                   save_trajectory_for=None,
+                                                                   place_holder_final_sol=True if sol.running_sols is None
+                                                                   else False)
+            print('updated_sol.cost after EVAL', updated_sol.cost)
+            # print('updated_sol.run_time after EVAL', updated_sol.run_time)
+            # print('updated sol after eval', updated_sol)
+            if sol.running_sols is not None:
+                if sol.running_costs is not None:
+                    print('len(sol.running_sols)', len(sol.running_sols))
+                    print('len(updated_sol.running_sols)', len(updated_sol.running_sols))
+            # print('len(updated_sol.running_costs)', len(updated_sol.running_costs))
+            # print('len(updated_sol.running_times)', len(updated_sol.running_times))
+            if sol.running_sols is None:
+                # updated_final_rt_ = min(updated_sol.run_time, ds_class.adjusted_time_limit)
+                # print('same_tl', same_tl)
+                # print('updated_sol.running_costs[-1]', updated_sol.running_costs[-1])
+                updated_sol = updated_sol.update(cost=updated_sol.running_costs[-1] if updated_sol.running_costs is
+                                                                                       not None else float('inf'),
+                                                 solution=sol.solution if same_tl else None,
+                                                 run_time=min(updated_sol.run_time, ds_class.adjusted_time_limit))
+
+            new_r_times, is_first = [], True
+            if normalized_runtimes:
+                if updated_sol.running_times is not None:
+                    for i in range(len(updated_sol.running_times)):
+                        if is_first:
+                            normalizing_factor_ = normalizing_factor
+                        else:
+                            normalizing_factor_ = normalizing_factor if normalizing_factor_ls is None \
+                                else normalizing_factor_ls
+                        normalized_rt = int(((updated_sol.running_times[i] * normalizing_factor_) * 1000) + .5) / 1000.0
+                        if normalized_rt > original_TL:
+                            # print('normed_rt bigger than original TL')
+                            normalized_rt = round(normalized_rt)
+                        new_r_times.append(normalized_rt)
+                        is_first = False
+                    # print('SOL_UPDATED.running_times: ', updated_sol.running_times)
+                    # print('new_r_times: ', new_r_times)
+                    # update final run_time:
+                    # print('updated_sol.run_time', updated_sol.run_time)
+                    # print('AJUSTED PER INST TL: ', ds_class.adjusted_time_limit)
+                    if updated_sol.run_time <= ds_class.adjusted_time_limit:
+                        norm_factor = normalizing_factor if normalizing_factor_ls is None else normalizing_factor_ls
+                        updated_final_rt = round(int(((updated_sol.run_time * norm_factor) * 1000) + .5) / 1000.0)
+                        updated_final_rt = updated_final_rt if (
+                                updated_final_rt < (original_TL * (5 / 100))) else original_TL
+                        print('normed UPDATE FINAL RT:', updated_final_rt)
+                    else:
+                        # if normalized_runtimes:
+                        updated_final_rt = original_TL
+                        print('normed UPDATE FINAL RT where r_t is bigger than RT:', updated_final_rt)
+
+                    updated_sol = updated_sol.update(running_times=new_r_times, run_time=updated_final_rt)
+                    # print('updated sol after normalized runtimes', updated_sol)
+                else:
+                    print("NO SOLUTION FOUND IN TIME LIMIT")
+                    updated_sol = updated_sol.update(running_times=None, run_time=None)
+            updated_sols.append(updated_sol)
+            # print('BEFORE sol.wrap       ', sol.wrap_score)
+            # print('AFTER updated_sol.wrap', updated_sol.wrap_score)
+            # print('BEFORE sol.pi       ', sol.pi_score)
+            # print('AFTER updated_sol.pi', updated_sol.pi_score)
+            # print('BEFORE sol.cost       ', sol.cost)
+            # print('AFTER updated_sol.cost', updated_sol.cost)
+            # print('BEFORE sol.running_costs       ', sol.running_costs)
+            # print('AFTER updated_sol.running_costs', updated_sol.running_costs)
+            # print('BEFORE sol.running_times       ', sol.running_times)
+            # print('AFTER updated_sol.running_times', updated_sol.running_times)
+            # if solutions[0].wrap_score is not None:
+            #     print('BEFORE AVERAGE WRAP:', np.mean([sol_.wrap_score for sol_ in solutions]))
+            # print('AFTER AVERAGE WRAP: ', np.mean([sol_.wrap_score for sol_ in updated_sols]))
+            # print('UPDATED_SOL', updated_sol)
+        else:
+            print('NO FEASIBLE SOLUTION FOUND FOR THIS INSTANCE IN TIME-LIMIT')
+            updated_sols = solutions
     run_res_updated = {"machine": run_machine_specs, "solutions": updated_sols}
     if save_path is not None and not not_saving:
         torch.save(run_res_updated, save_path)
@@ -963,8 +1104,8 @@ def set_eval_passmark(cpu_device, gpu_device=None, passmark_version=runner_utils
     # GPU Marks:
     gpu_machine = gpu_device.split(":")[0]
     gpu_count = int(gpu_device.split(":")[1]) if gpu_device.split(":")[1] != 'None' else None
-    print('gpu_machine', gpu_machine)
-    print('gpu_count', gpu_count)
+    # print('gpu_machine', gpu_machine)
+    # print('gpu_count', gpu_count)
     if gpu_count is not None:
         g3d_mark = runner_utils.GPU_MACHINES[gpu_machine][0]
         g2d_mark = runner_utils.GPU_MACHINES[gpu_machine][1]

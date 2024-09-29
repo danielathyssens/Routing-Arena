@@ -2,15 +2,14 @@ import pandas as pd
 import warnings
 import os
 from typing import Tuple
+import torch as pytorch
+
+from d2l import torch
 
 
 def get_machine_info(which_type: str, machine_name: str) -> Tuple:
     current_dir = os.getcwd()
-    if not len(current_dir.split("RA")) == 2:
-        # 'RA' appears more than once in working directory path
-        root_dir = os.path.join(current_dir.split("RA")[0][:-1]+"/RA"+current_dir.split("RA")[1], "RA")
-    else:
-        root_dir = os.path.join(current_dir.split("RA")[0], "RA")
+    root_dir = os.path.join(current_dir.split("routing-arena")[0], "routing-arena")
     if which_type == "cpu":
         score_registry_path = os.path.join(root_dir, 'machine_scores/cpu_scores.md')
     elif which_type == "gpu":
@@ -33,3 +32,21 @@ def get_machine_info(which_type: str, machine_name: str) -> Tuple:
     else:
         name, g3d_m, g2d_m, _ = df.query("device_name == @machine_name").values.tolist()[0]  # get g3d, g2d marks
         return int(g3d_m), int(g2d_m)
+
+
+def merge_bks(source_path_1: str, source_path_2: str, save_merged_bks: bool, save_path: str=None):
+    bks_1_all = pytorch.load(source_path_1)
+    bks_2_all = pytorch.load(source_path_2)
+    assert len(bks_1_all) == len(bks_2_all), print(f"both BKS registries do not have same length...")
+
+    merged_registry = {}
+    for i in range(len(bks_1_all)):
+        bks_1 = bks_1_all[str(i)][0]
+        bks_2 = bks_2_all[str(i)][0]
+        if bks_1 <= bks_2:
+            merged_registry[str(i)] = bks_1_all[str(i)]
+        else:
+            merged_registry[str(i)] = bks_2_all[str(i)]
+    if save_merged_bks:
+        pytorch.save(merged_registry, save_path)
+    return merged_registry

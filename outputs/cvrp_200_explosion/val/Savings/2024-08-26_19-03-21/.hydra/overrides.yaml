@@ -1,0 +1,6 @@
+- meta=run_base
+- env=cvrp200_exp
+- test_cfg.dataset_size=128
+- test_cfg.time_limit=500
+- base_filename=BaseSol_val_tl500_128_new
+- test_cfg.ls_policy_cfg.batch_size=12

@@ -53,6 +53,46 @@ XE_UCHOA_TYPES = {  # depot type and customer distribution type
 }
 
 
+DATA_KEYWORDS = {
+    'uniform': 'uniform',
+    'uniform_fu': 'uniform_fu',
+    'nazari': 'uniform',
+    'rej': 'rejection_sampled',
+    'uchoa': 'uchoa_distributed',
+    'explosion': 'explosion',
+    'rotation': 'rotation',
+    'tsplib': 'tsplib_format',
+    'homberger': 'homberger_200',
+    'XE': 'XE',
+    'S': 'S'
+}
+
+TEST_SETS_BKS = ['tsp100_fu.pt',
+                 'tsp200_fu.pt',
+                 'tsp500_fu.pt',
+                 'tsp1000_fu.pt',
+                 'tsp10000_fu.pt',
+                 'cvrp20_test_seed1234.pkl',
+                 'cvrp50_test_seed1234.pkl',
+                 'cvrp100_test_seed1234.pkl',
+                 'val_seed123_size512.pt',
+                 'val_seed123_size512.pkl',
+                 'val_seed4321_size512.pkl',
+                 'val_seed1234_size128.pkl',
+                 'val_seed1234_size128.pt',
+                 'val_seed2025_size128.pt',
+                 'E_R_6_seed123_size512.pt',
+                 'val_seed4321_size128.pt',
+                 'val_E_size2000.pkl',
+                 'val_R_size2000.pkl',
+                 'val_cvrptw_40.pkl',
+                 'val_cvrptw_200.pkl',
+                 'XE',
+                 'X',
+                 'XML100',
+                 'subsampled',
+                 'Golden']
+
 # XE 10    218 E R     U       3
 # XE 11    236 E R     U       18
 # XE 12    241 E R     1-10    28

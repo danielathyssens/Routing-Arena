@@ -348,7 +348,8 @@ class Metrics:
             primalIntegral -= 1
             final_primalIntegral = primalIntegral * 100
             if final_primalIntegral < 0:
-                warnings.warn(f'Negative PI found for this instance - BUG! or New Best Known Solution Found')
+                warnings.warn(f'Negative PI found for this instance - BUG! or New Best Known Solution Found,'
+                              f' cost_last={cost_last} and bks={bks}')
         else:
             final_primalIntegral = 10
             if self.verbose:

@@ -75,9 +75,9 @@ class CVRPDataset(BaseDataset):
         self.generator_args = generator_args
         self.sampling_args = sampling_args
         self.graph_size = graph_size
-        # print('self.distribution', self.distribution)
+        print('self.distribution', self.distribution)
         self.grid_size = grid_size if self.distribution in ["uchoa", "XML", "explosion", "rotation"] else 1000
-        # print('self.grid_size', self.grid_size)
+        print('self.grid_size', self.grid_size)
         self.num_vehicles = num_vehicles
         self.capacity = capacity
         self.time_limit = TimeLimit
@@ -96,6 +96,7 @@ class CVRPDataset(BaseDataset):
         if store_path is not None:
             # load or download (test) data
             self.data, self.data_key = self.load_dataset()
+            print('self.data[0]', self.data[0])
             assert self.data is not None, f"No data loaded! Please initiate class with valid data path"
             if self.dataset_size is not None and self.dataset_size < len(self.data):
                 self.data = self.data[:self.dataset_size]
@@ -207,7 +208,7 @@ class CVRPDataset(BaseDataset):
                     constraint_idx=[-1],  # demand is at last position of node features
                     vehicle_capacity=1.0,  # demands are normalized
                     original_capacity=self.data[i][3],  # original_capacity for NLNS, DPDP
-                    time_limit=self.time_limit,
+                    time_limit=self.time_limit,  # TODO: schematic approach to time limit
                     BKS=self.bks[str(i)][0] if self.bks is not None else None,
                     instance_id=i,
                     # data_key=self.data_key,
@@ -318,12 +319,12 @@ class CVRPDataset(BaseDataset):
         depot = instance.depot_idx[0]
         coords = instance.coords.astype(int) if self.is_denormed and isinstance(instance.coords[0][0], np.int64) \
             else instance.coords
-        # print('coords', coords)
+        # print('coords', coords[:5])
         # if self.scale_factor is None else (instance.coords * self.scale_factor).astype(int)
         demands = instance.node_features[:, instance.constraint_idx[0]] if self.is_denormed \
             else instance.node_features[:, instance.constraint_idx[0]]
         # print('self.is_denormed', self.is_denormed)
-        # print('demands in cvrp_dataset-feasibility_check: ', demands)
+        # print('demands in cvrp_dataset-feasibility_check: ', demands[:5])
         # demands = np.round(instance.node_features[:, instance.constraint_idx[0]] * instance.original_capacity)
         # print('demands[:10]', demands[:10])
         # * instance.original_capacity).astype(int)
@@ -332,6 +333,14 @@ class CVRPDataset(BaseDataset):
         # capacity = instance.original_capacity
         capacity = instance.original_capacity if self.is_denormed else instance.vehicle_capacity
         # print('capacity in cvrp_dataset-feasibility_check: ', capacity)
+        # print('instance.original_capacity', instance.original_capacity)
+        if capacity != instance.original_capacity:
+            if any(x >= 1.0 for x in demands):
+                logger.info('reset capacity for methods where coordinates are normed, but demands not...')
+                capacity = instance.original_capacity
+            # assert not any(x > 1.0 for x in demands), (
+            #     print('Normalization mismatch - coords normed, demands original...'))
+        # print('capacity in cvrp_dataset-feasibility_check UPDATED: ', capacity)
         routes_ = []
         visited_nodes = [0]
         # print('routes in cvrp_dataset', routes)

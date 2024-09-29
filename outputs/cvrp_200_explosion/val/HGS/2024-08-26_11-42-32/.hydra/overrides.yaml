@@ -1,0 +1,5 @@
+- env=cvrp200_exp
+- test_cfg.time_limit=480
+- policy_cfg.num_workers=8
+- test_cfg.dataset_size=128
+- number_runs=1

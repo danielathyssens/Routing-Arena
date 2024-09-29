@@ -13,6 +13,7 @@ from torch.utils.data import Dataset
 from formats import TSPInstance, CVRPInstance, CVRPTWInstance, RPSolution
 from data.generator import RPGenerator
 from data.data_utils import format_ds_save_path
+from data.dataset_utils import TEST_SETS_BKS, DATA_KEYWORDS
 from metrics.metrics import Metrics
 from models.runner_utils import _adjust_time_limit as adjust_TL
 import matplotlib.pyplot as plt
@@ -21,43 +22,6 @@ from models.runner_utils import NORMED_BENCHMARKS
 # from data.BKS import BKS_cvrp_kool, BKS_tsp_kool
 
 logger = logging.getLogger(__name__)
-
-DATA_KEYWORDS = {
-    'uniform': 'uniform',
-    'uniform_fu': 'uniform_fu',
-    'nazari': 'uniform',
-    'rej': 'rejection_sampled',
-    'uchoa': 'uchoa_distributed',
-    'tsplib': 'tsplib_format',
-    'homberger': 'homberger_200',
-    'XE': 'XE',
-    'S': 'S'
-}
-
-TEST_SETS_BKS = ['tsp100_fu.pt',
-                 'tsp200_fu.pt',
-                 'tsp500_fu.pt',
-                 'tsp1000_fu.pt',
-                 'tsp10000_fu.pt',
-                 'cvrp20_test_seed1234.pkl',
-                 'cvrp50_test_seed1234.pkl',
-                 'cvrp100_test_seed1234.pkl',
-                 'val_seed123_size512.pt',
-                 'val_seed123_size512.pkl',
-                 'val_seed4321_size512.pkl',
-                 'val_seed1234_size128.pkl',
-                 'val_seed1234_size128.pt',
-                 'E_R_6_seed123_size512.pt',
-                 'val_seed4321_size128.pt',
-                 'val_E_size2000.pkl',
-                 'val_R_size2000.pkl',
-                 'val_cvrptw_40.pkl',
-                 'val_cvrptw_200.pkl',
-                 'XE',
-                 'X',
-                 'XML100',
-                 'subsampled',
-                 'Golden']
 
 
 class BaseDataset(Dataset):
@@ -251,7 +215,7 @@ class BaseDataset(Dataset):
             self.return_infeasible_sol(eval_mode, instance, solution, cost, nr_v)
         # print('solution_updated', solution_updated)
         solution = solution.update(solution=solution_updated)
-        print('self.scale_factor', self.scale_factor)
+        # print('self.scale_factor', self.scale_factor)
         if self.scale_factor is not None:
             cost = cost * self.scale_factor
         if self.is_denormed and self.store_path is None:
@@ -432,6 +396,10 @@ class BaseDataset(Dataset):
                            place_holder_final_sol: bool = False,
                            update_runn_sols: bool = True):
         runn_costs_upd, runn_sols = None, None
+        # print('running_sol', running_sol)
+        # print('running_costs', running_costs)
+        # print('scale_factor', scale_factor)
+        # print('grid_size', grid_size)
         if running_sol is not None and running_t is not None:
             runn_costs = [self.feasibility_check(instance=instance, rp_solution=sol, is_running=True)[0]
                           for sol in running_sol]
@@ -574,6 +542,7 @@ class BaseDataset(Dataset):
         # check if dataset has a BKS/BaseSol store file
         if self.store_path is not None:
             _path = None
+            # print('os.path.basename(self.store_path)', os.path.basename(self.store_path))
             if os.path.basename(self.store_path) in TEST_SETS_BKS \
                     or os.path.basename(self.store_path)[:2] in TEST_SETS_BKS \
                     or self.store_path.split("/")[-2] in TEST_SETS_BKS:

@@ -74,11 +74,11 @@ class RPGenerator:
                  float_prec: np.dtype = np.float32,
                  generator_args: Union[dict, DictConfig] = None):
         self._seed = seed if seed is not None else 1234
-        print('self._seed', self._seed)
+        # print('self._seed', self._seed)
         self.generator_args = generator_args
         self.store_subsampled_data = True  # self.generator_args["store_subsamples"]
         self._rnd = np.random.default_rng(seed)  # np.random.RandomState(seed)  #
-        print('self._rnd', self._rnd)
+        # print('self._rnd', self._rnd)
         self.verbose = verbose
         self.float_prec = float_prec
         print('self.generator_args', self.generator_args)
@@ -103,7 +103,7 @@ class RPGenerator:
                 x = self.generate_subsamples(prob, base_nodes_size=BASE_SIZES[g_size], graph_size=g_size,
                                              distribution=self.generator_args["coords_sampling_dist"],
                                              sampling_args=sample_args, for_RL4CO=for_RL4CO)
-                print("type(x)", type(x))
+                # print("type(x)", type(x))
                 # +str(self.generator_args['coords_sampling_dist'])
                 np.savez(save_path + save_name, x)
 
@@ -138,6 +138,7 @@ class RPGenerator:
             logger.info(f"saving single large instance in logs ...")
             if isinstance(self.single_large_inst, tuple):
                 torch.save(self.single_large_inst[0], "single_large_instance.pt")
+                torch.save(self.single_large_inst[1], "subsample_node_ids.pt")
                 self.single_large_inst = self.single_large_inst[0]
             else:
                 torch.save(self.single_large_inst, "single_large_instance.pt")
@@ -146,10 +147,11 @@ class RPGenerator:
                 # reset capacity
                 sampling_args['cap'] = int(self.single_large_inst[0].original_capacity)
 
-            print(f"original cap: sampling_args['cap']: {sampling_args['cap']}")
+            # print(f"original cap: sampling_args['cap']: {sampling_args['cap']}")
         # sub-sample #sample_size instances from single large instance
         if not for_RL4CO:
-            logger.info(f"subsampling from single large instance ...")
+            if self.verbose:
+                logger.info(f"subsampling from single large instance ...")
             sub_sampled_data = self._sub_sample(problem,
                                                 self.single_large_inst[0],
                                                 self.sampler.normalize_demands,
@@ -158,7 +160,8 @@ class RPGenerator:
                                                 sampling_args['n_depots'],
                                                 distribution)
             if self.store_subsampled_data:
-                logger.info(f"saving sub-sampled instances in logs ...")
+                if self.verbose:
+                    logger.info(f"saving sub-sampled instances in logs ...")
                 if self.generator_args.coords_sampling_dist == "uchoa":
                     file_name = (f"{problem}{graph_size}_{self.sampler.depot_type}_{self.sampler.customer_type}"
                                  f"_{self.sampler.customer_type}{self._seed}_size{sample_size}.pt")
@@ -187,13 +190,12 @@ class RPGenerator:
 
         if sample_size is None:
             sample_size = sampling_args["sample_size"]
+        else:
+            sampling_args["sample_size"] = sample_size
         if graph_size is None:
             graph_size = sampling_args["graph_size"]
-
-        print('sample_size', sample_size)
-        print('graph_size', graph_size)
-        print('sampling_args', sampling_args)
-        print('feasibility_insurance', feasibility_insurance)
+        else:
+            sampling_args["graph_size"] = graph_size
 
         #    try:
         #         generate = getattr(self, f"generate_{problem.lower()}_data")
@@ -211,7 +213,7 @@ class RPGenerator:
             return self.generate_cvrptw_data(sample_size, graph_size, normalize, sampling_args)
 
         else:
-            raise ModuleNotFoundError(f"The generator for problem type <{problem}> does not exist.")
+            raise ModuleNotFoundError(f"The generator for problem type <{problem}> is not implemented.")
 
         # generate uniformly distributed data from Nazari et al.
         # if distribution is None:
@@ -300,8 +302,8 @@ class RPGenerator:
         # sample_size, graph_size, k, cap, max_cap_factor, n_depots = sampling_args
 
         coords_, weights_, capa_, types_ = [], [], [], []
-        print('sample_size', sample_size)
-        print('feasibility_insurance', feasibility_insurance)
+        # print('sample_size', sample_size)
+        # print('feasibility_insurance', feasibility_insurance)
         if graph_size != sampling_args["graph_size"]:
             sampling_args["graph_size"] = graph_size
         if feasibility_insurance is not None:
@@ -320,10 +322,10 @@ class RPGenerator:
 
         coords = np.stack(coords_)
         demands = np.stack(weights_)
-        print('coords.shape', coords.shape)
-        print('demands.shape', demands.shape)
+        # print('coords.shape', coords.shape)
+        # print('demands.shape', demands.shape)
         # print('demands[:,:5]', demands[:,:5])
-        print('self.sampler.normalize_demands', self.sampler.normalize_demands)
+        # print('self.sampler.normalize_demands', self.sampler.normalize_demands)
         # demands = np.stack([
         #     self.sampler.sample_weights(n=graph_size + n_depots, k=k, cap=cap, max_cap_factor=max_cap_factor)
         #     for _ in range(sample_size)
@@ -370,9 +372,9 @@ class RPGenerator:
         coords_, weights_, t_windows_, service_time_, service_horizon_ = [], [], [], [], []
         for _ in range(sample_size):
             coords, weights, tw, service_time, service_horizon = self.sampler.sample_cvrptw(**sampling_args)
-            print('coords.shape in fwrd loop - generate_cvrptw', coords.shape)
-            print('weights.shape in fwrd loop - generate_cvrptw', weights.shape)
-            print('tw.shape in fwrd loop - generate_cvrptw', tw.shape)
+            # print('coords.shape in fwrd loop - generate_cvrptw', coords.shape)
+            # print('weights.shape in fwrd loop - generate_cvrptw', weights.shape)
+            # print('tw.shape in fwrd loop - generate_cvrptw', tw.shape)
             coords_.append(np.squeeze(coords))
             weights_.append(np.squeeze(weights))
             t_windows_.append(np.squeeze(tw))
@@ -380,14 +382,14 @@ class RPGenerator:
             service_horizon_.append(service_horizon)
 
         coords = np.stack(coords_)
-        print('coords.shape in generate_cvrptw', coords.shape)
+        # print('coords.shape in generate_cvrptw', coords.shape)
         demands = np.stack(weights_)
-        print('demands.shape in generate_cvrptw', demands.shape)
+        # print('demands.shape in generate_cvrptw', demands.shape)
         t_windows = np.stack(t_windows_)
-        print('t_windows.shape in generate_cvrptw', t_windows.shape)
+        # print('t_windows.shape in generate_cvrptw', t_windows.shape)
         service_time = np.stack(service_time_)
-        print('service_time.shape in generate_cvrptw', service_time.shape)
-        print('service_time in generate_cvrptw', service_time[0])
+        # print('service_time.shape in generate_cvrptw', service_time.shape)
+        # print('service_time in generate_cvrptw', service_time[0])
         # demands = np.stack([
         #     self.sampler.sample_weights(n=graph_size + n_depots, k=k, cap=cap, max_cap_factor=max_cap_factor)
         #     for _ in range(sample_size)
@@ -460,9 +462,9 @@ class RPGenerator:
             coords = np.stack([
                 self.sampler.sample_coords(n=graph_size + n_depots) for _ in range(sample_size)
             ])
-            print('coords.shape 2', coords.shape)
-            print('max_cap_factor', max_cap_factor)
-            print('distribution', distribution)
+            # print('coords.shape 2', coords.shape)
+            # print('max_cap_factor', max_cap_factor)
+            # print('distribution', distribution)
             if max_cap_factor is None and weight_dist in ["gamma", "uniform"]:
                 warnings.warn(f"No 'max_cap_factor' specified for ['gamma','uniform'] weight distributions."
                               f" Setting 'max_cap_factor' to default of 1.5")

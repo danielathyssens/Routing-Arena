@@ -6,7 +6,7 @@ graph_size: 100
 coords_dist: 'uniform'
 out_name: ${problem}_${graph_size}_${coords_dist}
 data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_seed4321_size512.pkl
-normalize_data: False
+normalize_data: True
 checkpoint_load_path: models/BQ/bq_nco/pretrained_models/cvrp.best
 
 # RP Env cfg

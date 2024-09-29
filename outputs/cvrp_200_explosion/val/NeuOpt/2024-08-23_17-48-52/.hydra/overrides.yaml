@@ -1,0 +1,5 @@
+- env=cvrp200_exp
+- test_cfg.time_limit=480
+- test_cfg.dataset_size=128
+- number_runs=3
+- test_cfg.save_for_analysis=True

@@ -1,0 +1,673 @@
+2024/08/26 19:11:45 __main__: problem: cvrp
+graph_size: 200
+coords_dist: explosion
+weights_dist: random_int
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_E_size2000.pkl
+normalize_data: true
+checkpoint_load_path: models/POMO/POMO/${problem}/POMO/result/saved_CVRP100_model/uniform/checkpoint-30500.pt
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: random_int
+    normalize_demands: true
+    single_large_instance: null
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: false
+    k: 16
+    cap: 50
+    max_cap_factor: null
+    n_depots: 1
+model: POMO
+model_cfg:
+  embedding_dim: 128
+  sqrt_embedding_dim: 11.3137
+  encoder_layer_num: 6
+  qkv_dim: 16
+  head_num: 8
+  logit_clipping: 10
+  ff_hidden_dim: 512
+  eval_type: argmax
+run_type: val
+number_runs: 3
+debug_lvl: 0
+global_seed: 1234
+cuda: true
+G3DMark: 17177
+G2DMark: 975
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: 480
+  save_solutions: true
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  fixed_dataset: true
+  data_file_path: ${data_file_path}
+  checkpoint_load_path: ${checkpoint_load_path}
+  dataset_size: 128
+  dataset_range: null
+  add_ls: true
+  ls_policy: sa
+  ls_policy_cfg:
+    local_search_strategy: SIMULATED_ANNEALING
+    solution_limit: null
+    verbose: false
+    log_search: false
+    batch_size: 8
+    search_workers: 1
+tester_cfg:
+  cuda_device_num: 0
+  test_episodes: 1
+  test_batch_size: 1
+  augmentation_enable: true
+  aug_factor: 8
+  pomo_size: ${graph_size}
+  aug_batch_size: 400
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
+checkpoint_save_path: checkpoints/
+
+2024/08/26 19:11:45 models.runner_utils: torch.cuda.is_available() True
+2024/08/26 19:11:45 models.runner_utils: cfg.cuda True
+2024/08/26 19:11:45 models.runner_utils: Running val-run on cuda
+2024/08/26 19:11:45 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 7402 24-Core Processor, threads_per_cpu: 2, total_cores: 24
+2024/08/26 19:11:45 models.runner_utils: GPU Device Name: NVIDIA GeForce RTX 3090
+2024/08/26 19:11:45 models.runners: Eval PassMark for this run: 7976. Adjusted Time Limit per Instance for Construction: 306.0. PassMark for additional GORT Search: 1947. Adjusted Time Limit per Instance for Search : 493.0.
+2024/08/26 19:11:45 data.base_dataset: Test Data provided: /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl, No new samples are generated.
+2024/08/26 19:11:45 data.base_dataset: BKS file should exists for /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:11:45 data.base_dataset: Loading Best Known Solutions from /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/BKS_val.pkl
+2024/08/26 19:11:45 data.base_dataset: BaseSol file should exists for /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:11:45 data.base_dataset: Loading Base Solver Results (for WRAP eval.) from /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/BaseSol_val.pkl
+2024/08/26 19:11:45 data.base_dataset: Tried to load Base Solutions, but do not exists... No WRAP eval. possible.
+2024/08/26 19:11:45 data.base_dataset: Loaded 2000 BKS for the test (val) set.
+2024/08/26 19:11:45 data.base_dataset: Loading dataset from: /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:11:46 data.cvrp_dataset: 128 CVRP Test/Validation Instances for cvrp with 200 explosion-distributed customers loaded.
+2024/08/26 19:11:46 data.cvrp_dataset: Transforming instances from lists to CVRPInstances
+2024/08/26 19:11:46 metrics.metrics: Base Reference for this machine in metrics initialisation set to 2000
+2024/08/26 19:11:46 metrics.metrics: Base Reference for first GPU constructed method set to 4974
+2024/08/26 19:11:47 models.runners: Parallelize local search runs: running 8 instances in parallel.
+2024/08/26 19:11:47 models.runners: running inference 1/3...
+2024/08/26 19:11:47 models.runners: Run-time dependent parameters: cuda Device (threads: 8), Adjusted Time Budget for construction: 306.0 / instance. Adjusted Time Budget for LS: 493.0 / instance.
+2024/08/26 19:11:47 models.runners: running test inference for POMO_aug_8 with additional LS: SA...
+2024/08/26 19:11:48 tester: episode   1/128, Elapsed[0.02m], Remain[2.10m], score:18.246, aug_score:17.775
+2024/08/26 19:11:48 tester: episode   2/128, Elapsed[0.02m], Remain[1.23m], score:23.683, aug_score:23.665
+2024/08/26 19:11:49 tester: episode   3/128, Elapsed[0.02m], Remain[0.94m], score:23.482, aug_score:23.143
+2024/08/26 19:11:49 tester: episode   4/128, Elapsed[0.03m], Remain[0.79m], score:23.019, aug_score:22.703
+2024/08/26 19:11:49 tester: episode   5/128, Elapsed[0.03m], Remain[0.70m], score:18.136, aug_score:17.737
+2024/08/26 19:11:49 tester: episode   6/128, Elapsed[0.03m], Remain[0.64m], score:15.811, aug_score:15.702
+2024/08/26 19:11:49 tester: episode   7/128, Elapsed[0.03m], Remain[0.59m], score:22.597, aug_score:22.401
+2024/08/26 19:11:49 tester: episode   8/128, Elapsed[0.04m], Remain[0.56m], score:13.805, aug_score:13.526
+2024/08/26 19:11:50 tester: episode   9/128, Elapsed[0.04m], Remain[0.53m], score:16.824, aug_score:16.589
+2024/08/26 19:11:50 tester: episode  10/128, Elapsed[0.04m], Remain[0.51m], score:24.813, aug_score:24.539
+2024/08/26 19:11:50 tester: episode  11/128, Elapsed[0.05m], Remain[0.49m], score:21.455, aug_score:21.187
+2024/08/26 19:11:50 tester: episode  12/128, Elapsed[0.05m], Remain[0.48m], score:16.276, aug_score:16.150
+2024/08/26 19:11:50 tester: episode  13/128, Elapsed[0.05m], Remain[0.46m], score:23.752, aug_score:23.549
+2024/08/26 19:11:51 tester: episode  14/128, Elapsed[0.06m], Remain[0.45m], score:19.444, aug_score:19.200
+2024/08/26 19:11:51 tester: episode  15/128, Elapsed[0.06m], Remain[0.44m], score:18.412, aug_score:18.070
+2024/08/26 19:11:51 tester: episode  16/128, Elapsed[0.06m], Remain[0.43m], score:19.886, aug_score:19.590
+2024/08/26 19:11:51 tester: episode  17/128, Elapsed[0.06m], Remain[0.42m], score:19.252, aug_score:19.116
+2024/08/26 19:11:51 tester: episode  18/128, Elapsed[0.07m], Remain[0.41m], score:25.239, aug_score:25.049
+2024/08/26 19:11:51 tester: episode  19/128, Elapsed[0.07m], Remain[0.40m], score:22.669, aug_score:22.579
+2024/08/26 19:11:52 tester: episode  20/128, Elapsed[0.07m], Remain[0.39m], score:15.435, aug_score:15.205
+2024/08/26 19:11:52 tester: episode  21/128, Elapsed[0.08m], Remain[0.39m], score:18.980, aug_score:18.745
+2024/08/26 19:11:52 tester: episode  22/128, Elapsed[0.08m], Remain[0.38m], score:18.548, aug_score:18.389
+2024/08/26 19:11:52 tester: episode  23/128, Elapsed[0.08m], Remain[0.37m], score:27.932, aug_score:27.932
+2024/08/26 19:11:52 tester: episode  24/128, Elapsed[0.08m], Remain[0.37m], score:19.941, aug_score:19.884
+2024/08/26 19:11:52 tester: episode  25/128, Elapsed[0.09m], Remain[0.36m], score:18.708, aug_score:18.671
+2024/08/26 19:11:53 tester: episode  26/128, Elapsed[0.09m], Remain[0.36m], score:20.820, aug_score:20.818
+2024/08/26 19:11:53 tester: episode  27/128, Elapsed[0.09m], Remain[0.35m], score:22.779, aug_score:22.655
+2024/08/26 19:11:53 tester: episode  28/128, Elapsed[0.10m], Remain[0.35m], score:23.176, aug_score:22.903
+2024/08/26 19:11:53 tester: episode  29/128, Elapsed[0.10m], Remain[0.34m], score:13.944, aug_score:13.576
+2024/08/26 19:11:53 tester: episode  30/128, Elapsed[0.10m], Remain[0.33m], score:21.931, aug_score:21.719
+2024/08/26 19:11:54 tester: episode  31/128, Elapsed[0.11m], Remain[0.33m], score:21.023, aug_score:20.675
+2024/08/26 19:11:54 tester: episode  32/128, Elapsed[0.11m], Remain[0.33m], score:26.641, aug_score:26.224
+2024/08/26 19:11:54 tester: episode  33/128, Elapsed[0.11m], Remain[0.32m], score:17.342, aug_score:17.252
+2024/08/26 19:11:54 tester: episode  34/128, Elapsed[0.11m], Remain[0.32m], score:16.750, aug_score:16.581
+2024/08/26 19:11:54 tester: episode  35/128, Elapsed[0.12m], Remain[0.31m], score:29.315, aug_score:28.991
+2024/08/26 19:11:54 tester: episode  36/128, Elapsed[0.12m], Remain[0.31m], score:15.397, aug_score:15.309
+2024/08/26 19:11:55 tester: episode  37/128, Elapsed[0.12m], Remain[0.30m], score:18.375, aug_score:18.281
+2024/08/26 19:11:55 tester: episode  38/128, Elapsed[0.13m], Remain[0.30m], score:14.699, aug_score:14.699
+2024/08/26 19:11:55 tester: episode  39/128, Elapsed[0.13m], Remain[0.29m], score:25.819, aug_score:25.752
+2024/08/26 19:11:55 tester: episode  40/128, Elapsed[0.13m], Remain[0.29m], score:28.063, aug_score:27.673
+2024/08/26 19:11:55 tester: episode  41/128, Elapsed[0.14m], Remain[0.29m], score:22.273, aug_score:22.096
+2024/08/26 19:11:55 tester: episode  42/128, Elapsed[0.14m], Remain[0.28m], score:24.143, aug_score:24.143
+2024/08/26 19:11:56 tester: episode  43/128, Elapsed[0.14m], Remain[0.28m], score:16.898, aug_score:16.685
+2024/08/26 19:11:56 tester: episode  44/128, Elapsed[0.14m], Remain[0.27m], score:13.698, aug_score:13.698
+2024/08/26 19:11:56 tester: episode  45/128, Elapsed[0.15m], Remain[0.27m], score:23.414, aug_score:23.236
+2024/08/26 19:11:56 tester: episode  46/128, Elapsed[0.15m], Remain[0.27m], score:20.408, aug_score:20.276
+2024/08/26 19:11:56 tester: episode  47/128, Elapsed[0.15m], Remain[0.26m], score:23.911, aug_score:23.626
+2024/08/26 19:11:57 tester: episode  48/128, Elapsed[0.16m], Remain[0.26m], score:16.881, aug_score:16.804
+2024/08/26 19:11:57 tester: episode  49/128, Elapsed[0.16m], Remain[0.26m], score:16.037, aug_score:15.928
+2024/08/26 19:11:57 tester: episode  50/128, Elapsed[0.16m], Remain[0.25m], score:21.879, aug_score:21.754
+2024/08/26 19:11:57 tester: episode  51/128, Elapsed[0.16m], Remain[0.25m], score:16.769, aug_score:16.509
+2024/08/26 19:11:57 tester: episode  52/128, Elapsed[0.17m], Remain[0.24m], score:14.612, aug_score:14.518
+2024/08/26 19:11:57 tester: episode  53/128, Elapsed[0.17m], Remain[0.24m], score:26.757, aug_score:26.661
+2024/08/26 19:11:58 tester: episode  54/128, Elapsed[0.17m], Remain[0.24m], score:22.666, aug_score:22.666
+2024/08/26 19:11:58 tester: episode  55/128, Elapsed[0.18m], Remain[0.23m], score:17.043, aug_score:16.533
+2024/08/26 19:11:58 tester: episode  56/128, Elapsed[0.18m], Remain[0.23m], score:19.249, aug_score:18.936
+2024/08/26 19:11:58 tester: episode  57/128, Elapsed[0.18m], Remain[0.23m], score:17.075, aug_score:16.884
+2024/08/26 19:11:58 tester: episode  58/128, Elapsed[0.19m], Remain[0.22m], score:24.846, aug_score:24.377
+2024/08/26 19:11:58 tester: episode  59/128, Elapsed[0.19m], Remain[0.22m], score:18.650, aug_score:18.650
+2024/08/26 19:11:59 tester: episode  60/128, Elapsed[0.19m], Remain[0.22m], score:26.414, aug_score:25.891
+2024/08/26 19:11:59 tester: episode  61/128, Elapsed[0.19m], Remain[0.21m], score:22.247, aug_score:22.247
+2024/08/26 19:11:59 tester: episode  62/128, Elapsed[0.20m], Remain[0.21m], score:17.919, aug_score:17.422
+2024/08/26 19:11:59 tester: episode  63/128, Elapsed[0.20m], Remain[0.21m], score:22.256, aug_score:21.930
+2024/08/26 19:11:59 tester: episode  64/128, Elapsed[0.20m], Remain[0.20m], score:22.719, aug_score:22.719
+2024/08/26 19:12:00 tester: episode  65/128, Elapsed[0.21m], Remain[0.20m], score:19.607, aug_score:19.607
+2024/08/26 19:12:00 tester: episode  66/128, Elapsed[0.21m], Remain[0.20m], score:28.111, aug_score:27.491
+2024/08/26 19:12:00 tester: episode  67/128, Elapsed[0.21m], Remain[0.19m], score:26.429, aug_score:26.113
+2024/08/26 19:12:00 tester: episode  68/128, Elapsed[0.22m], Remain[0.19m], score:23.452, aug_score:23.452
+2024/08/26 19:12:00 tester: episode  69/128, Elapsed[0.22m], Remain[0.19m], score:25.794, aug_score:25.273
+2024/08/26 19:12:00 tester: episode  70/128, Elapsed[0.22m], Remain[0.18m], score:20.491, aug_score:20.232
+2024/08/26 19:12:01 tester: episode  71/128, Elapsed[0.22m], Remain[0.18m], score:22.223, aug_score:21.844
+2024/08/26 19:12:01 tester: episode  72/128, Elapsed[0.23m], Remain[0.18m], score:28.908, aug_score:28.259
+2024/08/26 19:12:01 tester: episode  73/128, Elapsed[0.23m], Remain[0.17m], score:17.740, aug_score:17.422
+2024/08/26 19:12:01 tester: episode  74/128, Elapsed[0.23m], Remain[0.17m], score:15.936, aug_score:15.635
+2024/08/26 19:12:01 tester: episode  75/128, Elapsed[0.24m], Remain[0.17m], score:16.832, aug_score:16.599
+2024/08/26 19:12:02 tester: episode  76/128, Elapsed[0.24m], Remain[0.16m], score:14.405, aug_score:14.312
+2024/08/26 19:12:02 tester: episode  77/128, Elapsed[0.24m], Remain[0.16m], score:16.907, aug_score:16.738
+2024/08/26 19:12:02 tester: episode  78/128, Elapsed[0.24m], Remain[0.16m], score:16.391, aug_score:16.304
+2024/08/26 19:12:02 tester: episode  79/128, Elapsed[0.25m], Remain[0.15m], score:20.163, aug_score:20.072
+2024/08/26 19:12:02 tester: episode  80/128, Elapsed[0.25m], Remain[0.15m], score:18.573, aug_score:18.357
+2024/08/26 19:12:02 tester: episode  81/128, Elapsed[0.25m], Remain[0.15m], score:21.254, aug_score:21.254
+2024/08/26 19:12:03 tester: episode  82/128, Elapsed[0.26m], Remain[0.14m], score:22.246, aug_score:22.112
+2024/08/26 19:12:03 tester: episode  83/128, Elapsed[0.26m], Remain[0.14m], score:22.356, aug_score:22.356
+2024/08/26 19:12:03 tester: episode  84/128, Elapsed[0.26m], Remain[0.14m], score:17.804, aug_score:17.417
+2024/08/26 19:12:03 tester: episode  85/128, Elapsed[0.27m], Remain[0.13m], score:19.819, aug_score:19.819
+2024/08/26 19:12:03 tester: episode  86/128, Elapsed[0.27m], Remain[0.13m], score:17.172, aug_score:16.985
+2024/08/26 19:12:04 tester: episode  87/128, Elapsed[0.27m], Remain[0.13m], score:16.309, aug_score:16.309
+2024/08/26 19:12:04 tester: episode  88/128, Elapsed[0.27m], Remain[0.12m], score:18.027, aug_score:17.447
+2024/08/26 19:12:04 tester: episode  89/128, Elapsed[0.28m], Remain[0.12m], score:17.592, aug_score:17.231
+2024/08/26 19:12:04 tester: episode  90/128, Elapsed[0.28m], Remain[0.12m], score:21.849, aug_score:21.710
+2024/08/26 19:12:04 tester: episode  91/128, Elapsed[0.28m], Remain[0.12m], score:14.442, aug_score:14.340
+2024/08/26 19:12:04 tester: episode  92/128, Elapsed[0.29m], Remain[0.11m], score:15.099, aug_score:15.014
+2024/08/26 19:12:05 tester: episode  93/128, Elapsed[0.29m], Remain[0.11m], score:26.565, aug_score:25.735
+2024/08/26 19:12:05 tester: episode  94/128, Elapsed[0.29m], Remain[0.11m], score:18.057, aug_score:17.819
+2024/08/26 19:12:05 tester: episode  95/128, Elapsed[0.30m], Remain[0.10m], score:25.572, aug_score:25.069
+2024/08/26 19:12:05 tester: episode  96/128, Elapsed[0.30m], Remain[0.10m], score:20.637, aug_score:20.316
+2024/08/26 19:12:05 tester: episode  97/128, Elapsed[0.30m], Remain[0.10m], score:21.425, aug_score:20.960
+2024/08/26 19:12:05 tester: episode  98/128, Elapsed[0.30m], Remain[0.09m], score:31.576, aug_score:31.477
+2024/08/26 19:12:06 tester: episode  99/128, Elapsed[0.31m], Remain[0.09m], score:20.418, aug_score:19.979
+2024/08/26 19:12:06 tester: episode 100/128, Elapsed[0.31m], Remain[0.09m], score:20.565, aug_score:20.447
+2024/08/26 19:12:06 tester: episode 101/128, Elapsed[0.31m], Remain[0.08m], score:17.948, aug_score:17.846
+2024/08/26 19:12:06 tester: episode 102/128, Elapsed[0.32m], Remain[0.08m], score:16.835, aug_score:16.562
+2024/08/26 19:12:06 tester: episode 103/128, Elapsed[0.32m], Remain[0.08m], score:23.400, aug_score:22.588
+2024/08/26 19:12:07 tester: episode 104/128, Elapsed[0.32m], Remain[0.07m], score:17.416, aug_score:17.221
+2024/08/26 19:12:07 tester: episode 105/128, Elapsed[0.33m], Remain[0.07m], score:17.231, aug_score:17.231
+2024/08/26 19:12:07 tester: episode 106/128, Elapsed[0.33m], Remain[0.07m], score:18.310, aug_score:17.902
+2024/08/26 19:12:07 tester: episode 107/128, Elapsed[0.33m], Remain[0.06m], score:20.409, aug_score:20.409
+2024/08/26 19:12:07 tester: episode 108/128, Elapsed[0.33m], Remain[0.06m], score:16.267, aug_score:16.110
+2024/08/26 19:12:07 tester: episode 109/128, Elapsed[0.34m], Remain[0.06m], score:16.624, aug_score:16.624
+2024/08/26 19:12:08 tester: episode 110/128, Elapsed[0.34m], Remain[0.06m], score:26.529, aug_score:26.116
+2024/08/26 19:12:08 tester: episode 111/128, Elapsed[0.34m], Remain[0.05m], score:15.869, aug_score:15.221
+2024/08/26 19:12:08 tester: episode 112/128, Elapsed[0.35m], Remain[0.05m], score:18.571, aug_score:18.331
+2024/08/26 19:12:08 tester: episode 113/128, Elapsed[0.35m], Remain[0.05m], score:18.386, aug_score:18.364
+2024/08/26 19:12:08 tester: episode 114/128, Elapsed[0.35m], Remain[0.04m], score:23.025, aug_score:22.848
+2024/08/26 19:12:08 tester: episode 115/128, Elapsed[0.35m], Remain[0.04m], score:18.756, aug_score:18.449
+2024/08/26 19:12:09 tester: episode 116/128, Elapsed[0.36m], Remain[0.04m], score:25.839, aug_score:25.691
+2024/08/26 19:12:09 tester: episode 117/128, Elapsed[0.36m], Remain[0.03m], score:22.978, aug_score:22.978
+2024/08/26 19:12:09 tester: episode 118/128, Elapsed[0.36m], Remain[0.03m], score:23.146, aug_score:22.921
+2024/08/26 19:12:09 tester: episode 119/128, Elapsed[0.37m], Remain[0.03m], score:23.036, aug_score:22.908
+2024/08/26 19:12:09 tester: episode 120/128, Elapsed[0.37m], Remain[0.02m], score:26.706, aug_score:26.361
+2024/08/26 19:12:10 tester: episode 121/128, Elapsed[0.37m], Remain[0.02m], score:15.908, aug_score:15.677
+2024/08/26 19:12:10 tester: episode 122/128, Elapsed[0.38m], Remain[0.02m], score:20.867, aug_score:20.798
+2024/08/26 19:12:10 tester: episode 123/128, Elapsed[0.38m], Remain[0.02m], score:19.924, aug_score:19.821
+2024/08/26 19:12:10 tester: episode 124/128, Elapsed[0.38m], Remain[0.01m], score:15.668, aug_score:15.577
+2024/08/26 19:12:10 tester: episode 125/128, Elapsed[0.38m], Remain[0.01m], score:18.905, aug_score:18.815
+2024/08/26 19:12:10 tester: episode 126/128, Elapsed[0.39m], Remain[0.01m], score:29.331, aug_score:29.331
+2024/08/26 19:12:11 tester: episode 127/128, Elapsed[0.39m], Remain[0.00m], score:20.309, aug_score:20.156
+2024/08/26 19:12:11 tester: episode 128/128, Elapsed[0.39m], Remain[0.00m], score:18.980, aug_score:18.581
+2024/08/26 19:12:11 tester:  *** Test Done *** 
+2024/08/26 19:12:11 tester:  NO-AUG SCORE: 20.4618 
+2024/08/26 19:12:11 tester:  AUGMENTATION SCORE: 20.2448 
+2024/08/26 19:12:12 models.runners: Constructed solutions with average cost 20.244784370064735 in 0.18423939123749733/inst
+2024/08/26 19:12:12 models.runners: 
+ finished construction... starting LS
+2024/08/26 19:12:35 models.or_tools.or_tools: Local Search has remaining 492.8157606087625 seconds per instance.
+2024/08/26 21:24:03 models.runners: Starting Evaluation for run 1/3 with time limit 480 for POMO_aug_8_SA
+2024/08/26 21:24:04 data.base_dataset: Saving solution trajectory for instance 0
+2024/08/26 21:25:01 models.runner_utils: Stats for run 1/3:
+2024/08/26 21:25:01 models.runner_utils: =================================
+2024/08/26 21:25:01 models.runner_utils: 
+Instance 0 Cost: 17.30931847065746, 
+Instance 0 Method Internal-Cost: 17.774789810180664, 
+Instance 0 PI: 2.6834600665663677, 
+Instance 0 WRAP: None, 
+Instance 0 Run Time (best sol found): 4.976796550676227, 
+Instance 0 Run Time (total): 493.86210060864687
+2024/08/26 21:25:01 models.runner_utils: 
+Instance 1 Cost: 23.129590196576473, 
+Instance 1 Method Internal-Cost: 23.664609909057617, 
+Instance 1 PI: 1.7521228758567764, 
+Instance 1 WRAP: None, 
+Instance 1 Run Time (best sol found): 9.007174108177423, 
+Instance 1 Run Time (total): 493.06229030899704
+2024/08/26 21:25:01 models.runner_utils: 
+Instance 2 Cost: 22.851007297972, 
+Instance 2 Method Internal-Cost: 23.143129348754883, 
+Instance 2 PI: 2.873515213209976, 
+Instance 2 WRAP: None, 
+Instance 2 Run Time (best sol found): 8.7187934294343, 
+Instance 2 Run Time (total): 493.074644504115
+2024/08/26 21:25:01 models.runner_utils: 
+Instance 3 Cost: 22.357135889942484, 
+Instance 3 Method Internal-Cost: 22.702880859375, 
+Instance 3 PI: 2.9571562663585294, 
+Instance 3 WRAP: None, 
+Instance 3 Run Time (best sol found): 4.15753192640841, 
+Instance 3 Run Time (total): 493.0563722215593
+2024/08/26 21:25:01 models.runner_utils: 
+Instance 4 Cost: 17.433700920690015, 
+Instance 4 Method Internal-Cost: 17.73650360107422, 
+Instance 4 PI: 3.433823805490932, 
+Instance 4 WRAP: None, 
+Instance 4 Run Time (best sol found): 3.2471271213144064, 
+Instance 4 Run Time (total): 493.0522674806416
+2024/08/26 21:25:01 models.runner_utils: 
+Average cost  : 19.853498122965046 +/- 3.8611211477800933, 
+Average cost-intern (Method)  : 20.244784370064735 +/- 0.0, 
+Average PI: 2.9591968014483445 +/- 0.9855335563839576, 
+Average WRAP: None +/- None, 
+Average Run Time (best sol found): 14.1610006877454 +/- 30.862043245821614, 
+Average Run Time (total): 493.0671905090712 +/- 0.07686009248542189
+2024/08/26 21:25:01 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 7402 24-Core Processor, threads_per_cpu: 2, total_cores: 24
+2024/08/26 21:25:01 models.runner_utils: Storing Results of run 1 in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/POMO/2024-08-26_19-11-45/logs/
+2024/08/26 21:25:02 models.runners: running inference 2/3...
+2024/08/26 21:25:02 models.runners: Run-time dependent parameters: cuda Device (threads: 8), Adjusted Time Budget for construction: 306.0 / instance. Adjusted Time Budget for LS: 493.0 / instance.
+2024/08/26 21:25:02 models.runners: running test inference for POMO_aug_8 with additional LS: SA...
+2024/08/26 21:25:02 tester: episode   1/128, Elapsed[0.00m], Remain[0.44m], score:18.246, aug_score:17.775
+2024/08/26 21:25:02 tester: episode   2/128, Elapsed[0.01m], Remain[0.41m], score:23.683, aug_score:23.665
+2024/08/26 21:25:02 tester: episode   3/128, Elapsed[0.01m], Remain[0.40m], score:23.482, aug_score:23.143
+2024/08/26 21:25:03 tester: episode   4/128, Elapsed[0.01m], Remain[0.39m], score:23.019, aug_score:22.703
+2024/08/26 21:25:03 tester: episode   5/128, Elapsed[0.02m], Remain[0.38m], score:18.136, aug_score:17.737
+2024/08/26 21:25:03 tester: episode   6/128, Elapsed[0.02m], Remain[0.38m], score:15.811, aug_score:15.702
+2024/08/26 21:25:03 tester: episode   7/128, Elapsed[0.02m], Remain[0.37m], score:22.597, aug_score:22.401
+2024/08/26 21:25:03 tester: episode   8/128, Elapsed[0.02m], Remain[0.37m], score:13.805, aug_score:13.526
+2024/08/26 21:25:03 tester: episode   9/128, Elapsed[0.03m], Remain[0.36m], score:16.824, aug_score:16.589
+2024/08/26 21:25:04 tester: episode  10/128, Elapsed[0.03m], Remain[0.36m], score:24.813, aug_score:24.539
+2024/08/26 21:25:04 tester: episode  11/128, Elapsed[0.03m], Remain[0.36m], score:21.455, aug_score:21.187
+2024/08/26 21:25:04 tester: episode  12/128, Elapsed[0.04m], Remain[0.35m], score:16.276, aug_score:16.150
+2024/08/26 21:25:04 tester: episode  13/128, Elapsed[0.04m], Remain[0.35m], score:23.752, aug_score:23.549
+2024/08/26 21:25:04 tester: episode  14/128, Elapsed[0.04m], Remain[0.35m], score:19.444, aug_score:19.200
+2024/08/26 21:25:05 tester: episode  15/128, Elapsed[0.05m], Remain[0.34m], score:18.412, aug_score:18.070
+2024/08/26 21:25:05 tester: episode  16/128, Elapsed[0.05m], Remain[0.34m], score:19.886, aug_score:19.590
+2024/08/26 21:25:05 tester: episode  17/128, Elapsed[0.05m], Remain[0.34m], score:19.252, aug_score:19.116
+2024/08/26 21:25:05 tester: episode  18/128, Elapsed[0.05m], Remain[0.33m], score:25.239, aug_score:25.049
+2024/08/26 21:25:05 tester: episode  19/128, Elapsed[0.06m], Remain[0.33m], score:22.669, aug_score:22.579
+2024/08/26 21:25:05 tester: episode  20/128, Elapsed[0.06m], Remain[0.33m], score:15.435, aug_score:15.205
+2024/08/26 21:25:06 tester: episode  21/128, Elapsed[0.06m], Remain[0.32m], score:18.980, aug_score:18.745
+2024/08/26 21:25:06 tester: episode  22/128, Elapsed[0.07m], Remain[0.32m], score:18.548, aug_score:18.389
+2024/08/26 21:25:06 tester: episode  23/128, Elapsed[0.07m], Remain[0.32m], score:27.932, aug_score:27.932
+2024/08/26 21:25:06 tester: episode  24/128, Elapsed[0.07m], Remain[0.31m], score:19.941, aug_score:19.884
+2024/08/26 21:25:06 tester: episode  25/128, Elapsed[0.08m], Remain[0.31m], score:18.708, aug_score:18.671
+2024/08/26 21:25:06 tester: episode  26/128, Elapsed[0.08m], Remain[0.31m], score:20.820, aug_score:20.818
+2024/08/26 21:25:07 tester: episode  27/128, Elapsed[0.08m], Remain[0.31m], score:22.779, aug_score:22.655
+2024/08/26 21:25:07 tester: episode  28/128, Elapsed[0.08m], Remain[0.30m], score:23.176, aug_score:22.903
+2024/08/26 21:25:07 tester: episode  29/128, Elapsed[0.09m], Remain[0.30m], score:13.944, aug_score:13.576
+2024/08/26 21:25:07 tester: episode  30/128, Elapsed[0.09m], Remain[0.30m], score:21.931, aug_score:21.719
+2024/08/26 21:25:07 tester: episode  31/128, Elapsed[0.09m], Remain[0.29m], score:21.023, aug_score:20.675
+2024/08/26 21:25:08 tester: episode  32/128, Elapsed[0.10m], Remain[0.29m], score:26.641, aug_score:26.224
+2024/08/26 21:25:08 tester: episode  33/128, Elapsed[0.10m], Remain[0.29m], score:17.342, aug_score:17.252
+2024/08/26 21:25:08 tester: episode  34/128, Elapsed[0.10m], Remain[0.28m], score:16.750, aug_score:16.581
+2024/08/26 21:25:08 tester: episode  35/128, Elapsed[0.11m], Remain[0.28m], score:29.315, aug_score:28.991
+2024/08/26 21:25:08 tester: episode  36/128, Elapsed[0.11m], Remain[0.28m], score:15.397, aug_score:15.309
+2024/08/26 21:25:08 tester: episode  37/128, Elapsed[0.11m], Remain[0.27m], score:18.375, aug_score:18.281
+2024/08/26 21:25:09 tester: episode  38/128, Elapsed[0.11m], Remain[0.27m], score:14.699, aug_score:14.699
+2024/08/26 21:25:09 tester: episode  39/128, Elapsed[0.12m], Remain[0.27m], score:25.819, aug_score:25.752
+2024/08/26 21:25:09 tester: episode  40/128, Elapsed[0.12m], Remain[0.27m], score:28.063, aug_score:27.673
+2024/08/26 21:25:09 tester: episode  41/128, Elapsed[0.12m], Remain[0.26m], score:22.273, aug_score:22.096
+2024/08/26 21:25:09 tester: episode  42/128, Elapsed[0.13m], Remain[0.26m], score:24.143, aug_score:24.143
+2024/08/26 21:25:10 tester: episode  43/128, Elapsed[0.13m], Remain[0.26m], score:16.898, aug_score:16.685
+2024/08/26 21:25:10 tester: episode  44/128, Elapsed[0.13m], Remain[0.25m], score:13.698, aug_score:13.698
+2024/08/26 21:25:10 tester: episode  45/128, Elapsed[0.14m], Remain[0.25m], score:23.414, aug_score:23.236
+2024/08/26 21:25:10 tester: episode  46/128, Elapsed[0.14m], Remain[0.25m], score:20.408, aug_score:20.276
+2024/08/26 21:25:10 tester: episode  47/128, Elapsed[0.14m], Remain[0.24m], score:23.911, aug_score:23.626
+2024/08/26 21:25:10 tester: episode  48/128, Elapsed[0.14m], Remain[0.24m], score:16.881, aug_score:16.804
+2024/08/26 21:25:11 tester: episode  49/128, Elapsed[0.15m], Remain[0.24m], score:16.037, aug_score:15.928
+2024/08/26 21:25:11 tester: episode  50/128, Elapsed[0.15m], Remain[0.23m], score:21.879, aug_score:21.754
+2024/08/26 21:25:11 tester: episode  51/128, Elapsed[0.15m], Remain[0.23m], score:16.769, aug_score:16.509
+2024/08/26 21:25:11 tester: episode  52/128, Elapsed[0.16m], Remain[0.23m], score:14.612, aug_score:14.518
+2024/08/26 21:25:11 tester: episode  53/128, Elapsed[0.16m], Remain[0.23m], score:26.757, aug_score:26.661
+2024/08/26 21:25:12 tester: episode  54/128, Elapsed[0.16m], Remain[0.22m], score:22.666, aug_score:22.666
+2024/08/26 21:25:12 tester: episode  55/128, Elapsed[0.17m], Remain[0.22m], score:17.043, aug_score:16.533
+2024/08/26 21:25:12 tester: episode  56/128, Elapsed[0.17m], Remain[0.22m], score:19.249, aug_score:18.936
+2024/08/26 21:25:12 tester: episode  57/128, Elapsed[0.17m], Remain[0.21m], score:17.075, aug_score:16.884
+2024/08/26 21:25:12 tester: episode  58/128, Elapsed[0.17m], Remain[0.21m], score:24.846, aug_score:24.377
+2024/08/26 21:25:12 tester: episode  59/128, Elapsed[0.18m], Remain[0.21m], score:18.650, aug_score:18.650
+2024/08/26 21:25:13 tester: episode  60/128, Elapsed[0.18m], Remain[0.20m], score:26.414, aug_score:25.891
+2024/08/26 21:25:13 tester: episode  61/128, Elapsed[0.18m], Remain[0.20m], score:22.247, aug_score:22.247
+2024/08/26 21:25:13 tester: episode  62/128, Elapsed[0.19m], Remain[0.20m], score:17.919, aug_score:17.422
+2024/08/26 21:25:13 tester: episode  63/128, Elapsed[0.19m], Remain[0.20m], score:22.256, aug_score:21.930
+2024/08/26 21:25:13 tester: episode  64/128, Elapsed[0.19m], Remain[0.19m], score:22.719, aug_score:22.719
+2024/08/26 21:25:14 tester: episode  65/128, Elapsed[0.20m], Remain[0.19m], score:19.607, aug_score:19.607
+2024/08/26 21:25:14 tester: episode  66/128, Elapsed[0.20m], Remain[0.19m], score:28.111, aug_score:27.491
+2024/08/26 21:25:14 tester: episode  67/128, Elapsed[0.20m], Remain[0.18m], score:26.429, aug_score:26.113
+2024/08/26 21:25:14 tester: episode  68/128, Elapsed[0.20m], Remain[0.18m], score:23.452, aug_score:23.452
+2024/08/26 21:25:14 tester: episode  69/128, Elapsed[0.21m], Remain[0.18m], score:25.794, aug_score:25.273
+2024/08/26 21:25:14 tester: episode  70/128, Elapsed[0.21m], Remain[0.17m], score:20.491, aug_score:20.232
+2024/08/26 21:25:15 tester: episode  71/128, Elapsed[0.21m], Remain[0.17m], score:22.223, aug_score:21.844
+2024/08/26 21:25:15 tester: episode  72/128, Elapsed[0.22m], Remain[0.17m], score:28.908, aug_score:28.259
+2024/08/26 21:25:15 tester: episode  73/128, Elapsed[0.22m], Remain[0.17m], score:17.740, aug_score:17.422
+2024/08/26 21:25:15 tester: episode  74/128, Elapsed[0.22m], Remain[0.16m], score:15.936, aug_score:15.635
+2024/08/26 21:25:15 tester: episode  75/128, Elapsed[0.23m], Remain[0.16m], score:16.832, aug_score:16.599
+2024/08/26 21:25:15 tester: episode  76/128, Elapsed[0.23m], Remain[0.16m], score:14.405, aug_score:14.312
+2024/08/26 21:25:16 tester: episode  77/128, Elapsed[0.23m], Remain[0.15m], score:16.907, aug_score:16.738
+2024/08/26 21:25:16 tester: episode  78/128, Elapsed[0.23m], Remain[0.15m], score:16.391, aug_score:16.304
+2024/08/26 21:25:16 tester: episode  79/128, Elapsed[0.24m], Remain[0.15m], score:20.163, aug_score:20.072
+2024/08/26 21:25:16 tester: episode  80/128, Elapsed[0.24m], Remain[0.14m], score:18.573, aug_score:18.357
+2024/08/26 21:25:16 tester: episode  81/128, Elapsed[0.24m], Remain[0.14m], score:21.254, aug_score:21.254
+2024/08/26 21:25:17 tester: episode  82/128, Elapsed[0.25m], Remain[0.14m], score:22.246, aug_score:22.112
+2024/08/26 21:25:17 tester: episode  83/128, Elapsed[0.25m], Remain[0.14m], score:22.356, aug_score:22.356
+2024/08/26 21:25:17 tester: episode  84/128, Elapsed[0.25m], Remain[0.13m], score:17.804, aug_score:17.417
+2024/08/26 21:25:17 tester: episode  85/128, Elapsed[0.26m], Remain[0.13m], score:19.819, aug_score:19.819
+2024/08/26 21:25:17 tester: episode  86/128, Elapsed[0.26m], Remain[0.13m], score:17.172, aug_score:16.985
+2024/08/26 21:25:17 tester: episode  87/128, Elapsed[0.26m], Remain[0.12m], score:16.309, aug_score:16.309
+2024/08/26 21:25:18 tester: episode  88/128, Elapsed[0.26m], Remain[0.12m], score:18.027, aug_score:17.447
+2024/08/26 21:25:18 tester: episode  89/128, Elapsed[0.27m], Remain[0.12m], score:17.592, aug_score:17.231
+2024/08/26 21:25:18 tester: episode  90/128, Elapsed[0.27m], Remain[0.11m], score:21.849, aug_score:21.710
+2024/08/26 21:25:18 tester: episode  91/128, Elapsed[0.27m], Remain[0.11m], score:14.442, aug_score:14.340
+2024/08/26 21:25:18 tester: episode  92/128, Elapsed[0.28m], Remain[0.11m], score:15.099, aug_score:15.014
+2024/08/26 21:25:19 tester: episode  93/128, Elapsed[0.28m], Remain[0.11m], score:26.565, aug_score:25.735
+2024/08/26 21:25:19 tester: episode  94/128, Elapsed[0.28m], Remain[0.10m], score:18.057, aug_score:17.819
+2024/08/26 21:25:19 tester: episode  95/128, Elapsed[0.29m], Remain[0.10m], score:25.572, aug_score:25.069
+2024/08/26 21:25:19 tester: episode  96/128, Elapsed[0.29m], Remain[0.10m], score:20.637, aug_score:20.316
+2024/08/26 21:25:19 tester: episode  97/128, Elapsed[0.29m], Remain[0.09m], score:21.425, aug_score:20.960
+2024/08/26 21:25:19 tester: episode  98/128, Elapsed[0.29m], Remain[0.09m], score:31.576, aug_score:31.477
+2024/08/26 21:25:20 tester: episode  99/128, Elapsed[0.30m], Remain[0.09m], score:20.418, aug_score:19.979
+2024/08/26 21:25:20 tester: episode 100/128, Elapsed[0.30m], Remain[0.08m], score:20.565, aug_score:20.447
+2024/08/26 21:25:20 tester: episode 101/128, Elapsed[0.30m], Remain[0.08m], score:17.948, aug_score:17.846
+2024/08/26 21:25:20 tester: episode 102/128, Elapsed[0.31m], Remain[0.08m], score:16.835, aug_score:16.562
+2024/08/26 21:25:20 tester: episode 103/128, Elapsed[0.31m], Remain[0.08m], score:23.400, aug_score:22.588
+2024/08/26 21:25:21 tester: episode 104/128, Elapsed[0.31m], Remain[0.07m], score:17.416, aug_score:17.221
+2024/08/26 21:25:21 tester: episode 105/128, Elapsed[0.32m], Remain[0.07m], score:17.231, aug_score:17.231
+2024/08/26 21:25:21 tester: episode 106/128, Elapsed[0.32m], Remain[0.07m], score:18.310, aug_score:17.902
+2024/08/26 21:25:21 tester: episode 107/128, Elapsed[0.32m], Remain[0.06m], score:20.409, aug_score:20.409
+2024/08/26 21:25:21 tester: episode 108/128, Elapsed[0.32m], Remain[0.06m], score:16.267, aug_score:16.110
+2024/08/26 21:25:21 tester: episode 109/128, Elapsed[0.33m], Remain[0.06m], score:16.624, aug_score:16.624
+2024/08/26 21:25:22 tester: episode 110/128, Elapsed[0.33m], Remain[0.05m], score:26.529, aug_score:26.116
+2024/08/26 21:25:22 tester: episode 111/128, Elapsed[0.33m], Remain[0.05m], score:15.869, aug_score:15.221
+2024/08/26 21:25:22 tester: episode 112/128, Elapsed[0.34m], Remain[0.05m], score:18.571, aug_score:18.331
+2024/08/26 21:25:22 tester: episode 113/128, Elapsed[0.34m], Remain[0.05m], score:18.386, aug_score:18.364
+2024/08/26 21:25:22 tester: episode 114/128, Elapsed[0.34m], Remain[0.04m], score:23.025, aug_score:22.848
+2024/08/26 21:25:23 tester: episode 115/128, Elapsed[0.35m], Remain[0.04m], score:18.756, aug_score:18.449
+2024/08/26 21:25:23 tester: episode 116/128, Elapsed[0.35m], Remain[0.04m], score:25.839, aug_score:25.691
+2024/08/26 21:25:23 tester: episode 117/128, Elapsed[0.35m], Remain[0.03m], score:22.978, aug_score:22.978
+2024/08/26 21:25:23 tester: episode 118/128, Elapsed[0.35m], Remain[0.03m], score:23.146, aug_score:22.921
+2024/08/26 21:25:23 tester: episode 119/128, Elapsed[0.36m], Remain[0.03m], score:23.036, aug_score:22.908
+2024/08/26 21:25:23 tester: episode 120/128, Elapsed[0.36m], Remain[0.02m], score:26.706, aug_score:26.361
+2024/08/26 21:25:24 tester: episode 121/128, Elapsed[0.36m], Remain[0.02m], score:15.908, aug_score:15.677
+2024/08/26 21:25:24 tester: episode 122/128, Elapsed[0.37m], Remain[0.02m], score:20.867, aug_score:20.798
+2024/08/26 21:25:24 tester: episode 123/128, Elapsed[0.37m], Remain[0.02m], score:19.924, aug_score:19.821
+2024/08/26 21:25:24 tester: episode 124/128, Elapsed[0.37m], Remain[0.01m], score:15.668, aug_score:15.577
+2024/08/26 21:25:24 tester: episode 125/128, Elapsed[0.38m], Remain[0.01m], score:18.905, aug_score:18.815
+2024/08/26 21:25:25 tester: episode 126/128, Elapsed[0.38m], Remain[0.01m], score:29.331, aug_score:29.331
+2024/08/26 21:25:25 tester: episode 127/128, Elapsed[0.38m], Remain[0.00m], score:20.309, aug_score:20.156
+2024/08/26 21:25:25 tester: episode 128/128, Elapsed[0.38m], Remain[0.00m], score:18.980, aug_score:18.581
+2024/08/26 21:25:25 tester:  *** Test Done *** 
+2024/08/26 21:25:25 tester:  NO-AUG SCORE: 20.4618 
+2024/08/26 21:25:25 tester:  AUGMENTATION SCORE: 20.2448 
+2024/08/26 21:25:26 models.runners: Constructed solutions with average cost 20.244784370064735 in 0.1800196673721075/inst
+2024/08/26 21:25:26 models.runners: 
+ finished construction... starting LS
+2024/08/26 21:25:49 models.or_tools.or_tools: Local Search has remaining 492.6357409413904 seconds per instance.
+2024/08/26 23:37:18 models.runners: Starting Evaluation for run 2/3 with time limit 480 for POMO_aug_8_SA
+2024/08/26 23:38:16 models.runner_utils: Stats for run 2/3:
+2024/08/26 23:38:16 models.runner_utils: =================================
+2024/08/26 23:38:16 models.runner_utils: 
+Instance 0 Cost: 17.30931847065746, 
+Instance 0 Method Internal-Cost: 17.774789810180664, 
+Instance 0 PI: 2.6664617745410846, 
+Instance 0 WRAP: None, 
+Instance 0 Run Time (best sol found): 4.216573886573315, 
+Instance 0 Run Time (total): 493.05120410583913
+2024/08/26 23:38:16 models.runner_utils: 
+Instance 1 Cost: 23.129590196576473, 
+Instance 1 Method Internal-Cost: 23.664609909057617, 
+Instance 1 PI: 1.7523214202506132, 
+Instance 1 WRAP: None, 
+Instance 1 Run Time (best sol found): 9.073762139305472, 
+Instance 1 Run Time (total): 493.06021960265934
+2024/08/26 23:38:16 models.runner_utils: 
+Instance 2 Cost: 22.851007297972, 
+Instance 2 Method Internal-Cost: 23.143129348754883, 
+Instance 2 PI: 2.873584647428551, 
+Instance 2 WRAP: None, 
+Instance 2 Run Time (best sol found): 8.773393549025059, 
+Instance 2 Run Time (total): 493.06622564047575
+2024/08/26 23:38:16 models.runner_utils: 
+Instance 3 Cost: 22.357135889942484, 
+Instance 3 Method Internal-Cost: 22.702880859375, 
+Instance 3 PI: 2.9571991911593765, 
+Instance 3 WRAP: None, 
+Instance 3 Run Time (best sol found): 4.184595990926027, 
+Instance 3 Run Time (total): 493.0463781654835
+2024/08/26 23:38:16 models.runner_utils: 
+Instance 4 Cost: 17.433700920690015, 
+Instance 4 Method Internal-Cost: 17.73650360107422, 
+Instance 4 PI: 3.4338815278199597, 
+Instance 4 WRAP: None, 
+Instance 4 Run Time (best sol found): 3.2754587177187204, 
+Instance 4 Run Time (total): 493.0462040025741
+2024/08/26 23:38:16 models.runner_utils: 
+Average cost  : 19.853498122965046 +/- 3.8611211477800933, 
+Average cost-intern (Method)  : 20.244784370064735 +/- 0.0, 
+Average PI: 2.9591234651597524 +/- 0.98547107830623, 
+Average WRAP: None +/- None, 
+Average Run Time (best sol found): 14.047196810788591 +/- 30.404233853947183, 
+Average Run Time (total): 493.0666502043314 +/- 0.09799013440326368
+2024/08/26 23:38:21 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 7402 24-Core Processor, threads_per_cpu: 2, total_cores: 24
+2024/08/26 23:38:21 models.runner_utils: Storing Results of run 2 in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/POMO/2024-08-26_19-11-45/logs/
+2024/08/26 23:38:21 models.runners: running inference 3/3...
+2024/08/26 23:38:21 models.runners: Run-time dependent parameters: cuda Device (threads: 8), Adjusted Time Budget for construction: 306.0 / instance. Adjusted Time Budget for LS: 493.0 / instance.
+2024/08/26 23:38:21 models.runners: running test inference for POMO_aug_8 with additional LS: SA...
+2024/08/26 23:38:22 tester: episode   1/128, Elapsed[0.00m], Remain[0.43m], score:18.246, aug_score:17.775
+2024/08/26 23:38:22 tester: episode   2/128, Elapsed[0.01m], Remain[0.40m], score:23.683, aug_score:23.665
+2024/08/26 23:38:22 tester: episode   3/128, Elapsed[0.01m], Remain[0.39m], score:23.482, aug_score:23.143
+2024/08/26 23:38:22 tester: episode   4/128, Elapsed[0.01m], Remain[0.39m], score:23.019, aug_score:22.703
+2024/08/26 23:38:22 tester: episode   5/128, Elapsed[0.02m], Remain[0.38m], score:18.136, aug_score:17.737
+2024/08/26 23:38:22 tester: episode   6/128, Elapsed[0.02m], Remain[0.38m], score:15.811, aug_score:15.702
+2024/08/26 23:38:23 tester: episode   7/128, Elapsed[0.02m], Remain[0.37m], score:22.597, aug_score:22.401
+2024/08/26 23:38:23 tester: episode   8/128, Elapsed[0.02m], Remain[0.37m], score:13.805, aug_score:13.526
+2024/08/26 23:38:23 tester: episode   9/128, Elapsed[0.03m], Remain[0.36m], score:16.824, aug_score:16.589
+2024/08/26 23:38:23 tester: episode  10/128, Elapsed[0.03m], Remain[0.36m], score:24.813, aug_score:24.539
+2024/08/26 23:38:23 tester: episode  11/128, Elapsed[0.03m], Remain[0.36m], score:21.455, aug_score:21.187
+2024/08/26 23:38:24 tester: episode  12/128, Elapsed[0.04m], Remain[0.35m], score:16.276, aug_score:16.150
+2024/08/26 23:38:24 tester: episode  13/128, Elapsed[0.04m], Remain[0.35m], score:23.752, aug_score:23.549
+2024/08/26 23:38:24 tester: episode  14/128, Elapsed[0.04m], Remain[0.35m], score:19.444, aug_score:19.200
+2024/08/26 23:38:24 tester: episode  15/128, Elapsed[0.05m], Remain[0.34m], score:18.412, aug_score:18.070
+2024/08/26 23:38:24 tester: episode  16/128, Elapsed[0.05m], Remain[0.34m], score:19.886, aug_score:19.590
+2024/08/26 23:38:24 tester: episode  17/128, Elapsed[0.05m], Remain[0.34m], score:19.252, aug_score:19.116
+2024/08/26 23:38:25 tester: episode  18/128, Elapsed[0.05m], Remain[0.33m], score:25.239, aug_score:25.049
+2024/08/26 23:38:25 tester: episode  19/128, Elapsed[0.06m], Remain[0.33m], score:22.669, aug_score:22.579
+2024/08/26 23:38:25 tester: episode  20/128, Elapsed[0.06m], Remain[0.33m], score:15.435, aug_score:15.205
+2024/08/26 23:38:25 tester: episode  21/128, Elapsed[0.06m], Remain[0.32m], score:18.980, aug_score:18.745
+2024/08/26 23:38:25 tester: episode  22/128, Elapsed[0.07m], Remain[0.32m], score:18.548, aug_score:18.389
+2024/08/26 23:38:25 tester: episode  23/128, Elapsed[0.07m], Remain[0.32m], score:27.932, aug_score:27.932
+2024/08/26 23:38:26 tester: episode  24/128, Elapsed[0.07m], Remain[0.31m], score:19.941, aug_score:19.884
+2024/08/26 23:38:26 tester: episode  25/128, Elapsed[0.08m], Remain[0.31m], score:18.708, aug_score:18.671
+2024/08/26 23:38:26 tester: episode  26/128, Elapsed[0.08m], Remain[0.31m], score:20.820, aug_score:20.818
+2024/08/26 23:38:26 tester: episode  27/128, Elapsed[0.08m], Remain[0.30m], score:22.779, aug_score:22.655
+2024/08/26 23:38:26 tester: episode  28/128, Elapsed[0.08m], Remain[0.30m], score:23.176, aug_score:22.903
+2024/08/26 23:38:27 tester: episode  29/128, Elapsed[0.09m], Remain[0.30m], score:13.944, aug_score:13.576
+2024/08/26 23:38:27 tester: episode  30/128, Elapsed[0.09m], Remain[0.30m], score:21.931, aug_score:21.719
+2024/08/26 23:38:27 tester: episode  31/128, Elapsed[0.09m], Remain[0.29m], score:21.023, aug_score:20.675
+2024/08/26 23:38:27 tester: episode  32/128, Elapsed[0.10m], Remain[0.29m], score:26.641, aug_score:26.224
+2024/08/26 23:38:27 tester: episode  33/128, Elapsed[0.10m], Remain[0.29m], score:17.342, aug_score:17.252
+2024/08/26 23:38:27 tester: episode  34/128, Elapsed[0.10m], Remain[0.28m], score:16.750, aug_score:16.581
+2024/08/26 23:38:28 tester: episode  35/128, Elapsed[0.11m], Remain[0.28m], score:29.315, aug_score:28.991
+2024/08/26 23:38:28 tester: episode  36/128, Elapsed[0.11m], Remain[0.28m], score:15.397, aug_score:15.309
+2024/08/26 23:38:28 tester: episode  37/128, Elapsed[0.11m], Remain[0.27m], score:18.375, aug_score:18.281
+2024/08/26 23:38:28 tester: episode  38/128, Elapsed[0.11m], Remain[0.27m], score:14.699, aug_score:14.699
+2024/08/26 23:38:28 tester: episode  39/128, Elapsed[0.12m], Remain[0.27m], score:25.819, aug_score:25.752
+2024/08/26 23:38:29 tester: episode  40/128, Elapsed[0.12m], Remain[0.26m], score:28.063, aug_score:27.673
+2024/08/26 23:38:29 tester: episode  41/128, Elapsed[0.12m], Remain[0.26m], score:22.273, aug_score:22.096
+2024/08/26 23:38:29 tester: episode  42/128, Elapsed[0.13m], Remain[0.26m], score:24.143, aug_score:24.143
+2024/08/26 23:38:29 tester: episode  43/128, Elapsed[0.13m], Remain[0.25m], score:16.898, aug_score:16.685
+2024/08/26 23:38:29 tester: episode  44/128, Elapsed[0.13m], Remain[0.25m], score:13.698, aug_score:13.698
+2024/08/26 23:38:29 tester: episode  45/128, Elapsed[0.13m], Remain[0.25m], score:23.414, aug_score:23.236
+2024/08/26 23:38:30 tester: episode  46/128, Elapsed[0.14m], Remain[0.25m], score:20.408, aug_score:20.276
+2024/08/26 23:38:30 tester: episode  47/128, Elapsed[0.14m], Remain[0.24m], score:23.911, aug_score:23.626
+2024/08/26 23:38:30 tester: episode  48/128, Elapsed[0.14m], Remain[0.24m], score:16.881, aug_score:16.804
+2024/08/26 23:38:30 tester: episode  49/128, Elapsed[0.15m], Remain[0.24m], score:16.037, aug_score:15.928
+2024/08/26 23:38:30 tester: episode  50/128, Elapsed[0.15m], Remain[0.23m], score:21.879, aug_score:21.754
+2024/08/26 23:38:30 tester: episode  51/128, Elapsed[0.15m], Remain[0.23m], score:16.769, aug_score:16.509
+2024/08/26 23:38:31 tester: episode  52/128, Elapsed[0.16m], Remain[0.23m], score:14.612, aug_score:14.518
+2024/08/26 23:38:31 tester: episode  53/128, Elapsed[0.16m], Remain[0.22m], score:26.757, aug_score:26.661
+2024/08/26 23:38:31 tester: episode  54/128, Elapsed[0.16m], Remain[0.22m], score:22.666, aug_score:22.666
+2024/08/26 23:38:31 tester: episode  55/128, Elapsed[0.16m], Remain[0.22m], score:17.043, aug_score:16.533
+2024/08/26 23:38:31 tester: episode  56/128, Elapsed[0.17m], Remain[0.22m], score:19.249, aug_score:18.936
+2024/08/26 23:38:32 tester: episode  57/128, Elapsed[0.17m], Remain[0.21m], score:17.075, aug_score:16.884
+2024/08/26 23:38:32 tester: episode  58/128, Elapsed[0.17m], Remain[0.21m], score:24.846, aug_score:24.377
+2024/08/26 23:38:32 tester: episode  59/128, Elapsed[0.18m], Remain[0.21m], score:18.650, aug_score:18.650
+2024/08/26 23:38:32 tester: episode  60/128, Elapsed[0.18m], Remain[0.20m], score:26.414, aug_score:25.891
+2024/08/26 23:38:32 tester: episode  61/128, Elapsed[0.18m], Remain[0.20m], score:22.247, aug_score:22.247
+2024/08/26 23:38:32 tester: episode  62/128, Elapsed[0.19m], Remain[0.20m], score:17.919, aug_score:17.422
+2024/08/26 23:38:33 tester: episode  63/128, Elapsed[0.19m], Remain[0.19m], score:22.256, aug_score:21.930
+2024/08/26 23:38:33 tester: episode  64/128, Elapsed[0.19m], Remain[0.19m], score:22.719, aug_score:22.719
+2024/08/26 23:38:33 tester: episode  65/128, Elapsed[0.19m], Remain[0.19m], score:19.607, aug_score:19.607
+2024/08/26 23:38:33 tester: episode  66/128, Elapsed[0.20m], Remain[0.19m], score:28.111, aug_score:27.491
+2024/08/26 23:38:33 tester: episode  67/128, Elapsed[0.20m], Remain[0.18m], score:26.429, aug_score:26.113
+2024/08/26 23:38:34 tester: episode  68/128, Elapsed[0.20m], Remain[0.18m], score:23.452, aug_score:23.452
+2024/08/26 23:38:34 tester: episode  69/128, Elapsed[0.21m], Remain[0.18m], score:25.794, aug_score:25.273
+2024/08/26 23:38:34 tester: episode  70/128, Elapsed[0.21m], Remain[0.17m], score:20.491, aug_score:20.232
+2024/08/26 23:38:34 tester: episode  71/128, Elapsed[0.21m], Remain[0.17m], score:22.223, aug_score:21.844
+2024/08/26 23:38:34 tester: episode  72/128, Elapsed[0.21m], Remain[0.17m], score:28.908, aug_score:28.259
+2024/08/26 23:38:34 tester: episode  73/128, Elapsed[0.22m], Remain[0.16m], score:17.740, aug_score:17.422
+2024/08/26 23:38:35 tester: episode  74/128, Elapsed[0.22m], Remain[0.16m], score:15.936, aug_score:15.635
+2024/08/26 23:38:35 tester: episode  75/128, Elapsed[0.22m], Remain[0.16m], score:16.832, aug_score:16.599
+2024/08/26 23:38:35 tester: episode  76/128, Elapsed[0.23m], Remain[0.16m], score:14.405, aug_score:14.312
+2024/08/26 23:38:35 tester: episode  77/128, Elapsed[0.23m], Remain[0.15m], score:16.907, aug_score:16.738
+2024/08/26 23:38:35 tester: episode  78/128, Elapsed[0.23m], Remain[0.15m], score:16.391, aug_score:16.304
+2024/08/26 23:38:35 tester: episode  79/128, Elapsed[0.24m], Remain[0.15m], score:20.163, aug_score:20.072
+2024/08/26 23:38:36 tester: episode  80/128, Elapsed[0.24m], Remain[0.14m], score:18.573, aug_score:18.357
+2024/08/26 23:38:36 tester: episode  81/128, Elapsed[0.24m], Remain[0.14m], score:21.254, aug_score:21.254
+2024/08/26 23:38:36 tester: episode  82/128, Elapsed[0.24m], Remain[0.14m], score:22.246, aug_score:22.112
+2024/08/26 23:38:36 tester: episode  83/128, Elapsed[0.25m], Remain[0.13m], score:22.356, aug_score:22.356
+2024/08/26 23:38:36 tester: episode  84/128, Elapsed[0.25m], Remain[0.13m], score:17.804, aug_score:17.417
+2024/08/26 23:38:37 tester: episode  85/128, Elapsed[0.25m], Remain[0.13m], score:19.819, aug_score:19.819
+2024/08/26 23:38:37 tester: episode  86/128, Elapsed[0.26m], Remain[0.13m], score:17.172, aug_score:16.985
+2024/08/26 23:38:37 tester: episode  87/128, Elapsed[0.26m], Remain[0.12m], score:16.309, aug_score:16.309
+2024/08/26 23:38:37 tester: episode  88/128, Elapsed[0.26m], Remain[0.12m], score:18.027, aug_score:17.447
+2024/08/26 23:38:37 tester: episode  89/128, Elapsed[0.27m], Remain[0.12m], score:17.592, aug_score:17.231
+2024/08/26 23:38:37 tester: episode  90/128, Elapsed[0.27m], Remain[0.11m], score:21.849, aug_score:21.710
+2024/08/26 23:38:38 tester: episode  91/128, Elapsed[0.27m], Remain[0.11m], score:14.442, aug_score:14.340
+2024/08/26 23:38:38 tester: episode  92/128, Elapsed[0.27m], Remain[0.11m], score:15.099, aug_score:15.014
+2024/08/26 23:38:38 tester: episode  93/128, Elapsed[0.28m], Remain[0.10m], score:26.565, aug_score:25.735
+2024/08/26 23:38:38 tester: episode  94/128, Elapsed[0.28m], Remain[0.10m], score:18.057, aug_score:17.819
+2024/08/26 23:38:38 tester: episode  95/128, Elapsed[0.28m], Remain[0.10m], score:25.572, aug_score:25.069
+2024/08/26 23:38:38 tester: episode  96/128, Elapsed[0.29m], Remain[0.10m], score:20.637, aug_score:20.316
+2024/08/26 23:38:39 tester: episode  97/128, Elapsed[0.29m], Remain[0.09m], score:21.425, aug_score:20.960
+2024/08/26 23:38:39 tester: episode  98/128, Elapsed[0.29m], Remain[0.09m], score:31.576, aug_score:31.477
+2024/08/26 23:38:39 tester: episode  99/128, Elapsed[0.30m], Remain[0.09m], score:20.418, aug_score:19.979
+2024/08/26 23:38:39 tester: episode 100/128, Elapsed[0.30m], Remain[0.08m], score:20.565, aug_score:20.447
+2024/08/26 23:38:39 tester: episode 101/128, Elapsed[0.30m], Remain[0.08m], score:17.948, aug_score:17.846
+2024/08/26 23:38:40 tester: episode 102/128, Elapsed[0.30m], Remain[0.08m], score:16.835, aug_score:16.562
+2024/08/26 23:38:40 tester: episode 103/128, Elapsed[0.31m], Remain[0.07m], score:23.400, aug_score:22.588
+2024/08/26 23:38:40 tester: episode 104/128, Elapsed[0.31m], Remain[0.07m], score:17.416, aug_score:17.221
+2024/08/26 23:38:40 tester: episode 105/128, Elapsed[0.31m], Remain[0.07m], score:17.231, aug_score:17.231
+2024/08/26 23:38:40 tester: episode 106/128, Elapsed[0.32m], Remain[0.07m], score:18.310, aug_score:17.902
+2024/08/26 23:38:40 tester: episode 107/128, Elapsed[0.32m], Remain[0.06m], score:20.409, aug_score:20.409
+2024/08/26 23:38:41 tester: episode 108/128, Elapsed[0.32m], Remain[0.06m], score:16.267, aug_score:16.110
+2024/08/26 23:38:41 tester: episode 109/128, Elapsed[0.32m], Remain[0.06m], score:16.624, aug_score:16.624
+2024/08/26 23:38:41 tester: episode 110/128, Elapsed[0.33m], Remain[0.05m], score:26.529, aug_score:26.116
+2024/08/26 23:38:41 tester: episode 111/128, Elapsed[0.33m], Remain[0.05m], score:15.869, aug_score:15.221
+2024/08/26 23:38:41 tester: episode 112/128, Elapsed[0.33m], Remain[0.05m], score:18.571, aug_score:18.331
+2024/08/26 23:38:42 tester: episode 113/128, Elapsed[0.34m], Remain[0.04m], score:18.386, aug_score:18.364
+2024/08/26 23:38:42 tester: episode 114/128, Elapsed[0.34m], Remain[0.04m], score:23.025, aug_score:22.848
+2024/08/26 23:38:42 tester: episode 115/128, Elapsed[0.34m], Remain[0.04m], score:18.756, aug_score:18.449
+2024/08/26 23:38:42 tester: episode 116/128, Elapsed[0.35m], Remain[0.04m], score:25.839, aug_score:25.691
+2024/08/26 23:38:42 tester: episode 117/128, Elapsed[0.35m], Remain[0.03m], score:22.978, aug_score:22.978
+2024/08/26 23:38:42 tester: episode 118/128, Elapsed[0.35m], Remain[0.03m], score:23.146, aug_score:22.921
+2024/08/26 23:38:43 tester: episode 119/128, Elapsed[0.35m], Remain[0.03m], score:23.036, aug_score:22.908
+2024/08/26 23:38:43 tester: episode 120/128, Elapsed[0.36m], Remain[0.02m], score:26.706, aug_score:26.361
+2024/08/26 23:38:43 tester: episode 121/128, Elapsed[0.36m], Remain[0.02m], score:15.908, aug_score:15.677
+2024/08/26 23:38:43 tester: episode 122/128, Elapsed[0.36m], Remain[0.02m], score:20.867, aug_score:20.798
+2024/08/26 23:38:43 tester: episode 123/128, Elapsed[0.37m], Remain[0.01m], score:19.924, aug_score:19.821
+2024/08/26 23:38:43 tester: episode 124/128, Elapsed[0.37m], Remain[0.01m], score:15.668, aug_score:15.577
+2024/08/26 23:38:44 tester: episode 125/128, Elapsed[0.37m], Remain[0.01m], score:18.905, aug_score:18.815
+2024/08/26 23:38:44 tester: episode 126/128, Elapsed[0.38m], Remain[0.01m], score:29.331, aug_score:29.331
+2024/08/26 23:38:44 tester: episode 127/128, Elapsed[0.38m], Remain[0.00m], score:20.309, aug_score:20.156
+2024/08/26 23:38:44 tester: episode 128/128, Elapsed[0.38m], Remain[0.00m], score:18.980, aug_score:18.581
+2024/08/26 23:38:44 tester:  *** Test Done *** 
+2024/08/26 23:38:44 tester:  NO-AUG SCORE: 20.4618 
+2024/08/26 23:38:44 tester:  AUGMENTATION SCORE: 20.2448 
+2024/08/26 23:38:45 models.runners: Constructed solutions with average cost 20.244784370064735 in 0.17857173457741737/inst
+2024/08/26 23:38:45 models.runners: 
+ finished construction... starting LS
+2024/08/26 23:39:08 models.or_tools.or_tools: Local Search has remaining 492.457169206813 seconds per instance.
+2024/08/27 01:50:38 models.runners: Starting Evaluation for run 3/3 with time limit 480 for POMO_aug_8_SA
+2024/08/27 01:51:35 models.runner_utils: Stats for run 3/3:
+2024/08/27 01:51:35 models.runner_utils: =================================
+2024/08/27 01:51:35 models.runner_utils: 
+Instance 0 Cost: 17.30931847065746, 
+Instance 0 Method Internal-Cost: 17.774789810180664, 
+Instance 0 PI: 2.6663127151293597, 
+Instance 0 WRAP: None, 
+Instance 0 Run Time (best sol found): 4.134534535929561, 
+Instance 0 Run Time (total): 493.0762893091887
+2024/08/27 01:51:35 models.runner_utils: 
+Instance 1 Cost: 23.129590196576473, 
+Instance 1 Method Internal-Cost: 23.664609909057617, 
+Instance 1 PI: 1.752110379010574, 
+Instance 1 WRAP: None, 
+Instance 1 Run Time (best sol found): 8.837071999907494, 
+Instance 1 Run Time (total): 493.0421091876924
+2024/08/27 01:51:35 models.runner_utils: 
+Instance 2 Cost: 22.851007297972, 
+Instance 2 Method Internal-Cost: 23.143129348754883, 
+Instance 2 PI: 2.8735552744692416, 
+Instance 2 WRAP: None, 
+Instance 2 Run Time (best sol found): 8.559893364086747, 
+Instance 2 Run Time (total): 493.0540245100856
+2024/08/27 01:51:35 models.runner_utils: 
+Instance 3 Cost: 22.357135889942484, 
+Instance 3 Method Internal-Cost: 22.702880859375, 
+Instance 3 PI: 2.957138722639163, 
+Instance 3 WRAP: None, 
+Instance 3 Run Time (best sol found): 4.109118601307273, 
+Instance 3 Run Time (total): 493.0433947890997
+2024/08/27 01:51:35 models.runner_utils: 
+Instance 4 Cost: 17.433700920690015, 
+Instance 4 Method Internal-Cost: 17.73650360107422, 
+Instance 4 PI: 3.433801902908118, 
+Instance 4 WRAP: None, 
+Instance 4 Run Time (best sol found): 3.209540354087949, 
+Instance 4 Run Time (total): 493.04327192530036
+2024/08/27 01:51:35 models.runner_utils: 
+Average cost  : 19.853498122965046 +/- 3.8611211477800933, 
+Average cost-intern (Method)  : 20.244784370064735 +/- 0.0, 
+Average PI: 2.958981902894057 +/- 0.9855940237122627, 
+Average WRAP: None +/- None, 
+Average Run Time (best sol found): 14.021329303068342 +/- 30.55673005092395, 
+Average Run Time (total): 493.0539074908447 +/- 0.05264366661181671
+2024/08/27 01:51:35 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 7402 24-Core Processor, threads_per_cpu: 2, total_cores: 24
+2024/08/27 01:51:35 models.runner_utils: Storing Results of run 3 in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/POMO/2024-08-26_19-11-45/logs/
+2024/08/27 01:51:36 models.runner_utils: 
+
+Summary Stats of the 3 Runs: 
+
+Average Obj. Costs over 3 Runs: 19.853498122965046
+Std. Dev. of Avg Costs over 3 Runs: 0.0
+Average PI Score over 3 Runs: 2.959100723167385
+Average WRAP Score over 3 Runs: None
+Average Runtime (until best cost found) over 3 Runs: 14.076508933867444
+Average Total Runtime of method over 3 Runs: 493.0625827347491
+2024/08/27 01:51:36 models.runners: Storing Overall Results for 3 runs in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/POMO/2024-08-26_19-11-45/logs/

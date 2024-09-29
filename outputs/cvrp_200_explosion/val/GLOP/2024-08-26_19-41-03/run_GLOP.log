@@ -1,0 +1,294 @@
+2024/08/26 19:41:03 __main__: problem: cvrp
+graph_size: 200
+coords_dist: explosion
+weights_dist: random_int
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_E_size2000.pkl
+normalize_data: true
+checkpoint_load_path: models/GLOP/GLOP/pretrained/Reviser-stage2
+ckpt_path_partitioner: models/GLOP/GLOP/pretrained/Partitioner/cvrp/cvrp-100.pt
+problem_type: ${problem}
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: random_int
+    normalize_demands: false
+    single_large_instance: null
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: false
+    k: 16
+    cap: 50
+    max_cap_factor: null
+    n_depots: 1
+model: GLOP
+policy_cfg:
+  revision_lens:
+  - 20
+  revision_iters:
+  - 5
+  reviser_path: ${checkpoint_load_path}
+  partitioner_path: ${ckpt_path_partitioner}
+  decode_strategy: greedy
+  no_prune: false
+run_type: val
+number_runs: 3
+debug_lvl: 0
+global_seed: 1234
+cuda: true
+G3DMark: 17177
+G2DMark: 975
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
+test_cfg:
+  eval_type:
+  - pi
+  - wrap
+  time_limit: 480
+  save_solutions: true
+  save_for_analysis: true
+  saved_res_dir: outputs/saved_results
+  out_name: ${out_name}
+  save_trajectory: true
+  save_traj_for: null
+  fixed_dataset: true
+  data_file_path: ${data_file_path}
+  checkpoint_load_path: ${checkpoint_load_path}
+  dataset_size: 128
+  dataset_range: null
+  add_ls: true
+  ls_policy: sa
+  ls_policy_cfg:
+    local_search_strategy: SIMULATED_ANNEALING
+    solution_limit: null
+    verbose: false
+    log_search: false
+    batch_size: 8
+    search_workers: 1
+tester_cfg:
+  width: 1
+  test_batch_size: 1
+  tsp_aug: true
+  no_aug: false
+  eval_batch_size: 1
+  partitioner: null
+  n_partition: 1
+  ckpt_path_partitioner: ${ckpt_path_partitioner}
+  problem_type: ${problem_type}
+  val_size: ${test_cfg.dataset_size}
+  problem_size: ${graph_size}
+  no_progress_bar: false
+  reconnect_cfg:
+    revision_lens: ${policy_cfg.revision_lens}
+    revision_iters: ${policy_cfg.revision_iters}
+    no_prune: ${policy_cfg.no_prune}
+    tsp_aug: ${tester_cfg.tsp_aug}
+    no_aug: ${tester_cfg.no_aug}
+    eval_batch_size: ${tester_cfg.eval_batch_size}
+    time_limit: ${test_cfg.time_limit}
+log_lvl: INFO
+tb_log_path: logs/tb/
+log_path: logs/
+checkpoint_save_path: checkpoints/
+
+2024/08/26 19:41:03 models.runner_utils: torch.cuda.is_available() False
+2024/08/26 19:41:03 models.runner_utils: cfg.cuda True
+2024/08/26 19:41:03 models.runner_utils: Running val-run on cpu
+2024/08/26 19:41:03 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 9334 32-Core Processor, threads_per_cpu: 2, total_cores: 32
+2024/08/26 19:41:03 models.runners: Eval PassMark for this run: 2367. Adjusted Time Limit per Instance for Construction: 406.0. PassMark for additional GORT Search: 2367. Adjusted Time Limit per Instance for Search : 406.0.
+2024/08/26 19:41:03 data.base_dataset: Test Data provided: /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl, No new samples are generated.
+2024/08/26 19:41:03 data.base_dataset: BKS file should exists for /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:41:03 data.base_dataset: Loading Best Known Solutions from /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/BKS_val.pkl
+2024/08/26 19:41:03 data.base_dataset: BaseSol file should exists for /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:41:03 data.base_dataset: Loading Base Solver Results (for WRAP eval.) from /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/BaseSol_val.pkl
+2024/08/26 19:41:03 data.base_dataset: Tried to load Base Solutions, but do not exists... No WRAP eval. possible.
+2024/08/26 19:41:03 data.base_dataset: Loaded 2000 BKS for the test (val) set.
+2024/08/26 19:41:03 data.base_dataset: Loading dataset from: /home/thyssens/RA/routing-arena/data/test_data/cvrp/explosion/cvrp200/val_E_size2000.pkl
+2024/08/26 19:41:04 data.cvrp_dataset: 128 CVRP Test/Validation Instances for cvrp with 200 explosion-distributed customers loaded.
+2024/08/26 19:41:04 data.cvrp_dataset: Transforming instances from lists to CVRPInstances
+2024/08/26 19:41:04 data.cvrp_dataset: DE-NORMALIZING data with grid-size 1.0 and capacity 70...
+2024/08/26 19:41:05 metrics.metrics: Base Reference for this machine in metrics initialisation set to 2000
+2024/08/26 19:41:05 models.runners: Parallelize local search runs: running 8 instances in parallel.
+2024/08/26 19:41:05 models.runners: running inference 1/3...
+2024/08/26 19:41:05 models.runners: Run-time dependent parameters: cpu Device (threads: 8), Adjusted Time Budget for construction: 406.0 / instance. Adjusted Time Budget for LS: 406.0 / instance.
+2024/08/26 19:41:05 models.runners: running test inference for GLOP_it_5 with additional LS: SA...
+2024/08/26 19:41:28 models.runners: Constructed solutions with average cost 24.866874277591705 in 0.17970535159111023/inst
+2024/08/26 19:41:28 models.runners: 
+ finished construction... starting LS
+2024/08/26 19:41:28 models.or_tools.or_tools: Working with original capacity and demand
+2024/08/26 19:41:40 models.or_tools.or_tools: Local Search has remaining 405.8202946484089 seconds per instance.
+2024/08/26 21:29:52 models.runners: Starting Evaluation for run 1/3 with time limit 480 for GLOP_it_5_SA
+2024/08/26 21:29:52 data.base_dataset: Saving solution trajectory for instance 0
+2024/08/26 21:30:38 models.runner_utils: PI = 10 for 33 instances out of 128.
+2024/08/26 21:30:38 models.runner_utils: Stats for run 1/3:
+2024/08/26 21:30:38 models.runner_utils: =================================
+2024/08/26 21:30:38 models.runner_utils: 
+Instance 0 Cost: 19.00303434164674, 
+Instance 0 Method Internal-Cost: 22.220481872558594, 
+Instance 0 PI: 10, 
+Instance 0 WRAP: None, 
+Instance 0 Run Time (best sol found): 9.558570321649313, 
+Instance 0 Run Time (total): 405.7863549552858
+2024/08/26 21:30:38 models.runner_utils: 
+Instance 1 Cost: 24.57986818182827, 
+Instance 1 Method Internal-Cost: 29.891698837280273, 
+Instance 1 PI: 8.516421200465052, 
+Instance 1 WRAP: None, 
+Instance 1 Run Time (best sol found): 309.1762836948037, 
+Instance 1 Run Time (total): 405.79189969971776
+2024/08/26 21:30:38 models.runner_utils: 
+Instance 2 Cost: 23.882598991309226, 
+Instance 2 Method Internal-Cost: 27.77248764038086, 
+Instance 2 PI: 7.2837240338489595, 
+Instance 2 WRAP: None, 
+Instance 2 Run Time (best sol found): 51.680963799357414, 
+Instance 2 Run Time (total): 405.7857126183808
+2024/08/26 21:30:38 models.runner_utils: 
+Instance 3 Cost: 24.48138906022507, 
+Instance 3 Method Internal-Cost: 28.308671951293945, 
+Instance 3 PI: 10, 
+Instance 3 WRAP: None, 
+Instance 3 Run Time (best sol found): 16.365001879632473, 
+Instance 3 Run Time (total): 405.78630627691746
+2024/08/26 21:30:38 models.runner_utils: 
+Instance 4 Cost: 18.024001103886956, 
+Instance 4 Method Internal-Cost: 22.484060287475586, 
+Instance 4 PI: 6.400224836273516, 
+Instance 4 WRAP: None, 
+Instance 4 Run Time (best sol found): 9.586608689278364, 
+Instance 4 Run Time (total): 405.78612342849374
+2024/08/26 21:30:38 models.runner_utils: 
+Average cost  : 21.04561915775484 +/- 4.125268773454102, 
+Average cost-intern (Method)  : 24.866874277591705 +/- 0.0, 
+Average PI: 8.371527167381004 +/- 1.5010159109773153, 
+Average WRAP: None +/- None, 
+Average Run Time (best sol found): 21.539022078475682 +/- 31.589516262813344, 
+Average Run Time (total): 405.7582573189575 +/- 0.024545615381525547
+2024/08/26 21:30:39 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 9334 32-Core Processor, threads_per_cpu: 2, total_cores: 32
+2024/08/26 21:30:39 models.runner_utils: Storing Results of run 1 in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/GLOP/2024-08-26_19-41-03/logs/
+2024/08/26 21:30:40 models.runners: running inference 2/3...
+2024/08/26 21:30:40 models.runners: Run-time dependent parameters: cpu Device (threads: 8), Adjusted Time Budget for construction: 406.0 / instance. Adjusted Time Budget for LS: 406.0 / instance.
+2024/08/26 21:30:40 models.runners: running test inference for GLOP_it_5 with additional LS: SA...
+2024/08/26 21:31:03 models.runners: Constructed solutions with average cost 24.866874277591705 in 0.1752985157072544/inst
+2024/08/26 21:31:03 models.runners: 
+ finished construction... starting LS
+2024/08/26 21:31:03 models.or_tools.or_tools: Working with original capacity and demand
+2024/08/26 21:31:14 models.or_tools.or_tools: Local Search has remaining 405.64499613270164 seconds per instance.
+2024/08/26 23:19:27 models.runners: Starting Evaluation for run 2/3 with time limit 480 for GLOP_it_5_SA
+2024/08/26 23:20:13 models.runner_utils: PI = 10 for 33 instances out of 128.
+2024/08/26 23:20:13 models.runner_utils: Stats for run 2/3:
+2024/08/26 23:20:13 models.runner_utils: =================================
+2024/08/26 23:20:13 models.runner_utils: 
+Instance 0 Cost: 19.00303434164674, 
+Instance 0 Method Internal-Cost: 22.220481872558594, 
+Instance 0 PI: 10, 
+Instance 0 WRAP: None, 
+Instance 0 Run Time (best sol found): 9.453059379011393, 
+Instance 0 Run Time (total): 405.76711267232895
+2024/08/26 23:20:13 models.runner_utils: 
+Instance 1 Cost: 24.57986818182827, 
+Instance 1 Method Internal-Cost: 29.891698837280273, 
+Instance 1 PI: 8.517344440937835, 
+Instance 1 WRAP: None, 
+Instance 1 Run Time (best sol found): 310.18207704648376, 
+Instance 1 Run Time (total): 405.77296137809753
+2024/08/26 23:20:13 models.runner_utils: 
+Instance 2 Cost: 23.882598991309226, 
+Instance 2 Method Internal-Cost: 27.77248764038086, 
+Instance 2 PI: 7.282785458394314, 
+Instance 2 WRAP: None, 
+Instance 2 Run Time (best sol found): 51.19099672883749, 
+Instance 2 Run Time (total): 405.76161778345704
+2024/08/26 23:20:13 models.runner_utils: 
+Instance 3 Cost: 24.48138906022507, 
+Instance 3 Method Internal-Cost: 28.308671951293945, 
+Instance 3 PI: 10, 
+Instance 3 WRAP: None, 
+Instance 3 Run Time (best sol found): 16.33974228799343, 
+Instance 3 Run Time (total): 405.76902068406343
+2024/08/26 23:20:13 models.runner_utils: 
+Instance 4 Cost: 18.024001103886956, 
+Instance 4 Method Internal-Cost: 22.484060287475586, 
+Instance 4 PI: 6.400012484758211, 
+Instance 4 WRAP: None, 
+Instance 4 Run Time (best sol found): 9.577450696378946, 
+Instance 4 Run Time (total): 405.761836245656
+2024/08/26 23:20:13 models.runner_utils: 
+Average cost  : 21.04561915775484 +/- 4.125268773454102, 
+Average cost-intern (Method)  : 24.866874277591705 +/- 0.0, 
+Average PI: 8.371587591390835 +/- 1.5009068220560773, 
+Average WRAP: None +/- None, 
+Average Run Time (best sol found): 21.574901015352225 +/- 31.72437929606341, 
+Average Run Time (total): 405.7523101523984 +/- 0.03889386732621944
+2024/08/26 23:20:13 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 9334 32-Core Processor, threads_per_cpu: 2, total_cores: 32
+2024/08/26 23:20:13 models.runner_utils: Storing Results of run 2 in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/GLOP/2024-08-26_19-41-03/logs/
+2024/08/26 23:20:15 models.runners: running inference 3/3...
+2024/08/26 23:20:15 models.runners: Run-time dependent parameters: cpu Device (threads: 8), Adjusted Time Budget for construction: 406.0 / instance. Adjusted Time Budget for LS: 406.0 / instance.
+2024/08/26 23:20:15 models.runners: running test inference for GLOP_it_5 with additional LS: SA...
+2024/08/26 23:20:38 models.runners: Constructed solutions with average cost 24.866874277591705 in 0.1747409775853157/inst
+2024/08/26 23:20:38 models.runners: 
+ finished construction... starting LS
+2024/08/26 23:20:38 models.or_tools.or_tools: Working with original capacity and demand
+2024/08/26 23:20:50 models.or_tools.or_tools: Local Search has remaining 405.4702551551163 seconds per instance.
+2024/08/27 01:09:02 models.runners: Starting Evaluation for run 3/3 with time limit 480 for GLOP_it_5_SA
+2024/08/27 01:09:48 models.runner_utils: PI = 10 for 33 instances out of 128.
+2024/08/27 01:09:48 models.runner_utils: Stats for run 3/3:
+2024/08/27 01:09:48 models.runner_utils: =================================
+2024/08/27 01:09:48 models.runner_utils: 
+Instance 0 Cost: 19.00303434164674, 
+Instance 0 Method Internal-Cost: 22.220481872558594, 
+Instance 0 PI: 10, 
+Instance 0 WRAP: None, 
+Instance 0 Run Time (best sol found): 9.426444951444864, 
+Instance 0 Run Time (total): 405.76413326337934
+2024/08/27 01:09:48 models.runner_utils: 
+Instance 1 Cost: 24.57986818182827, 
+Instance 1 Method Internal-Cost: 29.891698837280273, 
+Instance 1 PI: 8.512275164798755, 
+Instance 1 WRAP: None, 
+Instance 1 Run Time (best sol found): 306.16689859330654, 
+Instance 1 Run Time (total): 405.7618916146457
+2024/08/27 01:09:48 models.runner_utils: 
+Instance 2 Cost: 23.882598991309226, 
+Instance 2 Method Internal-Cost: 27.77248764038086, 
+Instance 2 PI: 7.282701525237822, 
+Instance 2 WRAP: None, 
+Instance 2 Run Time (best sol found): 51.060565523803234, 
+Instance 2 Run Time (total): 405.76964239031076
+2024/08/27 01:09:48 models.runner_utils: 
+Instance 3 Cost: 24.48138906022507, 
+Instance 3 Method Internal-Cost: 28.308671951293945, 
+Instance 3 PI: 10, 
+Instance 3 WRAP: None, 
+Instance 3 Run Time (best sol found): 16.356576289981604, 
+Instance 3 Run Time (total): 405.77299892157316
+2024/08/27 01:09:48 models.runner_utils: 
+Instance 4 Cost: 18.024001103886956, 
+Instance 4 Method Internal-Cost: 22.484060287475586, 
+Instance 4 PI: 6.399931335673692, 
+Instance 4 WRAP: None, 
+Instance 4 Run Time (best sol found): 9.562551345676184, 
+Instance 4 Run Time (total): 405.77068603783846
+2024/08/27 01:09:48 models.runner_utils: 
+Average cost  : 21.04561915775484 +/- 4.125268773454102, 
+Average cost-intern (Method)  : 24.866874277591705 +/- 0.0, 
+Average PI: 8.37165208807179 +/- 1.5007487965633532, 
+Average WRAP: None +/- None, 
+Average Run Time (best sol found): 21.599593909428222 +/- 31.47044134737651, 
+Average Run Time (total): 405.7564820056723 +/- 0.03057959327376793
+2024/08/27 01:09:48 models.runner_utils: CPU Specs: cpu_name: AMD EPYC 9334 32-Core Processor, threads_per_cpu: 2, total_cores: 32
+2024/08/27 01:09:48 models.runner_utils: Storing Results of run 3 in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/GLOP/2024-08-26_19-41-03/logs/
+2024/08/27 01:09:50 models.runner_utils: 
+
+Summary Stats of the 3 Runs: 
+
+Average Obj. Costs over 3 Runs: 21.04561915775484
+Std. Dev. of Avg Costs over 3 Runs: 0.0
+Average PI Score over 3 Runs: 8.371588948947876
+Average WRAP Score over 3 Runs: None
+Average Runtime (until best cost found) over 3 Runs: 21.57117233441871
+Average Total Runtime of method over 3 Runs: 405.7556831590094
+2024/08/27 01:09:50 models.runners: Storing Overall Results for 3 runs in /home/thyssens/RA/routing-arena/outputs/cvrp_200_explosion/val/GLOP/2024-08-26_19-41-03/logs/
