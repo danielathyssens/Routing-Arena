@@ -1,6 +1,6 @@
-# RA
+# Routing Arena
 ### **Routing Arena**: A Benchmark Suite for Neural Routing Methods
-This repository corresponds to the paper ""_Routing Arena: A Benchmark Suite for Neural Routing Methods_"".
+This repository corresponds to the paper "_Routing Arena: A Benchmark Suite for Neural Routing Methods_".
 The Benchamark Suite aims at providing a seamless integration of **consistent evaluation** and **provision of baselines 
 and benchmarks** for routing solvers prevalent in the Machine Learning (ML)- and Operations Research (OR) field, by unifying the evaluation 
 protocol and extending the pool of easily accessible baselines and datasets.
