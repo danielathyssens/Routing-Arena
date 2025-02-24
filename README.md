@@ -1,5 +1,5 @@
 
-[# Routing Arena](RA_schema.pdf)
+# Routing Arena
 
 
 ### **Routing Arena**: A Benchmark Suite for Neural Routing Methods
@@ -14,7 +14,7 @@ and the _Capacitated Vehicle Routing Problem with Time Windows_ (CVRPTW) as the 
 routing problems in Neural Combinatorial Optimization (NCO) and among the most well studied problems in OR. Further 
 interfacing, datasets and baselines for other problem variants are continuously being adopted.
 
-Below are some quick-start instructions to test the functionality of the RA.
+Below are some quick-start instructions to test the functionality of the [RA](RA_schema.pdf).
 A comprehensive **Documentation** on how the Suite is designed and structured can be found in the appendix of the paper.
 A copy of the Documentation PDF as well as a **Quick Baseline Setup** Guide will be available here soon. 
 
