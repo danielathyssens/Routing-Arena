@@ -1,6 +1,5 @@
-# Routing Arena
 
-[RA_schema.pdf](RA_schema.pdf)
+[# Routing Arena](RA_schema.pdf)
 
 
 ### **Routing Arena**: A Benchmark Suite for Neural Routing Methods
@@ -49,8 +48,13 @@ python run_SGBS.py policy=sgbs_EAS env=cvrp_XE_uch XE_type=XE_1 test_cfg.time_li
 Note the "save for analysis" option in the `test_cfg` argument in the command, that allows users to get a quick 
 summary of the results. To access the stored results, run:
 ```
+import torch
 from models.analyse import average_run_results
-avg_res = average_run_results(path_to_results="outputs/saved_results/XE/XE_1/TL_implicit", model_name="SGBS-EAS", number_runs=3) # gives dict with summary stats
+res_all, model, out_path = [], "SGBS-EAS-aug", "outputs/saved_results/XE/XE_1" + "_avg/TL_implicit/"
+for run in ["1", "2", "3"]: 
+    res = torch.load("outputs/saved_results/XE/XE_1/TL_implicit/run_"+str(run)+"_results_"+model+".pkl")
+    res_all.append(res)
+avg_res = average_run_results(res_all, save_dir_sols=out_path + "/run_avg_results_" + model + ".pkl", save_dir_info=out_path + "/run_avg_info_" + model + ".pkl", data_length=None) # gives dict with summary stats
 ```
 
 **TSP**:  Quick-Start experiment to test SGBS-EAS on uniformly sampled TSP instances:
