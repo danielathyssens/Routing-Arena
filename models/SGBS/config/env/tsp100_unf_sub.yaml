@@ -1,0 +1,30 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: 'uniform'
+out_name: ${problem}_${graph_size}_${coords_dist}_sub
+data_file_path: data/test_data/tsp/sub_uniform/tsp100/val_seed2345_size128.pt
+normalize_data: True
+checkpoint_load_path: models/POMO/POMO/tsp/POMO/result/uniform_sub/saved_tsp100_model/checkpoint-6000.pt
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance: # data/train_data/${problem}_10000/${coords_dist}/single_large_instance.pt
+  sampling_args:
+    sample_size: 128
+    graph_size: ${graph_size}
+    subsample: True
+    n_depots: 1 #number of depots (default = 1)
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}

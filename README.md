@@ -4,6 +4,7 @@ This repository corresponds to the paper "_Routing Arena: A Benchmark Suite for 
 The Benchamark Suite aims at providing a seamless integration of **consistent evaluation** and **provision of baselines 
 and benchmarks** for routing solvers prevalent in the Machine Learning (ML)- and Operations Research (OR) field, by unifying the evaluation 
 protocol and extending the pool of easily accessible baselines and datasets.
+Notably, we propose WRAP, a novel evaluation metric that assesses the quality-runtime trade-off efficiency of Neural Routing Solvers.
 
 **The implementation** currently focuses on the _Traveling Salesmen Problem_ (TSP), _Capacitated Vehicle Routing Problem_ (CVRP) 
 and the _Capacitated Vehicle Routing Problem with Time Windows_ (CVRPTW) as the most common and emblematic

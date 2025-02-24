@@ -65,25 +65,14 @@ class CVRPTester:
         # cuda
         # if self.run_params['use_cuda']:
         if USE_CUDA:
-            # cuda_device_num = self.tester_params['cuda_device_num']
-            # torch.cuda.set_device(cuda_device_num)
-            # device = torch.device('cuda', cuda_device_num)
-            # torch.set_default_tensor_type('torch.cuda.FloatTensor')
             cuda_device_num = self.run_params['cuda_device_num']
-            # print('cuda_device_num', cuda_device_num)
-            try:
-                torch.cuda.set_device(cuda_device_num)
-                self.device = torch.device('cuda', cuda_device_num)
-                torch.set_default_tensor_type('torch.cuda.FloatTensor')  # deprecated
-                # torch.set_default_dtype(torch.cuda.FloatTensor)
-            except AttributeError:
-                if torch.backends.mps.is_available():
-                    self.device = torch.device('mps')
-                    torch.set_default_device("mps")
-                    torch.set_default_dtype(torch.float32)
+            torch.cuda.set_device(cuda_device_num)
+            device = torch.device('cuda', cuda_device_num)
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
-            self.device = torch.device('cpu')
+            device = torch.device('cpu')
             torch.set_default_tensor_type('torch.FloatTensor')
+        self.device = device
 
         # ENV
         self.env = env  # Env(**self.env_params)
@@ -103,7 +92,7 @@ class CVRPTester:
 
         # Model
         # self.model = Model(**self.model_params)
-        self.model = model.to(device=self.device)
+        self.model = model.to(device=device)
         # Restore --> already done in runner
         # model_load = self.run_params['model_load']
         # checkpoint_fullname = '{path}/checkpoint-{epoch}.pt'.format(**model_load)
@@ -152,7 +141,7 @@ class CVRPTester:
         self.time_estimator.reset()
 
         num_loop = self.run_params['num_eas_sgbs_loop']
-        running_sols_all, running_times_all = [], []
+        running_sols_all, running_times_all, loop_counts_time = [], [], []
         run_costs_list = [float('inf')]
         final_score = float('inf')
         # curr_time = start_time
@@ -219,7 +208,7 @@ class CVRPTester:
             # Save Result
             # with open('{}/result.pkl'.format(self.result_folder), 'wb') as f:
             #     pickle.dump(self.result_log, f)
-
+            loop_counts_time.append((loop_cnt, sgbs_stop_hr * 3600.0))
         best_sol = [running_sols_all[-1]]
         # [running_sols[-1] for running_sols in running_sols_all]
         best_rt = [running_times_all[-1]]
@@ -229,7 +218,7 @@ class CVRPTester:
         util_print_log_array(self.logger, self.result_log)
         self.logger.info("[{}] Final Score: {}".format(self.device, final_score))
         assert len(run_costs_list[1:]) == len(running_sols_all) == len(running_times_all)
-        return best_sol, best_rt, best_cost, running_sols_all, running_times_all, run_costs_list[1:]
+        return best_sol, best_rt, best_cost, running_sols_all, running_times_all, run_costs_list[1:], loop_counts_time
 
     def _prep_incumbent_memory_on_cpu(self):
 
@@ -482,7 +471,7 @@ class CVRPTester:
         self.all_incumbent_solution[:, episode:episode + batch_size] = cpu_solution
         # print('self.all_incumbent_solution.size()', self.all_incumbent_solution.size())
         # print('self.all_incumbent_solution after EAS in eas batch[:2,0,:50]', self.all_incumbent_solution[:2,0,:50])
-        incumb_sol_best = self.all_incumbent_solution[index_aug_best.to(self.all_incumbent_solution.device)][0]
+        incumb_sol_best = self.all_incumbent_solution[index_aug_best.to('cpu')][0]
         # print('best_incumb_sol[0, :101]', incumb_sol_best[0, :101])
         cpu_score = incumbent_score.reshape(aug_factor, batch_size).to('cpu')
         self.all_incumbent_score[:, episode:episode + batch_size] = cpu_score

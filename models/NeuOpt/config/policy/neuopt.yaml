@@ -3,13 +3,7 @@
 
 policy: "NeuOpt"
 
-# model env cfg
-env_cfg:
-  #step_method: '2_opt'    # ['2_opt','swap','insert']
-  init_val_met: 'greedy'  # ['random','greedy','seq']
-  perturb_eps: 250    # eval
-  #perturb_eps: 1e10   # train
-  dummy_rate: 0.4
+
 
 # model params
 v_range: 6.0    # help='to control the entropy'
@@ -20,28 +14,20 @@ embedding_dim: 128  # help='dimension of input embeddings (NEF & PFE)'
 hidden_dim: 128  # help='dimension of hidden layers in Enc/Dec'
 n_encode_layers: 3  # help='number of stacked layers in the encoder'
 normalization: 'layer'  # help="normalization type, #'layer' (default) or 'batch'"
+gamma: 0.999    # help='reward discount factor for future rewards '
+# T_max: 1000 # 5000    # number of steps for inference --> in run.yaml
+num_augments: 1  # number of data augments (<=8) # ? can't find that parameter in options.py (from original code)
+K_epochs: 3     # help='mini PPO epoch '
 
 # agent params
 # RL_agent: 'ppo' # help='RL Training algorithm '
-gamma: 0.999    # help='reward discount factor for future rewards '
-K_epochs: 3     # help='mini PPO epoch '
-eps_clip: 0.1   # help='PPO clip ratio '
-T_train: 200   # help='number of itrations for training '
-n_step: 4     # help='n_step for return estimation '
-# best_cl: False    # help='use best solution found in CL as initial solution for training '
-# Xi_CL: 0.25     # help='hyperparameter of CL '
-lr_model: 8e-5   # help="learning rate for the actor network")
-lr_critic: 2e-5   # help="learning rate for the critic network")
-lr_decay: 0.985   # help='learning rate decay per epoch '
-warm_up: 2 # rho in the paper
-max_grad_norm: 0.04   # help='maximum L2 norm for gradient clipping '
 wo_bonus: false #  to remove reward shaping term
-wo_regular: false
+wo_regular: false   # when training TSP - should be True --> see runner init PPO
 wo_RNN: false # to remove RNN
 # wo_feature1: ${wo_feature1} # remove VI features
 # wo_feature3: ${wo_feature3} # remove ES features
 wo_MDP: true # always True (disabled function)
-stall: 10
+
 
 # disable distributed run
 no_DDP: false

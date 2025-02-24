@@ -13,7 +13,8 @@ import warnings
 
 INSTANCE_SET_TYPES = ["X", "XE", "uniform", "uchoa"]
 INSTANCE_SET_NAMES = ["X", "XE_1", "XE_2", "XE_3", "XE_4", "XE_5" "uniform", "uchoa"]
-GRID_SIZES = {"XE": 1000}
+GRID_SIZES = {"XE": 1000,
+              "XML":1000}
 
 
 class Analyser:
@@ -592,6 +593,11 @@ def extract_data(path):
 def gap_bks(z, z_bks):
     return 100 * (z - z_bks) / z_bks
 
+def avg_gap_to_bks(final_costs: list, bks: list):
+
+    gaps=[gap_bks(final_costs[i], bks[i]) for i in range(len(final_costs)) if final_costs[i] != np.float("inf")]
+    print({"Average Cost": np.mean(final_costs),"Average gap": np.mean(gaps), "Std gap": np.std(gaps)})
+    return np.mean(gaps), np.std(gaps)
 
 def plot_metric_across_sets(metric_values: Dict, metric_name: str, save_dir: str):
     fig, ax = plt.subplots()
@@ -880,6 +886,7 @@ def re_evaluate(data_path: str, run_results: Dict, original_TL, model_name: str,
         load_base_sol=wrap_eval,
         normalize=normalized_ds,
     )
+    print('ds_class.BaseSol[0]', ds_class.BaseSol['0'])
     metric_class = Metrics(BKS=ds_class.bks,
                            passMark=pass_mark_for_eval,
                            TimeLimit_=original_TL,
@@ -902,6 +909,12 @@ def re_evaluate(data_path: str, run_results: Dict, original_TL, model_name: str,
             print('SOL.RUNNING_TIMES: ', sol.running_times)
             print('SOL.RUNNING_COSTS: ', sol.running_costs)
             print('SOL.solution: ', sol.solution)
+            while sol.running_costs[-1] < sol.cost:
+                print('SOL.running_costs[-1]: ', sol.running_costs[-1])
+                print('sol.cost: ', sol.cost)
+                sol = sol.update(running_costs=sol.running_costs[:-1],
+                                 running_times=sol.running_times[:-1],
+                                 running_sols=sol.running_sols[:-1])
             # check if invalid times (like 0.0)
             if float(0) in sol.running_times:
                 print('sol.running_times', sol.running_times)

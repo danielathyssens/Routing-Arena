@@ -2,6 +2,7 @@ import warnings
 from typing import Union, NamedTuple, Optional, Tuple, List, Dict
 import numpy as np
 
+eps_t = 0.001
 
 def allign_times_costs(sorted_times, r_times, base_r_times, c_t, c_t_base):
     last_c, last_c_base, curr_c, curr_c_base = None, None, None, None
@@ -18,10 +19,13 @@ def allign_times_costs(sorted_times, r_times, base_r_times, c_t, c_t_base):
         # print('i', i)
         # print('idx_base', idx_base)
         # print('last_c_base', last_c_base)
-        # print('idx', idx)
+        # # print('idx', idx)
         # print('last_c', last_c)
-        if t == base_r_times[idx_base]:
-            #print(f"t [{t}] == base_r_times[idx_base] [{base_r_times[idx_base]}]")
+        # print('t', t)
+        # print('base_r_times[idx]', base_r_times[idx_base])
+        # print('t == base_r_times[idx_base]', t == base_r_times[idx_base])
+        if (t - base_r_times[idx_base] < eps_t) or (base_r_times[idx_base] - t < eps_t):
+            # print(f"t [{t}] == base_r_times[idx_base] [{base_r_times[idx_base]}]")
             # c_t_base[idx_base] == last_c_base only if
             curr_c_base = c_t_base[idx_base]
             if curr_c_base is not None and curr_c_base != last_c_base:
@@ -33,7 +37,7 @@ def allign_times_costs(sorted_times, r_times, base_r_times, c_t, c_t_base):
                     idx_base = len(c_t_base) - 1
                 #print('base IDX NOW: ', idx_base)
         else:
-            #print(f'Keep OLD idx_base={idx_base} and reset curr_c_base to last_c_base={last_c_base}')
+            # print(f'Keep OLD idx_base={idx_base} and reset curr_c_base to last_c_base={last_c_base}')
             curr_c_base = last_c_base
         if t == r_times[idx]:
             #print(f"t [{t}] == r_times[idx] [{r_times[idx]}]")

@@ -39,6 +39,7 @@ class E_TSPEnv(TSPEnv):
 
     def load_problems_by_index(self, start_index, batch_size, aug_factor=1):
         self.batch_size = batch_size
+        # print('self.batch_size', self.batch_size)
 
         if not self.FLAG__use_saved_problems:
             self.problems = get_random_problems(batch_size, self.problem_size)
@@ -65,6 +66,7 @@ class E_TSPEnv(TSPEnv):
         return state, reward, done
 
     def modify_pomo_size(self, new_pomo_size):
+        # print('new_pomo_size in modify_pomo_size', new_pomo_size)
         self.pomo_size = new_pomo_size
         self.BATCH_IDX = torch.arange(self.batch_size)[:, None].expand(self.batch_size, self.pomo_size)
         self.POMO_IDX = torch.arange(self.pomo_size)[None, :].expand(self.batch_size, self.pomo_size)

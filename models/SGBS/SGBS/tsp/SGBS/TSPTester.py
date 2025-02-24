@@ -66,7 +66,7 @@ class TSPTester:
         # cuda
         # if self.run_params['use_cuda']:
         if USE_CUDA:
-            cuda_device_num = self.run_params['cuda_device_num']
+            cuda_device_num = self.tester_params['cuda_device_num']
             torch.cuda.set_device(cuda_device_num)
             device = torch.device('cuda', cuda_device_num)
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -93,8 +93,7 @@ class TSPTester:
         # utility
         self.time_estimator = TimeEstimator()
 
-
-    def run(self, data: List[TSPInstance]):
+    def run(self, data: List[TSPInstance], time_budget=None):
         self.time_estimator.reset()
 
         # Load problems from problem file
@@ -117,7 +116,8 @@ class TSPTester:
                 remaining = test_num_episode - episode
                 batch_size = min(self.tester_params['test_batch_size'], remaining)
                 start_time = time.time()  # added
-                batch_score, sol = self._test_one_batch_simulation_guided_beam_search(episode, batch_size) # changed
+
+                batch_score, sol = self._test_one_batch_simulation_guided_beam_search(episode, batch_size)  # changed
                 duration = time.time() - start_time  # added
                 runtimes.append(duration)  # added
                 # costs_aug.append(aug_score)   # added
@@ -154,7 +154,7 @@ class TSPTester:
         # Ready
         ###############################################
         model.eval()
-        env.modify_pomo_size(self.env_params['pomo_size'])
+        env.modify_pomo_size(self.env.env_params['pomo_size'])
         env.reset()
 
         # POMO Rollout
@@ -176,6 +176,7 @@ class TSPTester:
 
 
     def _test_one_batch_simulation_guided_beam_search(self, episode, batch_size):
+
         beam_width = self.tester_params['sgbs_beta']     
         expansion_size_minus1 = self.tester_params['sgbs_gamma_minus1']
         rollout_width = beam_width * expansion_size_minus1
@@ -194,8 +195,8 @@ class TSPTester:
         # POMO Starting Points
         ###############################################
         starting_points = self._get_pomo_starting_points(self.model, self.env, beam_width)
-        
-
+        # print('starting_points.size()', starting_points.size())
+        # print('starting_points', starting_points)
         # Beam Search
         ###############################################
         self.env.modify_pomo_size(beam_width)
@@ -203,7 +204,7 @@ class TSPTester:
 
         # the first step, pomo starting points           
         state, _, done = self.env.step(starting_points)
-
+        selected_all.append(starting_points.unsqueeze(2))
 
         # BS Step > 1
         ###############################################
@@ -279,23 +280,27 @@ class TSPTester:
 
             self.env.reset_by_gathering_rollout_env(rollout_env_deepcopy, gathering_index=beam_index)
             selected = next_nodes.gather(dim=1, index=beam_index)
+            selected_all.append(selected.unsqueeze(2)) # added
             # shape: (aug*batch, beam_width)
             state, reward, done = self.env.step(selected)
 
     
         # Return
         ###############################################
+        tour = torch.cat(selected_all, dim=-1)  # added
         aug_reward = reward.reshape(self.aug_factor, batch_size, self.env.pomo_size)
         # shape: (augmentation, batch, pomo)
     
-        max_pomo_reward = aug_reward.max(dim=2).values  # get best results from simulation guided beam search
+        max_pomo_reward, indices_sgbs = aug_reward.max(dim=2)  # .values  # get best results from simulation guided beam search
+        best_sol_sgbs = tour[:, indices_sgbs[0], :]
         # shape: (augmentation, batch)
     
-        max_aug_pomo_reward = max_pomo_reward.max(dim=0).values  # get best results from augmentation
+        max_aug_pomo_reward, index_augm = max_pomo_reward.max(dim=0)   # .values  # get best results from augmentation
+        best_sol_sgbs_augm = tour[index_augm][0]
         # shape: (batch,)
         aug_score = -max_aug_pomo_reward  # negative sign to make positive value
     
-        return aug_score
+        return aug_score, best_sol_sgbs_augm
 
         
 

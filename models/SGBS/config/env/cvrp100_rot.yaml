@@ -1,0 +1,41 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: 'rotation'
+weights_dist: 'random_int'
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/cvrp/rotation/cvrp100/val_seed4321_size128.pt
+
+normalize_data: True
+checkpoint_load_path: models/POMO/POMO/cvrp/POMO/result/saved_CVRP100_model/rotation/checkpoint-8100.pt
+# models/POMO/POMO/cvrp/POMO/result/saved_CVRP100_model/uniform_sub/checkpoint-100.pt
+# models/POMO/POMO/${problem}/POMO/result/saved_CVRP100_model/${coords_dist}/checkpoint-30500.pt
+# models/POMO/POMO/cvrp/POMO/result/saved_CVRP100_model/uniform_sub/checkpoint-100.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: ${weights_dist}
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: # data/train_data/${problem}_10000/${coords_dist}/single_large_instance.pt
+    pm: 0.6
+    angle_range: [1.2, 1.3] # --> uniform(1.2, 1.3*pi) - default for problem size 200 is unif(0, 2*pi)
+  sampling_args:
+    sample_size: 128
+    graph_size: ${graph_size}
+    subsample: False
+    k: 17
+    cap: 50
+    max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+    n_depots: 1 #number of depots (default = 1)
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}

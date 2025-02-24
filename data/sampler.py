@@ -38,7 +38,8 @@ TW_CAPACITIES = {
     10: 250.,
     20: 500.,
     50: 750.,
-    100: 1000.
+    100: 1000.,
+    200: 2000
 }
 # standard maximum fleet size
 STD_K = {
@@ -46,6 +47,7 @@ STD_K = {
     20: 12,
     50: 24,
     100: 36,
+    200: 40
 }
 
 logger = logging.getLogger(__name__)
@@ -93,6 +95,8 @@ class DataSampler:
                  uniform_fraction: float = 0.5,
                  beta_exp: float = 10.0,
                  radius: float = 0.3,
+                 pm: float = 0.4,
+                 angle_range: tuple = (0,2),
                  random_state: Optional[Union[int, np.random.RandomState, np.random.Generator]] = None,
                  try_ensure_feasibility: bool = True,
                  verbose: bool = False,
@@ -116,7 +120,9 @@ class DataSampler:
             weights_sampling_params: parameters for weight sampling distribution
             uniform_fraction: fraction of coordinates to be sampled uniformly for mixed instances
                               or parameter tuple to sample this per instance from a beta distribution
-            lambda_expl: lambda scale value for exponential distribution in explosion mutation
+            beta_exp: lambda scale value for exponential distribution in explosion mutation
+            pm: anchor for ration mutation of originally uniform distrib. coordinates
+            angle_range: angle for ration mutation of originally uniform distrib. coordinates
             random_state: seed integer or numpy random (state) generator
             try_ensure_feasibility: flag to try to ensure the feasibility of the generated instances
             verbose: verbosity flag to print additional info and warnings
@@ -141,6 +147,8 @@ class DataSampler:
         self.uniform_fraction = uniform_fraction
         self.beta_exp = beta_exp
         self.radius = radius
+        self.pm = pm
+        self.angle_range = angle_range
         self.try_ensure_feasibility = try_ensure_feasibility
         self.verbose = verbose
         self.normalize_demands = normalize_demands
@@ -337,24 +345,24 @@ class DataSampler:
         return coords, c_probs, weights, original_capa, q_type, c_type, d_type
 
     def sample_cvrptw(self,
-                     sample_size: int,
-                     graph_size: int,
-                     k: int,
-                     cap: Optional[float] = None,
-                     max_cap_factor: Optional[float] = None,
-                     n_depots: int = 1,
-                     resample_mixture_components: bool = True,
-                     service_window=1000,
-                     service_duration=10,
-                     time_factor=100.0,
-                     tw_expansion=3.0,
-                     solomon_tw_cfg: Dict = None,
-                     early_tw_soft=False,
-                     late_tw_soft=False,
-                     early_tw_penalty=0.1,
-                     late_tw_penalty=0.5,
-                     org_service_horizon: int = 100,
-                     **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int]:
+                      sample_size: int,
+                      graph_size: int,
+                      k: int,
+                      cap: Optional[float] = None,
+                      max_cap_factor: Optional[float] = None,
+                      n_depots: int = 1,
+                      resample_mixture_components: bool = True,
+                      service_window=1000,
+                      service_duration=10,
+                      time_factor=100.0,
+                      tw_expansion=3.0,
+                      solomon_tw_cfg: Dict = None,
+                      early_tw_soft=False,
+                      late_tw_soft=False,
+                      early_tw_penalty=0.1,
+                      late_tw_penalty=0.5,
+                      org_service_horizon: int = 100,
+                      **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int]:
         """
         Args:
             sample_size: number of cvrptw instances (to be ignored here)
@@ -397,6 +405,7 @@ class DataSampler:
         time_to_depot = None
         service_time = None
         feasible = False
+        print('cap', cap)
         while not feasible:
             if i > 100:
                 raise RuntimeError(f"Encountered many infeasible instances during sampling. "
@@ -408,7 +417,8 @@ class DataSampler:
                 coords = np.expand_dims(coords, axis=0)
 
                 weights, capacity_original, q_type = self.sample_weights(n=graph_size + n_depots, k=k, cap=cap,
-                                                                         max_cap_factor=max_cap_factor, coords=coords)
+                                                                         max_cap_factor=max_cap_factor, coords=coords,
+                                                                         normalize=self.normalize_demands)
                 weights = np.expand_dims(weights, axis=0)
                 if self.twindow_sampling_dist != "solomon":
                     # default to generic tw sampling
@@ -418,9 +428,10 @@ class DataSampler:
                     #     cost_function_params = ObjectiveDict(type="edge_cost_1d", params={})
                     # calculate edge weights as l2 distance * time_factor
                     edges = self._create_edges(coords * time_factor)
-
+                    num_v = k if k is not None else STD_K[graph_size]
+                    capa = cap if cap is not None else TW_CAPACITIES[graph_size]
                     vehicles = [
-                        [0, 3 * STD_K[graph_size], TW_CAPACITIES[graph_size]]
+                        [0, 3 * num_v, capa]
                     ]  # (type, num vehicles, vehicle capacity)
                     tw_start, tw_end = self._sample_tw(size=1,
                                                        graph_size=graph_size,
@@ -434,12 +445,12 @@ class DataSampler:
                     service_durations = np.broadcast_to(np.array([0] + [service_duration] * graph_size),
                                                         (graph_size + 1))
 
-                    print('tw_start', tw_start)
-                    print('tw_end', tw_end)
-                    print('service_durations', service_durations)
-                    print('tw_start.shape', tw_start.shape)
-                    print('tw_end.shape', tw_end.shape)
-                    print('service_durations.shape', service_durations.shape)
+                    # print('tw_start[:5]', tw_start[:5])
+                    # print('tw_end[:5]', tw_end[:5])
+                    # print('service_durations[:5]', service_durations[:5])
+                    # print('tw_start.shape', tw_start.shape)
+                    # print('tw_end.shape', tw_end.shape)
+                    # print('service_durations.shape', service_durations.shape)
                     # node_features --> created in generator
                     # nodes = self._create_nodes(size, graph_size, features=[coords, demands, a, b, service_durations])
 
@@ -456,23 +467,24 @@ class DataSampler:
                     tw = np.expand_dims(np.concatenate((tw_start, tw_end)).transpose(), axis=0)
 
                     if self.normalize_tws:
-                        tw = tw / service_window
+                        tw = tw / (service_window/10)
                         # if solomon data then service duration is constant --> just have an array of shape n
-                        service_durations = 0. # np.zeros(graph_size, dtype=np.float32)
+                        service_durations = 0.1  # np.zeros(graph_size, dtype=np.float32)
 
-                    print('tw', tw)
-                    print('tw.shape', tw.shape)
+                    # print('tw[:5]', tw[:5])
+                    # print('tw.shape', tw.shape)
 
                 else:
                     coords, c_types, d_types = self.sample_coords(n=graph_size + n_depots,
                                                                   resample_mixture_components=resample_mixture_components,
                                                                   **kwargs)
                     # Euclidean distance
-                    dist_to_depot = dimacs_challenge_dist_fn_np(coords[1:], coords[0]) # self.get_dist_to_depot(coords[1:], coords[0])
-                    print('dist_to_depot', dist_to_depot)
+                    dist_to_depot = dimacs_challenge_dist_fn_np(coords[1:], coords[
+                        0])  # self.get_dist_to_depot(coords[1:], coords[0])
+                    # print('dist_to_depot', dist_to_depot)
                     # distance.euclidean(coords[1:], coords[0])
                     time_to_depot = dist_to_depot / org_service_horizon
-                    print('time_to_depot', time_to_depot)
+                    # print('time_to_depot', time_to_depot)
                     # cfg_stats
                     tw_start, tw_mask, num_tws = self._sample_tw_start(graph_size + n_depots, time_to_depot,
                                                                        org_service_horizon)
@@ -533,11 +545,16 @@ class DataSampler:
         elif self.coords_sampling_dist == "explosion":
             # Following Bossek et al. (2019)
             # coords generated by mutating uniform distributed nodes by simulating a random explosion
-            coords_unif = self._sample_unf_coords(n, **kwargs)   # sample uniformly distrib. customers
+            coords_unif = self._sample_unf_coords(n, **kwargs)  # sample uniformly distrib. customers
             coords = self._mutate_explosion(coords_unif, **kwargs)
             c_types, d_types = ["explosion"] * 2
             # pass
         elif self.coords_sampling_dist == "rotation":
+            # Following Bossek et al. (2019)
+            # coords generated by mutating uniform distributed nodes by simulating a random explosion
+            coords_unif = self._sample_unf_coords(n, **kwargs)  # sample uniformly distrib. customers
+            # print('kwargs', kwargs)
+            coords = self._mutate_rotation(coords_unif, **kwargs)
             c_types, d_types = ["rotation"] * 2
             pass
         else:
@@ -596,10 +613,11 @@ class DataSampler:
             weights: (n, )
         """
         n_wo_depot = n - 1
-        try_ensure_feasibility_ = feasibility_insurance if feasibility_insurance is not None\
+        try_ensure_feasibility_ = feasibility_insurance if feasibility_insurance is not None \
             else self.try_ensure_feasibility
         # print('try_ensure_feasibility_', try_ensure_feasibility_)
         # sample a weight for each point
+        # print('self.weights_sampling_dist', self.weights_sampling_dist)
         if self.weights_sampling_dist in ["random_int", "random_k_variant"]:
             assert cap is not None, \
                 f"weight sampling dist 'random_int' requires <cap> to be specified"
@@ -610,12 +628,15 @@ class DataSampler:
                 # random_
                 weights = self.rnd.integers(1, 10, size=(n_wo_depot,))
                 # print('weight raw', weights)
-                normalizer = cap # + 1
+                normalizer = cap  # + 1
                 # print('normalizer', normalizer)
-                if try_ensure_feasibility_:
+                if try_ensure_feasibility_ and (np.sum(weights) > k and np.sum(weights) > k * cap):
                     need_k = int(np.ceil(weights.sum() / cap))
-                    # print('need_k', need_k)
+                    print('need_k', need_k)
+                    print('(need_k / k)', (need_k / k))
                     normalizer *= ((need_k / k) + 0.1)
+                # print('normalizer after try_ensure', normalizer)
+                # print('normalize', normalize)
                 if not normalize:
                     normalizer = 1
 
@@ -629,6 +650,7 @@ class DataSampler:
                     normalizer = np.ceil((weights.sum(axis=-1)) * max_cap_factor) / _div
                 else:
                     normalizer = np.ceil((weights.sum(axis=-1)) * 1.08) / _div
+                print('normalizer2', normalizer)
                 type_w = "random_k_variant"
         elif self.weights_sampling_dist in ["uniform", "gamma"]:
             # print('self.weights_sampling_dist', self.weights_sampling_dist)
@@ -650,6 +672,7 @@ class DataSampler:
             # using ceiling adds a slight variability in the total sum of weights,
             # such that not all instances are exactly limited to the max_cap_factor
             normalizer = np.ceil((weights.sum(axis=-1)) * max_cap_factor) / k
+            # print('normalizer3', normalizer)
         elif self.weights_sampling_dist == "uchoa":
             # sample uchoa type weights
             # print('uchoa coords in sampler', coords[:2])
@@ -667,12 +690,14 @@ class DataSampler:
             # print('cap', cap)
             # print('type_w', type_w)
             normalizer = cap
+            # print('normalizer3', normalizer)
         else:
             raise ValueError(f"unknown weight sampling distribution: {self.weights_sampling_dist}")
 
         # print('normalize', normalize)
         # print('normalizer', normalizer)
         if normalize:
+            # print('normalizer4', normalizer)
             weights = weights / normalizer
             # print(np.clip(weights, None, 1.000000))
             # print('weights.any() > 1.0000000', weights.any() > 1.0000000)
@@ -682,14 +707,15 @@ class DataSampler:
 
         # print(f"np.sum(weights): {np.sum(weights)}")
         # print('k', k)
+        # print('np.sum(weights) > k', np.sum(weights) > k)
         # only bigger than k here because demands are normalized and cap then set to 1.0
-        if np.sum(weights) > k and np.sum(weights) > k*cap:
+        if np.sum(weights) > k and np.sum(weights) > k * cap:
             if self.verbose:
                 warn(f"generated instance is infeasible just by demands (sum(demands)={np.sum(weights)}) vs. "
-                     f"total available vehicle capacity (k*cap={k*cap}) of specified number of vehicles.")
+                     f"total available vehicle capacity (k*cap={k * cap}) of specified number of vehicles.")
             if try_ensure_feasibility_:
                 logger.info(f"generated instance is infeasible just by demands (sum(demands)={np.sum(weights)}) vs. "
-                     f"total available vehicle capacity (k*cap={k*cap}) of specified number of vehicles.")
+                            f"total available vehicle capacity (k*cap={k * cap}) of specified number of vehicles.")
                 raise RuntimeError
 
         weights = np.concatenate((np.array([0]), weights), axis=-1)  # add 0 weight for depot
@@ -777,7 +803,6 @@ class DataSampler:
         # use random state for sampler:
         customer_types = (self.rnd.random(num_samples) * 3).astype(int)
 
-
         if customer_type is not None:  # else Mix
             # Random, Clustered, Random-Clustered (half half)
             codes = {'R': 0, 'C': 1, 'RC': 2}
@@ -831,20 +856,19 @@ class DataSampler:
                         prev_nodes.append(coords_torch[i])
                         prev_node_ids.append(i)
                 if double_idxs:
-                    # print(f'there are duplicates for {double_idxs}')
+                    if self.verbose:
+                        print(f'there are duplicates for {double_idxs}')
                     for idx in double_idxs:
                         # resample for duplicates
                         # if customer_types[idx] != 1:
                         #     coords[idx] = self.rnd.random((1, n, 2)) * GRID_SIZE
                         # add small integer number to duplicate node coordinates
                         assert coords[0][idx][0].dtype == np.dtype('int64')
-                        coords[0][idx][0] = coords[0][idx][0] + 1
+                        coords[0][idx][0] = coords[0][idx][self.rnd.integers(0, 2)] + self.rnd.integers(-10, 20) # 1
                         # print('coords[0][idx] now:', coords[0][idx])
                 else:
                     # print('no duplicates found')
                     duplicates = False
-
-
 
         return coords, customer_types.tolist(), depot_types.tolist(), GRID_SIZE
 
@@ -1022,7 +1046,40 @@ class DataSampler:
             else:
                 v_i = coord
             new_coords.append(v_i)
-        return np.clip(np.array(new_coords), 0.0, 1.0)
+
+        # Normalised [0,1]
+        coords_exp = (np.array(new_coords) - np.min(np.array(new_coords))) / np.ptp(np.array(new_coords))
+        # np.clip(np.array(new_coords), 0.0, 1.0)
+        return coords_exp
+
+    def _mutate_rotation(self,
+                         original_coords: np.ndarray,
+                         pm: float = 0.4,
+                         angle_range: tuple = (0, 2),
+                         **kwargs):
+        # A subset \eqn{Q \subseteq P} of the points is selected and rotated
+        # by a randomly sampled angle around its center.
+        pm = pm if self.pm is None else self.pm
+        angle_range = angle_range if self.angle_range is None else self.angle_range
+        # print('type(angle_range)', type(angle_range))
+        original_coords = self.rnd.uniform(size=(len(original_coords), 2))
+        coords = original_coords.copy()
+        idx_to_rotate = np.where(self.rnd.uniform(0, 1, len(original_coords)) < pm)[0]  # randomly sample rows
+        # get rotation angle
+        # angle = self.rnd.uniform(0, 360)
+        # angle = self.rnd.uniform(1.2, 1.3 * np.pi)
+        angle = self.rnd.uniform(angle_range[0], angle_range[1] * np.pi)
+        # print('angle', angle)
+        # rotation matrix to multiply selected coord rows
+        rotation_mat = self._get_rotation_matrix(angle)
+        # Rotation centered around the origin --> shift the rotated point cloud by a random number
+        # random_shift = self.rnd.uniform(size=2)  # Generate 2 random numbers
+        mutants = (rotation_mat @ original_coords[idx_to_rotate, :].T).T # + random_shift  # MatMul and shifting
+
+        # Update the coordinates for the selected indices
+        coords[idx_to_rotate, :] = mutants
+        # return np.clip(np.array(coords), 0.0, 1.0)
+        return np.clip((coords + 1) / 2, 0.0, 1.0)   # scale values from -1 - 1 to 0 and 1
 
     def _sample_normal(self,
                        size: Union[int, Tuple[int, ...]],
@@ -1099,9 +1156,14 @@ class DataSampler:
     @staticmethod
     def _create_edges(coords: np.ndarray, l_norm: Union[int, float] = 2):
         """Calculate distance matrix with specified norm. Default is l2 = Euclidean distance."""
-        print('coords.shape in create_edges', coords.shape)
-        print('coords in create_edges', coords)
+        # print('coords.shape in create_edges', coords.shape)
+        # print('coords in create_edges', coords)
         return np.linalg.norm(coords[:, :, None] - coords[:, None, :], ord=l_norm, axis=-1)[:, :, :, None]
+    @staticmethod
+    def _get_rotation_matrix(degree):
+        alpha = degree # np.radians(degree)
+        return np.array([[np.cos(alpha), -np.sin(alpha)],
+                         [np.sin(alpha), np.cos(alpha)]])
 
     # from JAMPR v2.0 repo - generic time window sampler
     def _sample_tw(self,
@@ -1115,30 +1177,30 @@ class DataSampler:
                    normalize_tw,
                    n_depots: int = 1):
         """Sample feasible time windows."""
-        print('service_duration', service_duration)
-        print('service_window', service_window)
-        print('time_factor', time_factor)
-        print('tw_expansion', tw_expansion)
+        # print('service_duration', service_duration)
+        # print('service_window', service_window)
+        # print('time_factor', time_factor)
+        # print('tw_expansion', tw_expansion)
         # TW start needs to be feasibly reachable directly from depot
         min_t = np.ceil(edges[:, 0,
                         1:] - service_duration + 1)  # TODO: adapt to multiple vehcs with different start depots --> n_start_depots & n_end_depots?
         # TW end needs to be early enough to perform service and return to depot until end of service window
         max_t = service_window - np.ceil(edges[:, 0, 1:] + 1)
-        print('max_t', max_t)
+        # print('max_t', max_t)
         # horizon allows for the feasibility of reaching nodes /
         # returning from nodes within the global tw (service window)
         horizon = np.concatenate((min_t, max_t), axis=-1)
-        print('horizon', horizon)
+        # print('horizon[:5]', horizon[:5])
         epsilon = np.maximum(np.abs(self.rnd.standard_normal([size, graph_size])), 1 / time_factor)
 
         # sample earliest start times a
         # a = self.rnd.randint(horizon[:, :, 0], horizon[:, :, 1])
         a = self.rnd.integers(horizon[:, :, 0], horizon[:, :, 1])
-        print('earliest start times a', a)
+        # print('earliest start times a', a)
         # calculate latest start times b, which is
         # = a + service_time_expansion x normal random noise, all limited by the horizon
         b = np.minimum(a + tw_expansion * time_factor * epsilon, horizon[:, :, -1]).astype(int)
-        print('latest start times b', b)
+        # print('latest start times b', b)
 
         # add depot TWs and return
         return (
@@ -1156,15 +1218,14 @@ class DataSampler:
                          ) -> Tuple[np.ndarray, np.ndarray, int]:
         """sample start time of TW according to Solomon cfg specifications."""
 
-
         # get fraction of TW
         if self.tw_frac < 1.0:
-            num_tws = int(np.ceil((size-1) * self.tw_frac))
-            tw_mask = np.zeros((size-1), dtype=np.bool)
-            tw_mask[self.rnd.choice(np.arange((size-1)), size=num_tws, replace=False)] = 1
+            num_tws = int(np.ceil((size - 1) * self.tw_frac))
+            tw_mask = np.zeros((size - 1), dtype=np.bool)
+            tw_mask[self.rnd.choice(np.arange((size - 1)), size=num_tws, replace=False)] = 1
         else:
-            num_tws = size-1
-            tw_mask = np.ones(size-1, dtype=np.bool)
+            num_tws = size - 1
+            tw_mask = np.ones(size - 1, dtype=np.bool)
 
         # rejection sampling
         mean_tw_len = self.norm_summary.loc['mean', 'tw_len']
@@ -1224,7 +1285,6 @@ class DataSampler:
         out[~tw_mask] = 0
 
         return out, tw_mask, num_tws
-
 
     @staticmethod
     def get_dist_to_depot(i: Union[np.ndarray, float],
@@ -1340,4 +1400,4 @@ def dimacs_challenge_dist_fn_np(i: Union[np.ndarray, float],
 
     coords*100 since they were normalized to [0, 1]
     """
-    return np.floor(10*np.sqrt(((scale*(i - j))**2).sum(axis=-1)))/10
+    return np.floor(10 * np.sqrt(((scale * (i - j)) ** 2).sum(axis=-1))) / 10

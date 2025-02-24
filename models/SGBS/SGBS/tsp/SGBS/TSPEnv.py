@@ -55,7 +55,7 @@ class Step_State:
 
 
 class TSPEnv:
-    def __init__(self, dataset, **env_params):
+    def __init__(self, train_dataset=None, **env_params):
 
         # Const @INIT
         ####################################
@@ -64,8 +64,8 @@ class TSPEnv:
         self.pomo_size = env_params['pomo_size']
 
         # added env parameters:
-        self.train_dataset = dataset
-        self.gen_args = env_params['generator_args']
+        self.train_dataset = train_dataset
+        self.gen_args = env_params['generator_args'] if train_dataset is not None else None
 
         self.FLAG__use_saved_problems = False
         self.saved_problems = None
@@ -101,7 +101,7 @@ class TSPEnv:
 
         self.saved_index = 0
         saved_depot_xy, saved_node_xy = make_sgbs_instances(data_instances, device)
-        self.problems = saved_node_xy
+        self.saved_problems = saved_node_xy
         self.problem_size = saved_node_xy[0].size()[0] if self.problem_size is None else self.problem_size
 
     # added function to generate new distribution-type data from data.CVRPDataset during training
@@ -207,6 +207,9 @@ class TSPEnv:
 def make_sgbs_instances(data: List[TSPInstance], device=None):
     # needs to return (len(data), 1, 2)-shaped depot instances
     # needs to return (len(data), problem, 2)-shaped node instances
-    depot_xy = torch.stack([torch.FloatTensor(instance.coords[0].reshape(1, -1)) for instance in data]).to(device)
-    node_xy = torch.stack([torch.FloatTensor(instance.coords[1:]) for instance in data]).to(device)
+    depot_xy = None
+    # (torch.stack([torch.FloatTensor(instance.coords[0].reshape(1, -1)) for instance in data]).to(device))
+    node_xy = torch.stack([torch.FloatTensor(instance.coords) for instance in data]).to(device)
+    # torch.stack([torch.FloatTensor(instance.coords[1:]) for instance in data]).to(device)
+    # print('node_xy.size()', node_xy.size())
     return depot_xy, node_xy

@@ -219,6 +219,8 @@ class TSP_Decoder(nn.Module):
         q_last = reshape_by_heads(self.Wq_last(encoded_last_node), head_num=head_num)
         # shape: (batch, head_num, pomo, qkv_dim)
 
+        print('self.q_first.size()', self.q_first.size())
+        print('q_last', q_last.size())
         q = self.q_first + q_last
         # shape: (batch, head_num, pomo, qkv_dim)
 

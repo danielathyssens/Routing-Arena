@@ -1,0 +1,23 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 200
+coords_dist: 'rotation'
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_R_size2000.pkl
+
+normalize_data: True
+checkpoint_load_path: models/BQ/bq_nco/pretrained_models/tsp.best
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance: # data/train_data/${problem}_10000/${coords_dist}/single_large_instance.pt
+    pm: 0.4
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    subsample: False
+

@@ -34,9 +34,21 @@ test_cfg:
   dataset_range: # solve range of dataset , e.g. [10, 20]
   batch_size: 2 #
 
-# important model eval params # network parameters here, not same as in DACT
-T_max: 5000 # 5000    # number of steps for inference
-num_augments: 1  # number of data augments (<=8) # ? can't find that parameter in options.py (from original code)
+# overwrite important model eval params # network parameters here, not same as in DACT
+T_max: 1000 # ${T_max} # 5000    # number of steps for inference
+# num_augments: ${num_augments}  # number of data augments (<=8) # ? can't find that parameter in options.py (from original code)
+stall: 10  # actually same as stall_limit --> but for some reason renamed
+stall_limit: 10
+
+
+# model env cfg
+env_cfg:
+  #step_method: '2_opt'    # ['2_opt','swap','insert']
+  init_val_met: 'greedy'  # ['random','greedy','seq']
+  perturb_eps: 250    # eval
+  #perturb_eps: 1e10   # train
+  dummy_rate: ${dummy_rate}  # # 0.5, 0.4, 0.2 for CVRP20, 50, 100, respectively
+
 
 # global paths and logging
 log_lvl: INFO

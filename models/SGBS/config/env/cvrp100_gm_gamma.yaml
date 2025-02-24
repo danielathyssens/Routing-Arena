@@ -1,0 +1,39 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: "gm"
+weights_dist: "gamma"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}_${weights_dist}/${problem}${graph_size}/val_seed1234_size128.pkl
+checkpoint_load_path: models/SGBS/SGBS/${problem}/1_pre_trained_model/Saved_CVRP100_Model/uniform/checkpoint-30500.pt
+
+normalize_data: True
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: ${weights_dist}
+    mu_sampling_dist: "normal"
+    mu_sampling_params: [ 0, 1 ]
+    sigma_sampling_dist: "uniform"
+    sigma_sampling_params: [ 0.05, 0.1 ]
+    n_components: [ 1, 10 ]
+    uniform_fraction: [ 0.5, 9 ]
+  sampling_args:
+    sample_size: 64
+    graph_size: ${graph_size}
+    k: 32
+    cap: 50
+    n_depots: 1 #number of depots (default = 1)
+    max_cap_factor: 1.1
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}

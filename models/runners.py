@@ -167,10 +167,37 @@ class BaseConstructionRunner:
         if cfg.run_type in ["val", "test"]:
             self.ds = self.get_test_set(cfg=cfg, DATA_CLASS=compatible_problems)
         elif cfg.run_type in ["train", "resume"]:
-            self.ds, self.val_data = self.get_train_val_set(cfg,
-                                                            data_transform,
-                                                            compatible_problems
-                                                            )
+            if not 'load_local_train_dataset' in list(cfg.keys()):
+                self.ds, self.val_data = self.get_train_val_set(cfg,
+                                                                data_transform,
+                                                                compatible_problems
+                                                                )
+            else:
+                if cfg.load_local_train_dataset:
+                    if os.path.isfile(cfg.train_opts_cfg.train_dataset):
+                        # local_solutions = torch.load(opts.local_target_path)
+                        # rp_solution_data = local_solutions["solutions"]
+                        self.local_train_set = torch.load(cfg.train_opts_cfg.train_dataset)["solutions"]
+                    elif os.path.isdir(cfg.train_opts_cfg.train_dataset):
+                        self.local_train_set = []
+                        for filename in os.listdir(cfg.train_opts_cfg.train_dataset):
+                            if "s" + str(cfg.graph_size) in filename:
+                                logger.info(f"loading {filename}...")
+                                # if filename == "targets100_seed213298_size12800.pkl":
+                                #  "targets50_seed135471_size128000.pkl":
+                                #     tar = torch.load(os.path.join(opts.local_target_path, filename))
+                                #     print('len(tar["solutions"])', len(tar["solutions"]))
+                                #     rp_solution_data.extend(tar["solutions"][:50000])  # [:50000]
+                                self.local_train_set.extend(
+                                    torch.load(os.path.join(cfg.train_opts_cfg.train_dataset, filename))["solutions"])
+                        # rp_solution_data = []
+
+                # self.time_limit = None
+                # self.ds = self.get_test_set(cfg=cfg, DATA_CLASS=compatible_problems)
+                else:
+                    # tbd: specify generating target methods if not use local targets
+                    raise NotImplementedError
+
         else:
             raise NotImplementedError(f"Unknown run_type: '{self.cfg.run_type}' for model {self.acronym}"
                                       f"Must be ['val', 'test', 'train', 'resume']")
@@ -215,7 +242,8 @@ class BaseConstructionRunner:
             time_for_ls = self.per_instance_time_limit_ls if self.per_instance_time_limit_ls is not None \
                 else np.mean([d.time_limit for d in self.ds.data])
             print('np.mean(time_constr)', np.mean(time_constr))
-            print('np.mean([d.time_limit for d in self.ds.data])', np.mean([d.time_limit for d in self.ds.data]))
+            print('d.time_limit ', self.ds.data[0].time_limit)
+            # print('np.mean([d.time_limit for d in self.ds.data])', np.mean([d.time_limit for d in self.ds.data]))
             if np.mean(time_constr) < time_for_ls:
                 logger.info(f"\n finished construction... starting LS")
                 normed_dem = self.cfg.env_kwargs.generator_args.normalize_demands if self.cfg.problem.upper() != "TSP" \
@@ -474,10 +502,12 @@ class BaseSearchRunner:
             os.makedirs(self.cfg.checkpoint_save_path, exist_ok=True)
 
     def init_metrics(self, cfg):
+        # base_sol_pass_mark = self.ds.BaseSol if self.ds.BaseSol else None
         self.metric = Metrics(BKS=self.ds.bks,
                               passMark=self.passMark,
                               TimeLimit_=self.time_limit,
                               passMark_cpu=self.CPU_passMark,
+                              base_sol_pass_mark=None,
                               base_sol_results=self.ds.BaseSol if self.ds.BaseSol else None,
                               scale_costs=10000 if os.path.basename(
                                   cfg.data_file_path) in NORMED_BENCHMARKS else None,

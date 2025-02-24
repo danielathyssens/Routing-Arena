@@ -7,21 +7,21 @@ number_runs: 1
 debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
 global_seed: 1234
 cuda: True
-
-# GPU SPECIFICATIONS (Default: GeForce RTX 3060 (G3DMark Mark: 17177, G2DMark: 975))
+# eGPU GeForce RTX 3060 (G3DMark Mark: 17177, G2DMark: 975)
 G3DMark: 17177
 G2DMark: 975
-# CPU SPECIFICATIONS (Default: DELL Machine Intel® Core™ i7-10850H - 12 Threads: 11980 - 1 Thread: 2714)
-CPU_Mark_single: 2714  # single thread CPU Mark
-CPU_Mark: 11980  # multi thread CPU Mark
-number_threads: 12  # number threads (total)
-number_cpus: 6  # number cores (total)
+# DELL Machine (Intel® Core™ i7-10850H - 12 Threads): 11980
+# DELL Machine (Intel® Core™ i7-10850H - 1 Threads): 2714
+CPU_Mark_single: 2714
+CPU_Mark: 11980
+number_threads: 12
+number_cpus: 6
 
 test_cfg:
   eval_type: ['pi', 'wrap']  # 'simple', 'wrap', 'pi', ['pi', 'wrap']
   time_limit: 10
-  save_solutions: False   # either save solution in log dir of run output dir
-  save_for_analysis: True # or save solutions for further analysis in saved results folder
+  save_solutions: True #False   # either save solution in log dir of run output dir
+  save_for_analysis: False # or save solutions for further analysis in saved results folder
   saved_res_dir: outputs/saved_results # where results for analysis should be saved
   out_name: ${out_name}
   save_trajectory: True   # will always be saved in log dir of run output dir
@@ -43,16 +43,16 @@ test_cfg:
 tester_cfg:
   cuda_device_num: 0
   test_episodes: 1 # 5 # 1 # 512  # 10000  # as long as dataset
-  test_batch_size: 1 # 625
+  test_batch_size: 1 #625
   augmentation_enable: True
   mode: sgbs  # sgbs, greedy, sampling obs, mcts
   num_starting_points: 4
   sampling_num: 1200
   obs_bw: 1200
   mcts_rollout_per_step: 12
-  sgbs_beta: 4  #1   # need 1 here for SGBS single trajectory aka greedy rollout
-  sgbs_gamma_minus1: 3
-  pomo_size: ${graph_size} # or 1 (single trajectory) SGBS_EAS only works with pomo_size=graph_size
+  sgbs_beta: 1  # 10  # 4  #1   # need 1 here for SGBS single trajectory aka greedy rollout
+  sgbs_gamma_minus1: 9  # 3
+  pomo_size: 1 ${graph_size} # or 1 (single trajectory) SGBS_EAS only works with pomo_size=graph_size
   index_begin: 0
 
 # global paths and logging

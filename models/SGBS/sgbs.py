@@ -4,6 +4,7 @@ import os
 import sys
 
 import logging
+import warnings
 import time
 import itertools as it
 from typing import Union, Optional, Dict, List, Tuple, Any, Type
@@ -53,26 +54,8 @@ def train_model(Trainer: None,  # Type[Union[TSPTrainer, CVRPTrainer]]
                 scheduler: Scheduler,
                 device: torch.device = torch.device("cpu"),
                 train_cfg: Optional[Dict] = None):
-    # note: Train data from TSPDataset/CVRPDataset class generated on the fly in POMO Env
-
-    USE_CUDA = True if device != torch.device("cpu") and not DEBUG_MODE else False
-    # print("use_cuda", USE_CUDA)
-    trainer = Trainer(env=env,
-                      generate_problems=True,
-                      model=model,
-                      optimizer=optimizer,
-                      scheduler=scheduler,
-                      trainer_params=train_cfg,
-                      USE_CUDA=USE_CUDA)
-
-    if DEBUG_MODE:
-        _set_debug_mode()
-
-    # copy_all_src(trainer.result_folder)
-
-    trainer.run()
-
-    return None
+    warnings.warn("SGBS uses pretrained POMO model checkpoints... No SGBS training implemented!")
+    raise NotImplementedError
 
 
 def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTester_EAS]],
@@ -99,13 +82,16 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
             tester_cfg['test_episodes'] = len(data)
             if env.env_params['problem_size'] is None:
                 # means that problem_size (aka graph_size) in test set is set to None, b/c instances have different size
-                env.problem_size = data[0].graph_size - 1
+                env.problem_size = data[0].graph_size - 1 if problem == "cvrp" else data[0].graph_size
+                print('env.problem_size', env.problem_size)
             if env.env_params['pomo_size'] is None:
                 # means that pomo_size is set to graph_size of instances in test set, but instances have different size
-                tester_cfg['pomo_size'] = data[0].graph_size - 1
+                tester_cfg['pomo_size'] = data[0].graph_size - 1 if problem == "cvrp" else data[0].graph_size
                 env.pomo_size = data[0].graph_size - 1
+                print('env.pomo_size', env.pomo_size)
                 # env.pomo_size = data[0].graph_size - 1
             # print('data[0].node_features[:5, -1]', data[0].node_features[:5, -1])
+            logger.info(f'tester_cfg before RUN: {tester_cfg}')
             tester = Tester(env=env,
                             model=model,
                             tester_params=tester_cfg,
@@ -116,9 +102,9 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
             tester_cfg['test_episodes'] = 1  # adapt test_episodes to 1 for each of the instances in single run
             sols, runtimes, costs, costs_aug = [], [], [], []
             for instance in data:
-                if env.env_params['problem_size'] is None:
+                if env.env_params['problem_size'] is None or env.env_params['problem_size'] != instance.graph_size - 1:
                     env.problem_size = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
-                if env.env_params['pomo_size'] is None:
+                if env.env_params['pomo_size'] is None or env.env_params['problem_size'] != instance.graph_size - 1:
                     tester_cfg['pomo_size'] = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
                     env.pomo_size = instance.graph_size - 1  if problem == "cvrp" else instance.graph_size
                 tester = Tester(env=env,
@@ -128,6 +114,8 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
                 time_budget = time_limit if time_limit is not None else instance.time_limit
                 sol, runtime, cost = tester.run(data=[instance],
                                                 time_budget=time_budget)  # , cost_aug
+                # print('sol', sol)
+                # print('len(sol)', len(sol))
                 sols.append(sol[0])
                 runtimes.extend(runtime)
                 costs.extend(cost)
@@ -145,13 +133,17 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
         #                 USE_CUDA=USE_CUDA)
         #                         test_data=data,
         sols, runtimes, costs, running_costs, running_sols, running_sols, running_rts = [], [], [], [], [], [], []
+        iterations_vs_time = []
         # sols, runtimes, costs, running_sols, running_rts, running_costs = tester.run()  # , cost_aug
         for instance in data:
-            # print('env.env_params', env.env_params)
+            print('INSTANCE ID', instance.instance_id)
             if env.env_params['problem_size'] is None or env.env_params['problem_size'] != instance.graph_size - 1:
                 # means that problem_size (aka graph_size) in test set is set to None, b/c instances have different size
-                # print('instance.graph_size', instance.graph_size)
-                # print('instance.graph_size - 1', instance.graph_size - 1)
+                print('instance.graph_size', instance.graph_size)
+                print('instance.graph_size - 1', instance.graph_size - 1)
+                if instance.graph_size == 99:
+                    instance = instance.update(graph_size=100)
+                print('instance.graph_size', instance.graph_size)
                 env.env_params['problem_size'] = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
                 env.problem_size = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
             if env.env_params['pomo_size'] is None or env.env_params['pomo_size'] != instance.graph_size - 1:
@@ -169,22 +161,33 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
                             model=model,
                             run_params=tester_cfg,
                             USE_CUDA=USE_CUDA)
-            # print('time_limit', time_limit)
             time_budget = time_limit if time_limit is not None else instance.time_limit
-            sol, runtime, cost, running_sol, running_rt, running_cost = tester.run(data=[instance],
-                                                                                   time_budget=time_budget)
+            sol, runtime, cost, running_sol, running_rt, running_cost, loop_counts = tester.run(data=[instance],
+                                                                                                time_budget=time_budget)
+            # print('sol', sol)
+            # print('loop_counts', loop_counts)
             sols.append(sol[0])
             runtimes.extend(runtime)
             costs.extend(cost)
             running_sols.append(running_sol)
             running_rts.append(running_rt)
             running_costs.append(running_cost)
+            iterations_vs_time.append(loop_counts)
+        # print('sols', sols)
+        # print('running_sols', running_sols)
+        # print('running_rts', running_rts)
+        # print('running_costs', running_costs)
+        print('iterations_vs_time', iterations_vs_time)
         s_parsed = _get_sep_tours(problem, sols)
+        # print('s_parsed', s_parsed)
         s_parsed_running = [_get_sep_tours(problem, running_sol) for running_sol in running_sols]
+        # print('s_parsed_running', s_parsed_running)
+        # print('len(s_parsed_running', len(s_parsed_running))
+
         # print('len (running_costs', len(running_costs))
         # print('running_rts', running_rts)
         solutions = make_RPSolution(problem, costs, runtimes, s_parsed, data, s_parsed_running, running_rts,
-                                    running_costs)
+                                    running_costs, iterations_time=iterations_vs_time)
         return {}, solutions
     else:
         raise NotImplementedError
@@ -195,17 +198,18 @@ def _get_sep_tours(problem: str, sols: Union[torch.Tensor, List]) -> List[List]:
     # parse solution
     if problem.lower() == 'tsp':
         # if problem is TSP - only have single tour
-        parsed_sols = []
+        parsed_sols=[]
+
         for sol_ in sols:
-            print('sol_', sol_)
+            # print('sol_', sol_)
             # return sol_.tolist()
             if torch.is_tensor(sol_):
-                print('sol_ is tensor')
+                # print('sol_ is tensor')
                 parsed_sols.append(sol_.tolist())
-                print('parsed_sols in loop:', parsed_sols)
+                # print('parsed_sols in loop:', parsed_sols)
             elif isinstance(sol_, list):
-                print('sol_ is running sol for one instance')
-                print('sol_', sol_)
+                # print('sol_ is running sol for one instance')
+                # print('sol_', sol_)
                 parsed_sols.append([soll.tolist() for soll in sol_])
         return parsed_sols
 
@@ -240,10 +244,11 @@ def sol_to_list(sol: Union[torch.tensor, np.ndarray], depot_idx: int = 0) -> Lis
 
 
 def make_RPSolution(problem, rews, times, s_parsed, data,
-                    running_s=None, running_t=None, running_c=None) -> List[RPSolution]:
+                    running_s=None, running_t=None, running_c=None, iterations_time=None) -> List[RPSolution]:
     """Parse model solution back to RPSolution for consistent evaluation"""
     # transform solution torch.Tensor -> List[List]
     # sol_list = [_get_sep_tours(problem, sol_) for sol_ in sols]
+    print('iterations_time', iterations_time)
     if running_t == running_c == running_s is None:
         return [
             RPSolution(
@@ -253,11 +258,16 @@ def make_RPSolution(problem, rews, times, s_parsed, data,
                 run_time=t,  # float(t[:-1]),
                 problem=problem,
                 instance=inst,
-                method_internal_cost=r
+                method_internal_cost=r,
+                iterations_time=it_t
             )
-            for sol, r, t, inst in zip(s_parsed, rews, times, data)
+            for sol, r, t, inst, it_t in zip(s_parsed, rews, times, data, iterations_time)
         ]
     else:
+        # print('running_c', running_c)
+        running_c_upd = []
+        for inst_runn_c in running_c:
+            running_c_upd.append([r_c.cpu().item() if isinstance(r_c, torch.Tensor) else r_c for r_c in inst_runn_c])
         return [
             RPSolution(
                 solution=sol,
@@ -266,13 +276,14 @@ def make_RPSolution(problem, rews, times, s_parsed, data,
                 run_time=t,  # float(t[:-1]),
                 problem=problem,
                 instance=inst,
-                method_internal_cost=r,
+                method_internal_cost=r.cpu().item() if isinstance(r, torch.Tensor) else r,
                 running_sols=runn_s,
                 running_costs=runn_c,
                 running_times=runn_t,
+                iterations_time=it_t
             )
-            for sol, r, t, inst, runn_s, runn_t, runn_c in
-            zip(s_parsed, rews, times, data, running_s, running_t, running_c)
+            for sol, r, t, inst, runn_s, runn_t, runn_c, it_t in
+            zip(s_parsed, rews, times, data, running_s, running_t, running_c_upd, iterations_time)
         ]
 
 

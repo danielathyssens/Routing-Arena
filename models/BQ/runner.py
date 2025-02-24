@@ -16,12 +16,10 @@ from torch import Tensor, nn
 from tensorboard_logger import Logger as TbLogger
 from pynvml import *
 
-
-
-from models.BQ.bq import eval_model, prep_data_BQ  # train_model
+from models.BQ.bq import eval_model, train_model, prep_data_BQ  # train_model
 from models.BQ.bq_nco.utils.chekpointer import CheckPointer
 from models.BQ.bq_nco.model.model import BQModel
-
+from models.BQ.bq_nco.utils.misc import print_model_params_info
 from data.cvrp_dataset import CVRPDataset
 from data.tsp_dataset import TSPDataset
 from formats import CVRPInstance, RPSolution
@@ -61,6 +59,7 @@ class Runner(BaseConstructionRunner):
             self.setup(compatible_problems=DATA_CLASS, data_transformation=prep_data_BQ)
             self.train()
         elif self.cfg.run_type == 'resume':
+            self.setup(compatible_problems=DATA_CLASS, data_transformation=prep_data_BQ)
             self.resume()
         elif self.cfg.run_type in ['val', 'test']:
             self.test()
@@ -106,12 +105,15 @@ class Runner(BaseConstructionRunner):
                           problem=self.cfg.problem,
                           batch_size=self.cfg.test_cfg.eval_batch_size,
                           device=self.device,
-                          opts=self.cfg.eval_opts_cfg)
+                          opts=self.cfg.eval_opts_cfg,
+                          normalized_data=self.cfg.normalize_data,)
 
     def train(self, **kwargs):
         """Train the specified model."""
 
         cfg = self.cfg.copy()
+
+        print_model_params_info(self.module)
 
         # Optionally configure tensorboard
         tb_logger = None
@@ -119,23 +121,27 @@ class Runner(BaseConstructionRunner):
             tb_logger = TbLogger(
                 os.path.join(cfg.tb_log_path, "{}_{}".format(cfg.problem, cfg.graph_size), self.run_name))
 
+        # load fixed training-targets data --> in BaseConstructionRunner if "load_local_train_dataset=True"
+        # train_dat = torch.load(cfg.train_opts_cfg.train_datset)
+        if 'normalize_demands' in list(cfg.keys()):
+            norm_demands = cfg.env_kwargs.generator_args.normalize_demands in list()
+        else:
+            norm_demands = None
         logger.info(f"start training on {self.device}...")
         results = train_model(
-            model=self.model,
+            net=self.model,
+            module=self.module,
+            data_rp=self.local_train_set,
+            # data_test=self.ds.data,
             problem=cfg.problem,
             device=self.device,
-            baseline_type=cfg.baseline_cfg.baseline_type,
-            resume=False,
             opts=cfg.train_opts_cfg,
-            train_dataset=self.ds,  # from which to sample each epoch
-            val_dataset=self.val_data,  # fixed
-            ckpt_save_path=cfg.checkpoint_save_path,
-            tb_logger=tb_logger,
-            **cfg.env_kwargs.sampling_args
+            normalized_data=cfg.normalize_data,
+            normalize_demands=norm_demands,
         )
 
         logger.info(f"training finished.")
-        logger.info(f"Last results: {results[-1]}")
+        logger.info(f"Last avg validation optimality gap: {results['validation_metrics'][0]['opt_gap_val']}")
         # logger.info(results)
         # solutions, summary = eval_rp(solutions, problem=self.cfg.problem)
         # self.save_results({
@@ -147,23 +153,26 @@ class Runner(BaseConstructionRunner):
     def resume(self):
         """Resume training procedure of MDAM"""
         cfg = self.cfg.copy()
-        if cfg.test_cfg.checkpoint_load_path is not None:
-            epoch_resume = int(os.path.splitext(os.path.split(cfg.test_cfg.checkpoint_load_path)[-1])[0].split("-")[1])
-            print("Resuming after {}".format(epoch_resume))
-            epoch_start = epoch_resume + 1
+        if cfg.train_opts_cfg.pretrained_model is not None:
+            # epoch_resume = int(os.path.splitext(os.path.split(cfg.test_cfg.checkpoint_load_path)[-1])[0].split("-")[1])
+            # print("Resuming after {}".format(epoch_resume))
+            # epoch_start = epoch_resume + 1
 
             logger.info(f"resuming training...")
-            _ = train_model(
-                model=self.model,
-                val_data_rp=self.ds_val.data,
+            results = train_model(
+                net=self.model,
+                module=self.module,
+                data_rp=self.local_train_set,
+                # data_test=self.ds.data,
                 problem=cfg.problem,
                 device=self.device,
-                resume=True,
-                resume_pth=cfg.test_cfg.checkpoint_load_path,
-                epoch_start=epoch_start,
                 opts=cfg.train_opts_cfg,
+                normalized_data=cfg.normalize_data,
+                normalize_demands=cfg.env_kwargs.generator_args.normalize_demands,
+                pretrained_model=cfg.train_opts_cfg.pretrained_model
             )
             logger.info(f"training finished.")
+            logger.info(f"Last avg validation optimality gap: {results['validation_metrics'][0]['opt_gap_val']}")
 
         else:
             warnings.warn("No path specified to load data for resuming training. Default to normal training?")
@@ -202,12 +211,12 @@ class Runner(BaseConstructionRunner):
                 if self.cfg.test_cfg.beam == 1:
                     acronym = model_name + '_greedy' + '_' + acronym_ls
                 elif self.cfg.test_cfg.beam != 1:
-                    acronym = model_name + '_beam_'+str(int(self.cfg.test_cfg.beam)) + '_' + acronym_ls
+                    acronym = model_name + '_beam_' + str(int(self.cfg.test_cfg.beam)) + '_' + acronym_ls
             else:
                 if self.cfg.test_cfg.beam == 1:
                     acronym = model_name + '_greedy'
                 elif self.cfg.test_cfg.beam != 1:
-                    acronym = model_name + '_beam_'+str(int(self.cfg.test_cfg.beam))
+                    acronym = model_name + '_beam_' + str(int(self.cfg.test_cfg.beam))
         return acronym, acronym_ls
 
     def _update_path(self, cfg):
@@ -226,7 +235,20 @@ class Runner(BaseConstructionRunner):
         #     cfg.tester_cfg.test_env_cfg.data_file_path = os.path.normpath(
         #         os.path.join(cwd, cfg.tester_cfg.test_env_cfg.data_file_path)
         #     )
-
+        if cfg.run_type in ["train", "resume"]:
+            cfg.train_opts_cfg.train_dataset = os.path.normpath(
+                os.path.join(cwd, cfg.train_opts_cfg.train_dataset)
+            )
+            if cfg.run_type == "resume":
+                cfg.train_opts_cfg.pretrained_model = os.path.normpath(
+                    os.path.join(cwd, cfg.train_opts_cfg.pretrained_model)
+            )
+            # cfg.train_opts_cfg.output_dir = os.path.normpath(
+            #     os.path.join(cwd, cfg.train_opts_cfg.output_dir)
+            # )
+            # cfg.checkpoint_save_path = os.path.normpath(
+            #     os.path.join(cwd, cfg.train_opts_cfg.output_dir)
+            # )
         if cfg.test_cfg.saved_res_dir is not None:
             cfg.test_cfg.saved_res_dir = os.path.normpath(
                 os.path.join(cwd, cfg.test_cfg.saved_res_dir)

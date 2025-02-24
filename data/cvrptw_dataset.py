@@ -26,12 +26,12 @@ logger = logging.getLogger(__name__)
 
 EPS = np.finfo(np.float32).eps
 
-Ccvrptw_DEFAULTS = {  # num vehicles and integer capacity per problem size
+CVRPTW_DEFAULTS = {  # num vehicles and integer capacity per problem size
     20: [8, 30],
     50: [16, 40],
     100: [32, 50],
-    200: [48, 50],
-    500: [64, 50],
+    200: [48, 70],
+    500: [64, 70],
 }
 
 
@@ -114,7 +114,7 @@ class CVRPTWDataset(BaseDataset):
             assert self.data is not None, f"No data loaded! Please initiate class with valid data path"
             print('self.dataset_size in else', self.dataset_size)
             if self.dataset_size is not None:
-                if not isinstance(self.data, dict) and self.dataset_size < len(self.data):
+                if not isinstance(self.data, dict) and self.dataset_size <= len(self.data):
                     self.data = self.data[:self.dataset_size]
                 else:
                     self.data["loc"] = self.data["loc"][:self.dataset_size]
@@ -144,6 +144,9 @@ class CVRPTWDataset(BaseDataset):
                 self.data = self._make_CVRPTWInstance()
             if not self.normalize and not self.is_denormed:
                 self.data = self._denormalize()
+            if self.generator_args:
+                if not self.generator_args.normalize_demands:
+                    self.data = self._denormalize(only_demands=True)
             if self.bks is not None:   #  and np.any(np.array([instance.bks for instance in self.data])):
                 self.data = self._instance_bks_updates()
             if self.transform_func is not None:  # transform_func needs to return list
@@ -293,37 +296,58 @@ class CVRPTWDataset(BaseDataset):
             for i, instance in enumerate(self.data)
         ]
 
-    def _denormalize(self):
+    def _denormalize(self, only_demands=False):
         # default is normalized demands and 0-1-normed coordinates for generated data
         # --> denormalize for self.normalize = False and update bks registry in meantime (if given)
         logger.info(f'DE-NORMALIZING data ...')
-        demands = []
-        coords = []
+        coords, demands, twindows = [], [], []
         for i, instance in enumerate(self.data):
             orig_capa = instance.original_capacity if instance.original_capacity is not None \
                 else CVRPTW_DEFAULTS[instance.graph_size - 1][1]
-            demand_denorm = np.round(instance.node_features[:, -1] * orig_capa)
+            # print('instance.node_features[:2] (NORMED)', instance.node_features[:2])
+            # print('instance.node_features[:, -3] (NORMED)', instance.node_features[:, -3])
+            # NOTE: node_features[:, -1] index -1 is time window ends...
+            demand_denorm = np.round(instance.node_features[:, -3] * orig_capa)
             coords_denorm = instance.coords * self.grid_size
+            twindows_denorm = instance.node_features[:, -2:]
             demands.append(demand_denorm)
             coords.append(coords_denorm)
+            twindows.append(twindows_denorm)
         coords = np.stack(coords)
         demands = np.stack(demands)
+        t_windows = np.stack(twindows)
         self.graph_size = coords.shape[1]  # make sure for loaded data that graph_size matches coords shape
         node_features_denormed = self._create_nodes(len(self.data), self.graph_size - 1, n_depots=1,
-                                                    features=[coords, demands])
+                                                    features=[coords, demands, t_windows])
+        # print('node_features_denormed[0][:, -3]', node_features_denormed[0][:, -3])
         self.is_denormed = True
-        return [
-            instance.update(
-                coords=coords[i],
-                node_features=node_features_denormed[i],
-                original_capacity=instance.original_capacity if instance.original_capacity is not None else
-                CVRPTW_DEFAULTS[instance.graph_size - 1][1],
-                original_locations=instance.original_locations if instance.original_locations is not None else None,
-                instance_id=instance.instance_id if instance.instance_id is not None else i,
-                type=instance.type if instance.type is not None else None,
-            )
-            for i, instance in enumerate(self.data)
-        ]
+        if not only_demands:
+            return [
+                instance.update(
+                    coords=coords[i],
+                    demands=node_features_denormed[i][:, -3],
+                    node_features=node_features_denormed[i],
+                    original_capacity=instance.original_capacity if instance.original_capacity is not None else
+                    CVRPTW_DEFAULTS[instance.graph_size - 1][1],
+                    original_locations=instance.original_locations if instance.original_locations is not None else None,
+                    instance_id=instance.instance_id if instance.instance_id is not None else i,
+                    type=instance.type if instance.type is not None else None,
+                )
+                for i, instance in enumerate(self.data)
+            ]
+        else:
+            return [
+                instance.update(
+                    coords=instance.coords,   # (instance.coords * 1000).astype(int)
+                    demands=node_features_denormed[i][:, -3],
+                    node_features=node_features_denormed[i],
+                    original_capacity=instance.original_capacity if instance.original_capacity is not None else
+                    CVRPTW_DEFAULTS[instance.graph_size - 1][1],
+                    instance_id=instance.instance_id if instance.instance_id is not None else i,
+                    type=instance.type if instance.type is not None else None,
+                )
+                for i, instance in enumerate(self.data)
+            ]
 
     def _is_feasible(self, sol: RPSolution) -> bool:
         _, _ = self._eval_metric(sol)
@@ -340,6 +364,8 @@ class CVRPTWDataset(BaseDataset):
         # print('coords[:5]', coords[:5])
         demands = instance.demands  # instance.node_features[:, instance.constraint_idx[0]]
         # print('demands', demands)
+        # print('instance.original_capacity', instance.original_capacity)
+        # print('instance.vehicle_capacity', instance.vehicle_capacity)
         capa = instance.original_capacity if self.is_denormed else instance.vehicle_capacity
         # print('capa', capa)
         # print('instance.original_capacity', instance.original_capacity)

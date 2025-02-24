@@ -81,6 +81,7 @@ class RPGenerator:
         # print('self._rnd', self._rnd)
         self.verbose = verbose
         self.float_prec = float_prec
+        self.store_train_samples = True
         print('self.generator_args', self.generator_args)
         self.sampler = DataSampler(verbose=verbose, random_state=self._rnd, **generator_args)
         try:
@@ -120,8 +121,11 @@ class RPGenerator:
            create subsampled instances - while ensuring feasibility"""
 
         sample_size = sampling_args["sample_size"] if sample_size is None else sample_size
+        base_nodes_size = base_nodes_size if sampling_args["base_nodes_size"] is None \
+            else sampling_args["base_nodes_size"]
         graph_size = sampling_args["graph_size"] if graph_size is None else graph_size
-        cap_original = sampling_args['cap']
+        cap_original = sampling_args['cap'] if problem.lower() != 'tsp' else None
+        max_vehicles = sampling_args['k'] if problem.lower() != 'tsp' else None
         # print('cap_original', cap_original)
 
         if self.single_large_inst is None:
@@ -138,7 +142,6 @@ class RPGenerator:
             logger.info(f"saving single large instance in logs ...")
             if isinstance(self.single_large_inst, tuple):
                 torch.save(self.single_large_inst[0], "single_large_instance.pt")
-                torch.save(self.single_large_inst[1], "subsample_node_ids.pt")
                 self.single_large_inst = self.single_large_inst[0]
             else:
                 torch.save(self.single_large_inst, "single_large_instance.pt")
@@ -152,23 +155,30 @@ class RPGenerator:
         if not for_RL4CO:
             if self.verbose:
                 logger.info(f"subsampling from single large instance ...")
-            sub_sampled_data = self._sub_sample(problem,
-                                                self.single_large_inst[0],
-                                                self.sampler.normalize_demands,
-                                                sample_size,
-                                                graph_size,
-                                                sampling_args['n_depots'],
-                                                distribution)
+            sub_sampled_data, sub_sampled_node_ids = self._sub_sample(problem,
+                                                                      self.single_large_inst[0],
+                                                                      self.sampler.normalize_demands,
+                                                                      sample_size,
+                                                                      graph_size,
+                                                                      sampling_args['n_depots'],
+                                                                      cap_original,
+                                                                      max_vehicles=max_vehicles,
+                                                                      distribution=distribution)
             if self.store_subsampled_data:
-                if self.verbose:
-                    logger.info(f"saving sub-sampled instances in logs ...")
                 if self.generator_args.coords_sampling_dist == "uchoa":
                     file_name = (f"{problem}{graph_size}_{self.sampler.depot_type}_{self.sampler.customer_type}"
                                  f"_{self.sampler.customer_type}{self._seed}_size{sample_size}.pt")
                 else:
                     file_name = (f"{problem}{graph_size}_{self._seed}_{self.generator_args.coords_sampling_dist}"
                                  f"_size{sample_size}.pt")
-                torch.save(sub_sampled_data, file_name)
+                if self.store_train_samples:
+                    if self.verbose:
+                        logger.info(f"saving sub-sampled instances in logs only once...")
+                    torch.save(sub_sampled_data, file_name)
+                    torch.save(sub_sampled_node_ids, "subsample_node_ids.pt")
+                    self.store_train_samples = False
+                else:
+                    pass
             return sub_sampled_data
         else:
             return self._out_RL4CO(problem, self._sub_sample(problem,
@@ -177,7 +187,7 @@ class RPGenerator:
                                                              sampling_args["sample_size"],
                                                              graph_size,
                                                              sampling_args['n_depots'],
-                                                             distribution))
+                                                             distribution)[0])
 
     def generate(self,
                  problem: str,
@@ -420,7 +430,7 @@ class RPGenerator:
                 type=type_name
             )
             for i in range(sample_size)
-        ]
+        ], self.sampler.normalize_demands
 
     def generate_gm_unif(self,
                          distribution,
@@ -743,6 +753,8 @@ class RPGenerator:
                     sample_size: int = 64,
                     graph_size: int = 20,
                     n_depots: int = 1,
+                    cap_original: int = None,
+                    max_vehicles: int = None,
                     distribution: str = "uniform",
                     fixed_depot: bool = True,
                     # depot_node_idx: int = None,
@@ -758,11 +770,14 @@ class RPGenerator:
         # print('single_large_instance.graph_size', single_large_instance.graph_size)
         # print('graph_size', graph_size)
         # print('sample_size', sample_size)
+        # print('max_vehicles', max_vehicles)
+        # print('max_n_vehicles', max_n_vehicles)
+        # print('capacity', capacity)
         # setting depot node to have 0 demands ---> TODO: keep fixed depot throughout subsampled instances?
         if not fixed_depot:
             graph_size = graph_size + 1 if problem.lower() in ["cvrp", "cvrptw"] else graph_size
-        # else:
-        #     single_large_instance = single_large_instance
+        else:
+            graph_size = graph_size - 1 if problem.lower() == "tsp" else graph_size
         sample_nodes_id_all, selected_coords_all, selected_node_features_all = [], [], []
         for i_ in range(sample_size):
             # for j_ in range(graph_size):
@@ -786,17 +801,20 @@ class RPGenerator:
                                                          selected_node_features), axis=0)
                 # print('selected_coords.shape', selected_coords.shape)
                 # print('selected_node_features.shape', selected_node_features.shape)
-            subsample_capa = single_large_instance.vehicle_capacity if normalize_demands \
-                else single_large_instance.original_capacity
-            if np.sum(selected_node_features[:, -1]) > (single_large_instance.max_num_vehicles * subsample_capa):
-                warn(f"generated instance is infeasible just by demands vs. "
-                     f"total available vehicle capacity of "
-                     f"specified number of vehicles: {(single_large_instance.max_num_vehicles * subsample_capa)} "
-                     f"> {np.sum(selected_node_features[:, -1])}.")
+            if problem.lower() != "tsp":
+                subsample_capa = single_large_instance.vehicle_capacity if normalize_demands \
+                    else single_large_instance.original_capacity
+                if np.sum(selected_node_features[:, -1]) > (single_large_instance.max_num_vehicles * subsample_capa):
+                    warn(f"generated instance is infeasible just by demands vs. "
+                         f"total available vehicle capacity of "
+                         f"specified number of vehicles: {(single_large_instance.max_num_vehicles * subsample_capa)} "
+                         f"> {np.sum(selected_node_features[:, -1])}.")
             sample_nodes_id_all.append(selected_nodes_id)
             selected_coords_all.append(selected_coords)
             selected_node_features_all.append(selected_node_features)
         if problem.lower() == "cvrp":
+            capacity = cap_original if cap_original is not None else single_large_instance.original_capacity
+            max_n_vehicles = max_vehicles if max_vehicles is not None else single_large_instance.max_num_vehicles
             return [
                 CVRPInstance(
                     coords=selected_coords_all[i],
@@ -807,14 +825,14 @@ class RPGenerator:
                     coords_dist=single_large_instance.coords_dist,
                     depot_type=single_large_instance.depot_type,
                     demands_dist=single_large_instance.demands_dist,
-                    original_capacity=single_large_instance.original_capacity,
+                    original_capacity=capacity,
                     original_locations=single_large_instance.original_locations,
-                    max_num_vehicles=single_large_instance.max_num_vehicles,
+                    max_num_vehicles=max_n_vehicles,
                     instance_id=i,
                     type="subsampled_" + distribution
                 )
                 for i in range(sample_size)
-            ]
+            ], sample_nodes_id_all
         if problem.lower() == "tsp":
             return [
                 TSPInstance(
@@ -828,9 +846,11 @@ class RPGenerator:
                     type="subsampled_" + distribution
                 )
                 for i in range(sample_size)
-            ]
+            ], sample_nodes_id_all
         if problem.lower() == "cvrptw":
-            NotImplementedError
+            capacity = cap_original if cap_original is not None else single_large_instance.original_capacity
+            max_n_vehicles = max_vehicles if max_vehicles is not None else single_large_instance.max_num_vehicles
+            raise NotImplementedError
             # return [
             #         VRPTWInstance(
             #            coords=selected_coords_all[i],

@@ -147,7 +147,8 @@ def eval_inference(run, nr_runs, sols_, ds_class, log_path, acronym, test_cfg, d
         test_data_path = test_cfg.data_file_path
     except omegaconf.errors.ConfigAttributeError:
         test_data_path = ds_class.store_path
-    update_bks(results, new_BKS_for, test_data_path, ds_class, acronym) if new_BKS_for else None
+    if new_BKS_for:
+        update_bks(results, new_BKS_for, test_data_path, ds_class, acronym)   # else None
     updates = None  # update_ranking()
 
     stats = get_stats(sols=results, logger_=logger, model_name=acronym,
@@ -229,14 +230,16 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
         if "seed" in os.path.basename(ds_path):
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path).split('_seed')[0] + ".pkl")
-            print("BKS_path in 2nd try", BKS_path)
+            print("BKS_path in if", BKS_path)
         elif "size" in os.path.basename(ds_path):
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path)[:3] + ".pkl")
+            print("BKS_path in elif", BKS_path)
         else:
             BKS_path = os.path.join(os.path.dirname(ds_path), "BKS_" +
                                     os.path.basename(ds_path).split('.')[0] + ".pkl")
-            print("BKS_path in 2nd except", BKS_path)
+            print("BKS_path in else (no 'seed' or 'size' in data_load_path)", BKS_path)
+    logger.info(f"Storing new BKS in: {BKS_path}")
     bks_registry = torch.load(BKS_path)
 
     # update BKS for this test set if there are new best costs
@@ -264,6 +267,47 @@ def update_bks(sols, new_bks_list, ds_path, ds_class, acronym):
 
     # save back the update registry of BKS
     torch.save(bks_registry, BKS_path)
+
+
+def update_bks_post_inference(sols: List[RPSolution], BKS_path: str, acronym:str, dataset_len=None, save_bks=False):
+    new_bks_list = []
+    dataset_len = len(sols) if dataset_len is None else dataset_len
+    # load bks
+    bks_registry = torch.load(BKS_path)
+    for id_ in range(dataset_len):
+        id_str = str(id_)
+        solution_tuple = [sol for sol in sols if sol.instance.instance_id == id_
+                          or str(sol.instance.instance_id) == id_][0]  # for unsorted IDS
+        # # or sol.instance.instance_id == int(id_)
+        print('id_str', id_str)
+        print('solution_tuple.instance.instance_id', sols[id_].instance.instance_id)
+        print('solution_tuple.cost', sols[id_].cost)
+        print('bks_registry[id_str][0]', bks_registry[id_str][0])
+        print('solution_tuple.cost < bks_registry[id_str][0]', solution_tuple.cost < bks_registry[id_str][0])
+        print('solution_tuple.instance.instance_id == id_str', solution_tuple.instance.instance_id == id_str)
+        if solution_tuple.cost < bks_registry[id_str][0] and solution_tuple.instance.instance_id == id_:
+            new_bks_list.append(id_str)
+            if len(bks_registry[id_str]) < 4:
+                bks_registry[id_str] = (solution_tuple.cost, solution_tuple.solution, acronym)
+            else:
+                if bks_registry[id_str][3] == 'opt':
+                    if math.ceil(solution_tuple.cost) < bks_registry[id_][0]:
+                        logger.info(f"Incurred Cost that is lower than a proven optimal cost for instance {id_}! " 
+                                    f"Not updating BKS for this Instance. " 
+                                    f"Please double check calculation of cost.")
+                    if math.ceil(solution_tuple.cost) == bks_registry[id_str][0] or solution_tuple.cost == \
+                            bks_registry[id_][0]:
+                        logger.info(f"Incurred the same cost than a proven optimal cost for instance {id_}! " 
+                                    f"Not updating BKS for this Instance. ")
+                else:
+                    bks_registry[id_str] = (solution_tuple.cost, solution_tuple.solution, acronym, 'not_opt')
+                    # logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
+    print(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
+    logger.info(f"Storing new BKS for instances {new_bks_list} in {BKS_path}")
+    if save_bks:
+        # save back the update registry of BKS
+        torch.save(bks_registry, BKS_path)
+    return bks_registry
 
 
 # def get_combined_base_ref(cpu_base_single, cpu_base_multi, gpu_mark_2D, gpu_mark_3D):

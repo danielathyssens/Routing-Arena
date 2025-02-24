@@ -96,7 +96,6 @@ class CVRPDataset(BaseDataset):
         if store_path is not None:
             # load or download (test) data
             self.data, self.data_key = self.load_dataset()
-            print('self.data[0]', self.data[0])
             assert self.data is not None, f"No data loaded! Please initiate class with valid data path"
             if self.dataset_size is not None and self.dataset_size < len(self.data):
                 self.data = self.data[:self.dataset_size]
@@ -363,8 +362,9 @@ class CVRPDataset(BaseDataset):
                     # print('transit', transit)
                     if cum_d > capacity + EPS:
                         if is_running:
-                            warnings.warn(f"One of the solutions in the trajectory for instance {instance.instance_id} "
-                                          f"is infeasible: {cum_d}>{capacity + EPS}. Setting cost and k to 'inf'.")
+                            # warnings.warn(f"One of the solutions in the trajectory for instance {instance.instance_id} "
+                            #               f"is infeasible: {cum_d}>{capacity + EPS}. Setting cost and k to 'inf'.")
+                            pass
 
                         else:
                             warnings.warn(f"cumulative demand {cum_d} surpasses (normalized) capacity "
@@ -383,12 +383,13 @@ class CVRPDataset(BaseDataset):
             visited_nodes.sort()
             # print('visited_nodes (sorted)', visited_nodes)
             if visited_nodes != list(np.arange(len(demands))):
-                warnings.warn(f"Not all nodes covered:  "
-                              f"\n list of node IDs={list(np.arange(len(demands)))} - "
-                              f"\n visit_nodes.sort={visited_nodes} for instance with ID {instance.instance_id}."
-                              f"\n Missing nodes are: {list(set(list(np.arange(len(demands)))) - set(visited_nodes))}")
-                warnings.warn(f"Final CVRP solution {solution} is infeasible for instance "
-                              f"with ID {instance.instance_id}. Setting cost and k to 'inf'.")
+                if not is_running:
+                    warnings.warn(f"Not all nodes covered:  "
+                                  f"\n list of node IDs={list(np.arange(len(demands)))} - "
+                                  f"\n visit_nodes.sort={visited_nodes} for instance with ID {instance.instance_id}."
+                                  f"\n Missing nodes are: {list(set(list(np.arange(len(demands)))) - set(visited_nodes))}")
+                    warnings.warn(f"Final CVRP solution {solution} is infeasible for instance "
+                                  f"with ID {instance.instance_id}. Setting cost and k to 'inf'.")
                 cost = float("inf")
                 k = float("inf")
                 routes_ = None

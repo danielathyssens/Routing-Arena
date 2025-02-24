@@ -1,0 +1,44 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: 'uniform_fu'
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/tsp/uniform/fu/tsp${graph_size}_fu.pt
+normalize_data: True
+checkpoint_load_path: models/SGBS/SGBS/tsp/1_pre_trained_model/Saved_TSP100_Model/uniform/checkpoint-2800.pt
+# /20220226_114432_train__tsp_n100__3000epoch/checkpoint-2800.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+  sampling_args:
+    graph_size: ${graph_size}
+    num_samples: ${val_size}
+    distribution: ${coords_dist}
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}
+
+# model-specific test_cfg
+tester_cfg:
+  cuda_device_num: 0
+  test_episodes: 1 # 5 # 1 # 512  # 10000  # as long as dataset
+  test_batch_size: 1 # 625
+  augmentation_enable: False
+  mode: sgbs  # sgbs, greedy, sampling obs, mcts
+  # num_starting_points: 4
+  # sampling_num: 1200
+  # obs_bw: 1200
+  # mcts_rollout_per_step: 12
+  sgbs_beta: 10  # 4  #1   # need 1 here for SGBS single trajectory aka greedy rollout
+  sgbs_gamma_minus1: 9  # 3
+  pomo_size: ${graph_size} # or 1 (single trajectory) SGBS_EAS only works with pomo_size=graph_size
+  # index_begin: 0

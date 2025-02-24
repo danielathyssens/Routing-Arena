@@ -18,12 +18,14 @@ env_kwargs:
     weights_sampling_dist: random_int # sampling integers from 1-10
     normalize_demands: False  # if None or False - demands will remain un-normalized (not between 0-1)
     single_large_instance: # data/train_data/${problem}_10000/${coords_dist}/single_large_instance.pt
+    radius: 0.35
+    beta_exp: 8  # scale value for exponential distribution used in explosion mutation
   sampling_args:
     sample_size: 64
     graph_size: ${graph_size}
     subsample: False
-    k: 16
-    cap: 50
+    k: 20
+    cap: 70
     max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
     n_depots: 1 #number of depots (default = 1)
 

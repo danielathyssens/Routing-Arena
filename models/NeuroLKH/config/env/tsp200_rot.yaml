@@ -1,0 +1,18 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 200
+coords_dist: "rotation"
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/${problem}/${coords_dist}/${problem}${graph_size}/val_R_size2000.pkl
+normalize_data: True
+checkpoint_load_path: models/NeuroLKH/NeuroLKH/pretrained/neurolkh.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    pm: 0.4
+  sampling_args:
+    # sample_size: 1
+    graph_size: ${graph_size}

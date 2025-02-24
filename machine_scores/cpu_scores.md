@@ -14,8 +14,9 @@
 | 11 | Intel(R) Xeon(R) CPU E5645 @ 2.40GHz            |     9148 |                   1174 |          12 |            24 | node-100 - node-103 (Prt. CPU1)            |
 | 12 | Intel(R) Xeon(R) CPU           E5645  @ 2.40GHz |     9148 |                   1174 |          12 |            24 | node-100 - node-103 (Prt. CPU1)            |
 | 13 | Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz       |    20036 |                   1612 |          20 |            40 | node-200 - node-219 (Prt. CPU2)            |
-| 14 | 11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz  |    20610 |                   3131 |           8 |            16 | tim laptop                                 |
-| 15 | Apple M2                                        |    15383 |                   3932 |           8 |             8 | Home-2                                     |
-| 16 | Apple M1                                        |    15383 |                   3932 |           8 |             8 | Wilson's machine                           |
-| 17 | AMD EPYC 9334 32-Core Processor                 |    64841 |                   2367 |          32 |            64 | node gpu-200                               |
-| 18 | 13th Gen Intel(R) Core(TM) i9-13900HX           |    44659 |                   4149 |          24 |            32 | soeren laptop                              |
+| 14 | Intel(R) Xeon(R) Gold 6230 CPU @ 2.10GHz        |    27210 |                   2262 |          40 |            80 | node-100 (Prt. STUD)      
+| 15 | 11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz  |    20610 |                   3131 |           8 |            16 | tim laptop                                 |
+| 16 | Apple M2                                        |    15383 |                   3932 |           8 |             8 | Home-2                                     |
+| 17 | Apple M1                                        |    15383 |                   3932 |           8 |             8 | Wilson's machine                           |
+| 18 | AMD EPYC 9334 32-Core Processor                 |    64841 |                   2367 |          32 |            64 | node gpu-200                               |
+| 19 | 13th Gen Intel(R) Core(TM) i9-13900HX           |    44659 |                   4149 |          24 |            32 | soeren laptop                              |

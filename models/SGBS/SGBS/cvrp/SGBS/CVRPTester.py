@@ -578,6 +578,8 @@ class CVRPTester:
         # POMO Starting Points
         ###############################################
         starting_points = self._get_pomo_starting_points(self.model, self.env, beam_width)
+        # print('starting_points.size()', starting_points.size())
+        # print('starting_points', starting_points)
 
         # Beam Search
         ###############################################
@@ -680,12 +682,13 @@ class CVRPTester:
 
         # Return
         ###############################################
-        all_routes = torch.cat(selected_all, dim=-1)
+        all_routes = torch.cat(selected_all, dim=-1)  # added
         aug_reward = reward.reshape(self.aug_factor, batch_size, self.env.pomo_size)
         # shape: (augmentation, batch, pomo)
 
-        max_pomo_reward, indices_pomo = aug_reward.max(dim=2)   # get best results from simulation guided beam search
-        best_sol_pomo = all_routes[:, indices_pomo[0], :]
+        # changed:
+        max_pomo_reward, indices_sgbs = aug_reward.max(dim=2)   # get best results from simulation guided beam search
+        best_sol_pomo = all_routes[:, indices_sgbs[0], :]   # added
         # shape: (augmentation, batch)
 
         max_aug_pomo_reward, index_augm = max_pomo_reward.max(dim=0)  # get best results from augmentation

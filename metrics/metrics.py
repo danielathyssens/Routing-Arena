@@ -6,6 +6,7 @@ import torch
 import matplotlib.pyplot as plt
 
 from .utils import allign_times_costs
+from models.runner_utils import get_cpu_specs, get_machine_info, get_overall_PassMark_v1, get_seperate_PassMarks
 
 logger = logging.getLogger(__name__)
 ### CPU
@@ -49,6 +50,7 @@ class Metrics:
                  passMark: int,
                  TimeLimit_: Union[int, float],
                  passMark_cpu: int = None,
+                 base_sol_pass_mark: int = None,
                  base_sol_results: dict = None,
                  scale_costs: int = None,
                  cpu: bool = True,
@@ -98,7 +100,7 @@ class Metrics:
                 assert cpu is False and is_cpu_search is False
                 self.base_ref = GPU_BASE_REF
         # self.base_ref_base = CPU_BASE_REF_BASE_SOL
-        self.base_pass_mark = CPU_PASSMARK_BASE_SOL
+        self.base_pass_mark = base_sol_pass_mark if base_sol_pass_mark is not None else CPU_PASSMARK_BASE_SOL
         self.base_ref_base = CPU_BASE_REF_SINGLE
         logger.info(f'Base Reference for this machine in metrics initialisation set to {self.base_ref}')
         if self.base_ref_construct is not None:
@@ -113,9 +115,23 @@ class Metrics:
             # print('min(c_t, c_t_base) - c_opt / c_t_base - c_opt ', (min(c_t, c_t_base) - c_opt) / (c_t_base - c_opt))
             # print('c_t - c_opt / c_t_base - c_opt', (c_t - c_opt) / (c_t_base - c_opt))
             try:
-                return (min(c_t, c_t_base) - c_opt) / (c_t_base - c_opt)
+                # print('c_t_base', c_t_base)
+                # print('c_opt', c_opt)
+                # print('min(c_t, c_t_base)', min(c_t, c_t_base))
+                # print('c_t_base - c_opt', c_t_base - c_opt)
+                # print('c_t - c_opt / c_t_base - c_opt', (c_t - c_opt) / (c_t_base - c_opt))
+                if c_t == c_opt:
+                    c_t += 0.000001
+                if c_t_base != c_opt:
+                    return (min(c_t, c_t_base) - c_opt) / (c_t_base - c_opt)
+                else:
+                    return 1.0
             except ZeroDivisionError:
                 warnings.warn(f"Zero Division in RPI Calculation, Base Solution = BKS for this Instance.")
+                return 1.0
+            except RuntimeWarning:
+                # print('(c_t - c_opt)', (c_t - c_opt))
+                # print('(c_t_base - c_opt)', (c_t_base - c_opt))
                 return 1.0
             # return (c_t - c_opt) / (c_t_base - c_opt)
         else:  # else if c_t is not yet obtained, while c_t_base exists for t return worst RPI score 1
@@ -135,6 +151,14 @@ class Metrics:
 
         # get base sol runtimes and costs
         base_costs_, base_runtimes_ = self.base_sol_results[instance_id][0], self.base_sol_results[instance_id][1]
+        if "machine" in self.base_sol_results.keys():
+            base_sol_machine = self.base_sol_results["machine"]
+            self.base_pass_mark, _ = set_passMark_on_the_fly("cpu",base_sol_machine ,1)
+        # print('self.base_pass_mark', self.base_pass_mark)
+        # print('base_runtimes_', base_runtimes_)
+        # print('runtimes_     ', runtimes_)
+        # print('base_costs_', base_costs_)
+        # print('costs_     ', costs_)
         c_opt = self.bks[instance_id][0]
         if self.verbose:
             logger.info(f"First 5 Base-runtimes {base_runtimes_[:5]}")
@@ -162,6 +186,7 @@ class Metrics:
         base_runtimes_normed = [base_runtime_ * (self.base_pass_mark / self.base_ref_base) for base_runtime_ in
                                 base_runtimes_]
         base_runtimes_round = [int((t_i * 1000) + .5) / 1000.0 for t_i in base_runtimes_normed]
+        # print('base_runtimes_round', base_runtimes_round)
         if self.base_ref_construct is not None:
             # first GPU constructed value normalized separately
             runtimes_normed_first = [runtimes_[0] * (self.pass_mark / self.base_ref_construct)]
@@ -171,6 +196,7 @@ class Metrics:
         else:
             runtimes_normed = [runtime * (self.pass_mark / self.base_ref) for runtime in runtimes_]
         runtimes_round = [int((t_i * 1000) + .5) / 1000.0 for t_i in runtimes_normed]
+        # print('runtimes_round', runtimes_round)
         # t_i = runtime * (self.pass_mark / self.base_ref)
         # t_i = int((t_i * 1000) + .5) / 1000.0
         if self.verbose:
@@ -220,7 +246,9 @@ class Metrics:
             # - if improvement in one cost but not in the other cost for not improving method stays at c_t-1
             c_base_adj, c_adj, t_merge_adj = allign_times_costs(t_merge_unique, runtimes, base_runtimes, costs,
                                                                 base_costs)
-
+            # print('c_base_adj, ', c_base_adj)
+            # print('c_adj', c_adj)
+            # print('t_merge_adj', t_merge_adj)
             if self.verbose:
                 logger.info(f'Adjusted Model-Costs list acc. to merged times (first 5): {c_adj[:5]}')
             wrap = 0
@@ -348,7 +376,7 @@ class Metrics:
             primalIntegral -= 1
             final_primalIntegral = primalIntegral * 100
             if final_primalIntegral < 0:
-                warnings.warn(f'Negative PI found for this instance - BUG! or New Best Known Solution Found,'
+                warnings.warn(f'Negative PI found for this instance {instance_id} - BUG! or New Best Known Solution Found,'
                               f' cost_last={cost_last} and bks={bks}')
         else:
             final_primalIntegral = 10
@@ -367,3 +395,56 @@ class Metrics:
             logger.info(f"Final PrimalIntegral: {final_primalIntegral}")
 
         return final_primalIntegral
+
+def set_passMark_on_the_fly(device, machine_dict, number_threads=1, passmark_version="sep"):
+    global NUMBER_THREADS_USED
+    NUMBER_THREADS_USED = number_threads
+    # get cpu info  -> from input
+    # cpu_name, threads_per_cpu, total_cpus = get_cpu_specs()
+    # cpu_mark, cpu_s_mark, n_cores, n_threads
+    # print('machine_dict', machine_dict)
+    # print('cpu_machine_name ', machine_dict["CPU"].split(':')[0])
+    cpu_machine_name = machine_dict["CPU"].split(':')[0]
+    CPUMark, CPUMark_single, cpu_cores, total_threads = get_machine_info(which_type="cpu",
+                                                                         machine_name=cpu_machine_name)
+    # print(f'CPUMark {CPUMark}, CPUMark_single, {CPUMark_single}, '
+    #       f'cpu_cores {cpu_cores}, total_threads {total_threads}')
+    # CPUMark = CPU_MACHINES[cpu_name][0]
+    # CPUMark_single = CPU_MACHINES[cpu_name][1]
+    # cpu_cores = CPU_MACHINES[cpu_name][2]
+    # total_threads = CPU_MACHINES[cpu_name][3]
+    # assert cpu_cores == total_cpus, f"total amount of cores does not match. Different machine?"
+    # if total_threads != threads_per_cpu * cpu_cores:
+    #     warnings.warn(f"Number of Threads does not match. Different machine?")
+    # if not device == torch.device("cpu"):
+    #     try:
+    #         print('torch.cuda.device_count()', torch.cuda.device_count())
+    #         gpu_device_count = torch.cuda.device_count()
+    #         gpu_device_name = torch.cuda.get_device_name()
+    #         logger.info(f"GPU Device Name: {gpu_device_name}")
+    #     except AssertionError:
+    #         gpu_device_count = 1
+    #         gpu_device_name = 'Apple M2 10-Core GPU'
+    #     # if gpu_device_name not in GPU_MACHINES.keys():
+    #     #     warnings.warn(f"Getting G3DMark and G2DMark from config.")
+    #     #     G3DMark = cfg.G3DMark
+    #     #     G2DMark = cfg.G2DMark
+    #     # else:
+    #     # G3DMark = GPU_MACHINES[gpu_device_name][0]
+    #     # G2DMark = GPU_MACHINES[gpu_device_name][1]
+    #     G3DMark, G2DMark = get_machine_info(which_type="gpu",
+    #                                         machine_name=gpu_device_name)
+    # else:
+    G3DMark, G2DMark = None, None
+    gpu_device_count = 0
+    if passmark_version == "v1":
+        passMark = get_overall_PassMark_v1(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
+                                           total_threads, cpu_cores, gpu_device_count)
+        cpu_perf = passMark
+    else:
+        passMark, cpu_perf = get_seperate_PassMarks(CPUMark, CPUMark_single, G3DMark, G2DMark, number_threads,
+                                                    total_threads, cpu_cores, gpu_device_count)
+        if passMark is None:
+            passMark = cpu_perf
+
+    return passMark, cpu_perf

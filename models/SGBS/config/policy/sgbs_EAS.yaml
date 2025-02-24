@@ -18,8 +18,8 @@ run_args:
   cuda_device_num: ${tester_cfg.cuda_device_num}
   num_episodes: ${tester_cfg.test_episodes}
   index_begin: 0
-  solution_max_length: 200  # for buffer length storing solution --> args.problem_size*2
-  num_eas_sgbs_loop: 28 # 14 #28
+  solution_max_length: 100  # for buffer length storing solution --> args.problem_size*2
+  num_eas_sgbs_loop:  28 # 14 #28 #6
   # EAS Params
   lr: 0.0041
   lambda: 0.01

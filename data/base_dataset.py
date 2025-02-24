@@ -71,6 +71,7 @@ class BaseDataset(Dataset):
         self.scale_factor = scale_factor
         self.grid_size = grid_size
         self.is_denormed = is_denormed
+        self.store_sampled_data = True
         # self.passmark = pass_mark
         # self.passmark_cpu = pass_mark_cpu
         # self.single_thread = single_thread
@@ -86,6 +87,7 @@ class BaseDataset(Dataset):
                 seed = 1234
                 logger.info(f"Set default seed for RPGenerator with {seed}")
             self.gen = RPGenerator(seed, self.verbose, float_prec, self.generator_args)
+        self.seed = seed
         self.size = None
         self.data = None
         self.data_transformed = None
@@ -114,10 +116,14 @@ class BaseDataset(Dataset):
             distribution = self.distribution if self.distribution is not None else None
         if graph_size is None:
             graph_size = self.graph_size if self.graph_size is not None else None
-        if log_info:
-            logger.info(f"Sampling {sample_size} {distribution}-distributed problems with graph size {graph_size}")
         # print('sub_samples', sub_samples)
         sub_samples = self.sampling_args.subsample
+        if log_info:
+            if not sub_samples:
+                logger.info(f"Sampling {sample_size} {distribution}-distributed problems with graph size {graph_size}")
+            else:
+                logger.info(f"Sampling {sample_size} {distribution}-distributed subsampled "
+                            f"problems with graph size {graph_size}")
         # print('sub_samples', sub_samples)
         if not sub_samples:
             self.data, demands_normalized = self.gen.generate(problem=self.problem,
@@ -129,6 +135,14 @@ class BaseDataset(Dataset):
                                                               sampling_args=self.sampling_args)
             if demands_normalized is not None:
                 self.is_denormed = not demands_normalized
+
+            if self.store_sampled_data:
+                # if self.verbose:
+                logger.info(f"saving sampled instances in logs ...")
+                file_name = (f"{self.problem}{graph_size}_{self.seed}_{self.generator_args.coords_sampling_dist}"
+                                 f"_size{sample_size}.pt")
+                torch.save(self.data, file_name)
+
         else:
             self.data = self.gen.generate_subsamples(problem=self.problem,
                                                      sample_size=sample_size,
@@ -542,7 +556,7 @@ class BaseDataset(Dataset):
         # check if dataset has a BKS/BaseSol store file
         if self.store_path is not None:
             _path = None
-            # print('os.path.basename(self.store_path)', os.path.basename(self.store_path))
+            print('os.path.basename(self.store_path)', os.path.basename(self.store_path))
             if os.path.basename(self.store_path) in TEST_SETS_BKS \
                     or os.path.basename(self.store_path)[:2] in TEST_SETS_BKS \
                     or self.store_path.split("/")[-2] in TEST_SETS_BKS:

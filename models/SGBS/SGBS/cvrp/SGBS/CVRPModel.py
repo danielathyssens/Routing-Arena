@@ -262,11 +262,14 @@ class CVRP_Decoder(nn.Module):
 
         q_last = reshape_by_heads(self.Wq_last(input_cat), head_num=head_num)
         # shape: (batch, head_num, pomo, qkv_dim)
+        print('q_last', q_last.size())
+        # print('self.q1.size()', self.q1.size())
 
         # q = self.q1 + self.q2 + q_last
         # # shape: (batch, head_num, pomo, qkv_dim)
         q = q_last
         # shape: (batch, head_num, pomo, qkv_dim)
+        print('q.size()', q.size())
 
         out_concat = multi_head_attention(q, self.k, self.v, rank3_ninf_mask=ninf_mask)
         # shape: (batch, pomo, head_num*qkv_dim)

@@ -215,6 +215,8 @@ class TSP_Decoder(nn.Module):
     def set_q1(self, encoded_q1):
         # encoded_q.shape: (batch, n, embedding)  # n can be 1 or pomo
         head_num = self.model_params['head_num']
+        # print('head_num', head_num)
+        # print('self.model_params[head_num]', self.model_params['head_num'])
 
         self.q_first = reshape_by_heads(self.Wq_first(encoded_q1), head_num=head_num)
         # shape: (batch, head_num, n, qkv_dim)
@@ -229,8 +231,13 @@ class TSP_Decoder(nn.Module):
         #######################################################
         q_last = reshape_by_heads(self.Wq_last(encoded_last_node), head_num=head_num)
         # shape: (batch, head_num, pomo, qkv_dim)
-
-        q = self.q_first + q_last
+        # print('head_num', head_num)
+        # print('self.q_first.size()', self.q_first.size())
+        # print('q_last', q_last.size())
+        # q = self.q_first + q_last
+        # shape: (batch, head_num, pomo, qkv_dim)
+        # added/changed:
+        q = q_last
         # shape: (batch, head_num, pomo, qkv_dim)
 
         out_concat = multi_head_attention(q, self.k, self.v, rank3_ninf_mask=ninf_mask)

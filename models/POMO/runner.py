@@ -182,6 +182,8 @@ class Runner(BaseConstructionRunner):
             self.setup(compatible_problems=DATA_CLASS)
             self.train()
         elif self.cfg.run_type == 'resume':
+            # print('DATA_CLASS', DATA_CLASS)
+            self.setup(compatible_problems=DATA_CLASS)
             self.resume()
         elif self.cfg.run_type in ['val', 'test']:
             self.test()
@@ -256,14 +258,15 @@ class Runner(BaseConstructionRunner):
 
     def resume(self, **kwargs):
         """Resume training from checkpoint."""
-        self.setup()
-        epoch_resume = int(os.path.splitext(os.path.split(self.cfg.checkpoint_load_path)[-1])[0].split("-")[1])
+        # self.setup()
+        # epoch_resume = int(os.path.splitext(os.path.split(self.cfg.checkpoint_load_path)[-1])[0].split("-")[1])
+        epoch_resume = int(self.cfg.train_cfg.model_load.epoch)
         logger.info(f"Resume Training after {epoch_resume} epochs...")
 
         # remove the unnecessary new directory hydra creates
         new_hydra_dir = os.getcwd()
-        if "resume" in new_hydra_dir:
-            remove_dir_tree("resume", pth=new_hydra_dir)
+        # if "resume" in new_hydra_dir:
+        #     remove_dir_tree("resume", pth=new_hydra_dir)
 
         self.train(**kwargs)
 
@@ -476,7 +479,7 @@ class Runner(BaseConstructionRunner):
                     os.path.join(cwd, cfg.policy_cfg.exe_path)
                 )
 
-        if cfg.run_type == "train":
+        if cfg.run_type in ["train", "resume"]:
             if cfg.train_cfg.model_load.path is not None:
                 cfg.train_cfg.model_load.path = os.path.normpath(
                     os.path.join(cwd, cfg.train_cfg.model_load.path)

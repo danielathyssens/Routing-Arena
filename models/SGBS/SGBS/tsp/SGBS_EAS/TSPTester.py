@@ -142,7 +142,7 @@ class TSPTester:
 
         num_loop = self.run_params['num_eas_sgbs_loop']
         # added:
-        running_sols_all, running_times_all = [], []
+        running_sols_all, running_times_all, loop_counts_time = [], [], []
         run_costs_list = [float('inf')]
         final_score = float('inf')
         for loop_cnt in range(num_loop):
@@ -202,19 +202,20 @@ class TSPTester:
             # Save Result
             # with open('{}/result.pkl'.format(self.result_folder), 'wb') as f:
             #     pickle.dump(self.result_log, f)
+            loop_counts_time.append((loop_cnt, sgbs_stop_hr * 3600.0))
 
         best_sol = [running_sols_all[-1]]
-        print('best_sol', best_sol)
+        # print('best_sol', best_sol)
         # [running_sols[-1] for running_sols in running_sols_all]
         best_rt = [running_times_all[-1]]
         best_cost = [run_costs_list[-1]]
-        print('best_cost', best_cost)
+        # print('best_cost', best_cost)
         # Done
         self.logger.info("[{}] *** Done *** ".format(self.device))
         util_print_log_array(self.logger, self.result_log)
         self.logger.info("[{}] Final Score: {}".format(self.device, final_score))
         assert len(run_costs_list[1:]) == len(running_sols_all) == len(running_times_all)
-        return best_sol, best_rt, best_cost, running_sols_all, running_times_all, run_costs_list[1:]
+        return best_sol, best_rt, best_cost, running_sols_all, running_times_all, run_costs_list[1:], loop_counts_time
 
 
         # Done

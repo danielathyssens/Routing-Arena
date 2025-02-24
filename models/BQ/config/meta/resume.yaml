@@ -1,0 +1,66 @@
+# @package _global_
+
+# tensorboard --host localhost --port 8080 --logdir=./outputs
+
+run_type: "resume"
+debug_lvl: 0  # 0 disables debugging and verbosity completely, >1 activates additional debugging functionality
+global_seed: 1234
+cuda: True
+CPU_passMark:
+GPU_passMark:
+
+# global paths and logging
+log_lvl: INFO
+tb_logging: False
+tb_log_path: 'logs/tb/'
+log_path: 'logs/'
+checkpoint_save_path: 'checkpoints/'
+checkpoint_load_path:
+  # None    # Path to load model parameters and optimizer state from#
+
+test_cfg:
+  data_file_path:          # data/test_data/cvrp/uniform/cvrp20_test_seed1234.pkl
+  checkpoint_load_path:
+  saved_res_dir: None
+  eval_type: simple
+  dataset_size: 5
+  dataset_range:
+  time_limit:
+
+val_dataset:             # Dataset file to use for validation
+load_local_train_dataset: True
+generator_args: {}
+
+
+train_opts_cfg:
+  run_name: Train_run_${graph_size}   # Name to identify the run
+  device: cuda
+  graph_size: ${graph_size}           # The size of the problem graph
+  debug: ${debug_lvl}
+  seed: ${global_seed}
+  train_batch_size: 512               # Number of instances per batch during training
+  val_batch_size: 1024
+  test_batch_size: 1024
+  test_every: 100
+  nb_total_epochs: 2000 # 1000               # Number of epochs of trajectory learning (at each step, if 2-step learning)
+  lr: 2.5e-4
+  decay_rate: 0.99                    # Decay rate for update lr
+  decay_every: 50                     # Each _ epochs, decay lr
+  epoch_start: 0
+  checkpoint_epochs: 1
+  pretrained_model:
+  test_only: False                    # Set this value to only evaluate model
+  data_distribution: ${coords_dist}   # Data distribution to use during training (depends on problem)
+  no_tensorboard: True
+  no_progress_bar: False      # Disable progress bar
+  log_step: 50                # Log info every log_step steps'
+  # eval
+  beam_size: 1                        # Number of beams, =1 for greedy search
+  knns: -1                             # Number of KNNs used during the decoding (default: -1)
+  # fixed training dataset from env
+  train_dataset: ${fixed_train_set}
+  # data/train_data/cvrp_10000/rotation_rndint/targets50_seed225613_size6800.pkl
+  train_frac: 0.8
+  val_dataset:
+  test_dataset:
+  output_dir: ${log_path}

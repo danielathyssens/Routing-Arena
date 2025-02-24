@@ -14,3 +14,4 @@
 | 11 | NVIDIA GeForce RTX 2080 Ti         |                21893 |                  939 | 4x each on node gpu-020 - gpu-023, 3x on node gpu-022 (Prt. GPU)     |
 | 12 | NVIDIA GeForce GTX 1080 Ti         |                18564 |                  943 | 1x on gpu-000 - gpu-003 and 2x each on gpu-010 - gpu-019  (Prt. GPU) |
 | 13 | NVIDIA GeForce RTX 4060 Laptop GPU |                17730 |                  737 | soeren laptop                                                        |
+| 14 |  NVIDIA GeForce RTX 2070 SUPER     |                18216 |                  880 | 3x on node stud-000                                                  |

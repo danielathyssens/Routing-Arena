@@ -139,9 +139,10 @@ class Runner:
         self._build_env()
         self._build_model()
         if self.cfg.run_type in ["val", "test"]:
+            # print('self.cfg.data_file_path', self.cfg.data_file_path)
             if self.cfg.data_file_path is not None and self.passMark is not None \
                     and self.cfg.test_cfg.eval_type != "simple":
-                assert self.device in [torch.device("cpu"), torch.device("cuda"), torch.device("mps")], \
+                assert self.device in [torch.device("cpu"), torch.device("cuda")], \
                     f"Device {self.device} unknown - set to torch.device() for metric Evaluation " \
                     f"or set test_cfg.eval_type to 'simple'"
                 self.init_metrics(self.cfg)
@@ -183,19 +184,26 @@ class Runner:
         if cfg.run_type in ["val", "test"]:
             self.ds = self.get_test_set(cfg)
         elif cfg.run_type in ["train", "resume"]:
-            self.ds, self.ds_val = self.get_train_val_set(cfg)
+            warn("SGBS uses pretrained POMO model checkpoints... No SGBS training implemented!")
+            raise NotImplementedError
+            # self.ds, self.ds_val = None, None  # self.get_train_val_set(cfg)
         else:
             raise NotImplementedError(f"Unknown run_type: '{self.cfg.run_type}' for model {self.acronym}"
                                       f"Must be ['val', 'test', 'train', 'resume']")
 
     def _build_env(self):
 
+        # print('self.Env', self.Env)
         self.env = self.Env(self.ds, **self.cfg.env_cfg)
+        if self.cfg.debug_lvl >= 1:
+            logger.info('Environment Parameters',  self.env.env_params)
 
     def _build_model(self):
         """Infer and set the policy arguments provided to the learning algorithm."""
 
         self.model = self.Model(**self.cfg.model_cfg)
+        if self.cfg.debug_lvl >= 1:
+            logger.info('Model Parameters:', self.model.model_params)
 
     def _build_policy_ls(self):
         """Load and prepare data and initialize GORT routing models."""
@@ -232,27 +240,13 @@ class Runner:
 
         cfg = self.cfg.copy()
 
-        optimizer = Optimizer(self.model.parameters(), **self.cfg.train_cfg.optimizer_cfg.optimizer)
-        scheduler = Scheduler(optimizer, **self.cfg.train_cfg.optimizer_cfg.scheduler)
+        # optimizer = Optimizer(self.model.parameters(), **self.cfg.train_cfg.optimizer_cfg.optimizer)
+        # scheduler = Scheduler(optimizer, **self.cfg.train_cfg.optimizer_cfg.scheduler)
 
-        logger.info(f"start training...")
-        # results, solutions
-        _ = train_model(
-            Trainer=TSPTrainer if cfg.problem.upper() == "TSP" else CVRPTrainer,
-            env=self.env,
-            model=self.model,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            device=self.device,
-            train_cfg=cfg.train_cfg.copy()
-        )
-        logger.info(f"training finished.")
+        logger.info(f"start training SGBS ...")
 
-        # self.save_results({
-        #     "solutions": solutions,
-        #     "summary": summary
-        # })
-        # logger.info(summary)
+        warn("SGBS uses pretrained POMO model checkpoints... No SGBS training implemented!")
+        raise NotImplementedError
 
     def test(self):
         """Test (evaluate) the trained model on specified dataset."""

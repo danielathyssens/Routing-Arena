@@ -1,0 +1,33 @@
+# @package _global_
+# problem args
+
+problem: "tsp"
+graph_size: 100
+coords_dist: 'explosion'
+out_name: ${problem}_${graph_size}_${coords_dist}_sub
+data_file_path: data/test_data/tsp/sub_explosion/tsp100/val_seed9876_size128.pt
+normalize_data: True
+checkpoint_load_path: models/POMO/POMO/tsp/POMO/result/explosion_sub/saved_tsp100_model/checkpoint-8100.pt
+
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    single_large_instance: data/train_data/${problem}_10000/${coords_dist}/single_large_instance.pt
+    # for SLI generation used radius: 0.3, beta_exp: 0.005
+    radius: 0.3
+    beta_exp: 0.005  # scale value for exponential distribution used in explosion mutation
+  sampling_args:
+    sample_size: 128
+    graph_size: ${graph_size}
+    subsample: True
+    n_depots: 1 #number of depots (default = 1)
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}

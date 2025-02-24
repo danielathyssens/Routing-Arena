@@ -1,0 +1,49 @@
+# @package _global_
+# problem args
+
+# @package _global_
+# problem args
+
+problem: cvrptw
+graph_size: 200
+coords_dist: 'rotation'
+out_name: ${problem}_${graph_size}_${coords_dist}
+data_file_path: data/test_data/cvrptw/rotation/cvrptw200/val_seed22222_size128.pkl
+
+checkpoint_load_path: 'models/NeuroLKH/NeuroLKH/pretrained/cvrptw_neurolkh.pt'
+normalize_data: True
+
+# cfg specifying Solomon data groups, types and tw fractions
+# _data_cfg:
+#   groups: [ "r", "c", "rc" ]
+#   types: [1]
+#   tw_fracs: [ 0.75, 1.0 ]
+
+# RPEnv cfg - RA
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: random_int
+    twindow_sampling_dist: random_int # solomon or random_int
+    solomon_tw_cfg:
+      stats_path: # "data/train_data/vrptw/solomon_stats.pkl"
+      tw_frac: 0.25
+      group: r
+      type: 1
+    # if None in the following two args, then all are mixed
+    depot_type:  # Depot Position (uchoa only): C = central (500, 500), E = eccentric (0, 0), R = random
+    customer_type:  # Customer Position (uchoa only): C = Clustered, RC = Random-Clustered (half half), R = Random
+    demand_type:   # if None demand will be generated uniformly at random
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
+    # normalize_tw: True
+    single_large_instance: #
+    pm: 0.4
+    angle_range: [0, 2] # --> uniform(1.0, 1.3*pi) - default for problem size 200 is unif(0, 2*pi)
+  sampling_args:
+    sample_size: 150
+    graph_size: ${graph_size}
+    subsample: False
+    k: 25
+    cap: 70  # 1000
+    max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+    n_depots: 1 #number of depots (default = 1)

@@ -1,0 +1,41 @@
+# @package _global_
+# problem args
+
+problem: "cvrp"
+graph_size: 100
+coords_dist: 'explosion'
+weights_dist: 'random_int'
+out_name: ${problem}_${graph_size}_${coords_dist}_sub
+data_file_path: data/test_data/${problem}/sub_${coords_dist}/${problem}${graph_size}/val_seed2025_size128.pt
+
+normalize_data: True
+checkpoint_load_path: models/POMO/POMO/cvrp/POMO/result/saved_CVRP100_model/explosion_sub/checkpoint-8100.pt
+  # models/POMO/POMO/${problem}/POMO/result/saved_CVRP100_model/uniform/checkpoint-30500.pt
+
+# RP Env cfg
+env_kwargs:
+  generator_args:
+    coords_sampling_dist: ${coords_dist}
+    weights_sampling_dist: ${weights_dist} # sampling integers from 1-10
+    normalize_demands: True  # if None or False - demands will remain un-normalized (not between 0-1)
+    single_large_instance: # data/train_data/${problem}_10000/${coords_dist}_rndint/single_large_instance.pt
+    # following parameters scale the explosion simulation
+    # NOTE: for SLI generation used radius 0.6
+    radius: 0.35
+    beta_exp: 8  # scale value for exponential distribution used in explosion mutation
+  sampling_args:
+    sample_size: 128 # 1024
+    graph_size: ${graph_size}
+    subsample: False # True
+    k: 16
+    cap: 50
+    max_cap_factor: # factor of additional capacity w.r.t. a norm capacity of 1.0 per vehicle
+    n_depots: 1 #number of depots (default = 1)
+
+# Model Env cfg
+env_cfg:
+  problem_size: ${graph_size}
+  pomo_size: ${tester_cfg.pomo_size}
+  generator_args:
+    coords_dist: ${coords_dist}
+    graph_size: ${graph_size}

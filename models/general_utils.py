@@ -34,7 +34,7 @@ def get_machine_info(which_type: str, machine_name: str) -> Tuple:
         return int(g3d_m), int(g2d_m)
 
 
-def merge_bks(source_path_1: str, source_path_2: str, save_merged_bks: bool, save_path: str=None):
+def merge_bks(source_path_1: str, source_path_2: str, save_merged_bks: bool, save_path: str = None):
     bks_1_all = pytorch.load(source_path_1)
     bks_2_all = pytorch.load(source_path_2)
     assert len(bks_1_all) == len(bks_2_all), print(f"both BKS registries do not have same length...")
@@ -47,6 +47,38 @@ def merge_bks(source_path_1: str, source_path_2: str, save_merged_bks: bool, sav
             merged_registry[str(i)] = bks_1_all[str(i)]
         else:
             merged_registry[str(i)] = bks_2_all[str(i)]
+    assert len(merged_registry) == len(bks_1_all) == len(bks_2_all)
     if save_merged_bks:
         pytorch.save(merged_registry, save_path)
     return merged_registry
+
+
+def get_node_ids_of_sli(path_sli="data/train_data/cvrp_10000/uchoa_R_R_1/single_large_instance.pt",
+                        path_test="data/test_data/cvrp/sub_uchoa/cvrp100_RR1/val_R_R_1_seed1234_size128.pt", ):
+    node_ids_uch_rr1 = []
+    sli_uch100_rr1 = torch.load(path_sli)
+    test_uch100_rr1 = torch.load(path_test)
+    count = 0
+    test_data_len = len(test_uch100_rr1)
+    for i in range(len(test_uch100_rr1)):
+        # print(base_unf40[str(i)][0])
+        inst_i_node_ids = []
+        count_i = 0
+        for j, (coords_, dems_) in enumerate(
+                zip(sli_uch100_rr1[0].coords[1:], sli_uch100_rr1[0].node_features[1:, -1])):
+            for k, (coord_i, demand_i) in enumerate(zip(test_uch100_rr1[i].coords, test_uch100_rr1[i].node_features)):
+                if (coord_i == coords_).all() and (demand_i == dems_).all():
+                    print('sample i=', i)
+                    print(f'sli coord_j={j} found in coord_k={k}')
+                    # print('dems_', dems_)
+                    inst_i_node_ids.append(j)
+                    count_i += 1
+        print('count_i', count_i)
+        # print('node instance ids for ', i, inst_i_node_ids)
+        node_ids_uch_rr1.append(inst_i_node_ids)
+        print('len(node_ids_uch_rr1)', len(node_ids_uch_rr1))
+        count += 1
+    if count == test_data_len:
+        print("done")
+
+    return node_ids_uch_rr1
