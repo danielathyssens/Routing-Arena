@@ -136,14 +136,14 @@ def eval_model(Tester: Type[Union[TSPTester, CVRPTester, TSPTester_EAS, CVRPTest
         iterations_vs_time = []
         # sols, runtimes, costs, running_sols, running_rts, running_costs = tester.run()  # , cost_aug
         for instance in data:
-            print('INSTANCE ID', instance.instance_id)
+            # print('INSTANCE ID', instance.instance_id)
             if env.env_params['problem_size'] is None or env.env_params['problem_size'] != instance.graph_size - 1:
                 # means that problem_size (aka graph_size) in test set is set to None, b/c instances have different size
-                print('instance.graph_size', instance.graph_size)
-                print('instance.graph_size - 1', instance.graph_size - 1)
+                # print('instance.graph_size', instance.graph_size)
+                # print('instance.graph_size - 1', instance.graph_size - 1)
                 if instance.graph_size == 99:
                     instance = instance.update(graph_size=100)
-                print('instance.graph_size', instance.graph_size)
+                # print('instance.graph_size', instance.graph_size)
                 env.env_params['problem_size'] = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
                 env.problem_size = instance.graph_size - 1 if problem == "cvrp" else instance.graph_size
             if env.env_params['pomo_size'] is None or env.env_params['pomo_size'] != instance.graph_size - 1:

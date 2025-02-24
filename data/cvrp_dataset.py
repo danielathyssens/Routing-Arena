@@ -75,9 +75,9 @@ class CVRPDataset(BaseDataset):
         self.generator_args = generator_args
         self.sampling_args = sampling_args
         self.graph_size = graph_size
-        print('self.distribution', self.distribution)
+        # print('self.distribution', self.distribution)
         self.grid_size = grid_size if self.distribution in ["uchoa", "XML", "explosion", "rotation"] else 1000
-        print('self.grid_size', self.grid_size)
+        # print('self.grid_size', self.grid_size)
         self.num_vehicles = num_vehicles
         self.capacity = capacity
         self.time_limit = TimeLimit

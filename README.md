@@ -1,4 +1,8 @@
 # Routing Arena
+
+[RA_schema.pdf](RA_schema.pdf)
+
+
 ### **Routing Arena**: A Benchmark Suite for Neural Routing Methods
 This repository corresponds to the paper "_Routing Arena: A Benchmark Suite for Neural Routing Methods_".
 The Benchamark Suite aims at providing a seamless integration of **consistent evaluation** and **provision of baselines 
@@ -20,7 +24,7 @@ A copy of the Documentation PDF as well as a **Quick Baseline Setup** Guide will
 ### Setup
 1. Install the requirements as conda environment
 ```sh
-conda env create -f environment.yml
+conda env create -f environment_ra.yml
 ```
 2. Open the markdown files and add your machine information into the respective registries for CPU and GPU machines:
   - In `machine_scores/gpu_scores.md` you should enter the name and the G3D / G2D Mark from [PassMark-gpu](https://www.videocardbenchmark.net/high_end_gpus.html)
@@ -49,7 +53,7 @@ from models.analyse import average_run_results
 avg_res = average_run_results(path_to_results="outputs/saved_results/XE/XE_1/TL_implicit", model_name="SGBS-EAS", number_runs=3) # gives dict with summary stats
 ```
 
-**TSP**: Preliminary experiment to test the functionality for the TSP on uniformly sampled instances:
+**TSP**:  Quick-Start experiment to test SGBS-EAS on uniformly sampled TSP instances:
 
 ```
 python run_SGBS.py policy=sgbs_EAS env=tsp100_unf test_cfg.dataset_size=2 test_cfg.time_limit=10 test_cfg.eval_type=simple

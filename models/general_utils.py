@@ -4,12 +4,12 @@ import os
 from typing import Tuple
 import torch as pytorch
 
-from d2l import torch
+# from d2l import torch
 
 
 def get_machine_info(which_type: str, machine_name: str) -> Tuple:
     current_dir = os.getcwd()
-    root_dir = os.path.join(current_dir.split("routing-arena")[0], "routing-arena")
+    root_dir = os.path.join(current_dir.split("Routing-Arena")[0], "Routing-Arena")
     if which_type == "cpu":
         score_registry_path = os.path.join(root_dir, 'machine_scores/cpu_scores.md')
     elif which_type == "gpu":
